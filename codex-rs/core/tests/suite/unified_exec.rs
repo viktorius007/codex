@@ -1214,6 +1214,69 @@ async fn unified_exec_full_lifecycle_with_background_end_event() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn background_exec_completion_starts_a_follow_up_turn_without_polling() -> Result<()> {
+    skip_if_target_windows!(Ok(()), "uses a POSIX-only command fixture");
+    skip_if_no_network!(Ok(()));
+    skip_if_sandbox!(Ok(()));
+
+    let server = start_mock_server().await;
+    let mut builder = test_codex();
+    let test = builder.build_with_auto_env(&server).await?;
+    let call_id = "uexec-completion-wakeup";
+    let args = json!({
+        "cmd": "sleep 0.5; printf 'WAKEUP-COMPLETE'",
+        "yield_time_ms": 50,
+    });
+    let request_log = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-1"),
+                ev_function_call(call_id, "exec_command", &serde_json::to_string(&args)?),
+                ev_completed("resp-1"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-2"),
+                ev_assistant_message("msg-1", "waiting in the background"),
+                ev_completed("resp-2"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-3"),
+                ev_assistant_message("msg-2", "completion handled"),
+                ev_completed("resp-3"),
+            ]),
+        ],
+    )
+    .await;
+
+    submit_unified_exec_turn(
+        &test,
+        "start a background command and do not poll it",
+        PermissionProfile::Disabled,
+    )
+    .await?;
+
+    let mut completed_turns = 0;
+    while completed_turns < 2 {
+        if matches!(
+            wait_for_event(&test.codex, |_| true).await,
+            EventMsg::TurnComplete(_)
+        ) {
+            completed_turns += 1;
+        }
+    }
+
+    let requests = request_log.requests();
+    assert_eq!(requests.len(), 3, "expected an automatic follow-up request");
+    let completion_request = &requests[2];
+    assert!(completion_request.body_contains_text("<exec-command-completed"));
+    assert!(completion_request.body_contains_text(call_id));
+    assert!(completion_request.body_contains_text("WAKEUP-COMPLETE"));
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn unified_exec_network_denial_emits_failed_background_end_event() -> Result<()> {
     // TODO(anp): Remove after network-denial fixtures use target-native commands.
     skip_if_target_windows!(Ok(()), "uses the POSIX/Python network-denial fixture");
