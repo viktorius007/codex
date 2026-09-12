@@ -13,6 +13,17 @@
 - Continuing work beyond the Pareto line requires the user's approval.
 - Always create subagents with fresh context. Never create them by forking existing context.
 
+# Local exec-completion customization
+
+This checkout carries a local patch derived from `tekacs/codex@9ffcf8db9078eae43d4111ff94259795c1e962c9`. Preserve the behavior below when rebasing onto a newer stable release, adapting the implementation when upstream code changes.
+
+- When `exec_command` returns a live session, process exit must inject one bounded `ExecCompletion` and wake or continue the model without passive polling.
+- Commands that finish inside the initial `exec_command` call must not emit a duplicate completion.
+- Keep completion output capped at 1,000 tokens.
+- Keep the `exec_command`, `write_stdin`, and bundled model guidance aligned: do not poll only to detect completion; use `write_stdin` for interaction, required intermediate output, or diagnosis.
+- Treat changes to `codex-rs/core/src/context/exec_completion.rs`, `codex-rs/core/src/session/inject.rs`, `codex-rs/core/src/unified_exec/`, `codex-rs/core/src/tools/handlers/shell_spec.rs`, or `codex-rs/models-manager/models.json` as requiring preservation review.
+- After an upstream update affecting those paths or turn admission, run `just test -p codex-core -E 'test(background_exec_completion_starts_a_follow_up_turn_without_polling)'` from `codex-rs` before rebuilding `~/.local/bin/codex`.
+
 # Rust/codex-rs
 
 In the codex-rs folder where the rust code lives:
