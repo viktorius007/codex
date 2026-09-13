@@ -54,6 +54,7 @@ use codex_utils_output_truncation::TruncationPolicy;
 use codex_utils_output_truncation::approx_token_count;
 use codex_utils_output_truncation::truncate_text;
 use futures::prelude::*;
+use tokio_util::sync::CancellationToken;
 use tracing::error;
 
 pub use codex_prompts::SUMMARIZATION_PROMPT;
@@ -114,11 +115,12 @@ pub(crate) async fn build_compaction_initial_context(
 
 pub(crate) async fn run_inline_auto_compact_task(
     sess: Arc<Session>,
-    turn_context: Arc<TurnContext>,
+    step_context: Arc<StepContext>,
     initial_context_injection: InitialContextInjection,
     reason: CompactionReason,
     phase: CompactionPhase,
 ) -> CodexResult<()> {
+    let turn_context = &step_context.turn;
     let prompt = turn_context
         .config
         .compact_prompt
@@ -133,7 +135,7 @@ pub(crate) async fn run_inline_auto_compact_task(
 
     run_compact_task_inner(
         sess,
-        turn_context,
+        step_context,
         input,
         initial_context_injection,
         CompactionTrigger::Auto,
@@ -149,10 +151,14 @@ pub(crate) async fn run_compact_task(
     turn_context: Arc<TurnContext>,
     input: Vec<UserInput>,
 ) -> CodexResult<()> {
+    // Standalone compaction is its own request boundary, so it captures a fresh step.
+    let step_context = sess
+        .capture_step_context(Arc::clone(&turn_context), &CancellationToken::new())
+        .await?;
     sess.emit_turn_started(&turn_context).await;
     run_compact_task_inner(
         sess.clone(),
-        turn_context,
+        step_context,
         input,
         InitialContextInjection::DoNotInject,
         CompactionTrigger::Manual,
@@ -165,13 +171,14 @@ pub(crate) async fn run_compact_task(
 
 async fn run_compact_task_inner(
     sess: Arc<Session>,
-    turn_context: Arc<TurnContext>,
+    step_context: Arc<StepContext>,
     input: Vec<UserInput>,
     initial_context_injection: InitialContextInjection,
     trigger: CompactionTrigger,
     reason: CompactionReason,
     phase: CompactionPhase,
 ) -> CodexResult<()> {
+    let turn_context = Arc::clone(&step_context.turn);
     let compaction_metadata =
         CompactionTurnMetadata::new(trigger, reason, CompactionImplementation::Responses, phase);
     let attempt = CompactionAnalyticsAttempt::begin(
@@ -201,7 +208,7 @@ async fn run_compact_task_inner(
     }
     let result = run_compact_task_inner_impl(
         Arc::clone(&sess),
-        Arc::clone(&turn_context),
+        step_context,
         input,
         initial_context_injection,
         compaction_metadata,
@@ -250,11 +257,12 @@ async fn run_compact_task_inner(
 
 async fn run_compact_task_inner_impl(
     sess: Arc<Session>,
-    turn_context: Arc<TurnContext>,
+    step_context: Arc<StepContext>,
     input: Vec<UserInput>,
     initial_context_injection: InitialContextInjection,
     compaction_metadata: CompactionTurnMetadata,
 ) -> CodexResult<String> {
+    let turn_context = Arc::clone(&step_context.turn);
     let compaction_item = TurnItem::ContextCompaction(ContextCompactionItem::new());
     sess.emit_turn_item_started(&turn_context, &compaction_item)
         .await;
@@ -288,8 +296,12 @@ async fn run_compact_task_inner_impl(
         let turn_input_len = turn_input.len();
         let prompt = Prompt {
             input: turn_input,
+            tools: step_context.tool_router.model_visible_specs(),
+            parallel_tool_calls: true,
             base_instructions: sess.get_prompt_base_instructions().await,
-            ..Default::default()
+            output_schema: None,
+            output_schema_strict: true,
+            cyber_access_program: turn_context.cyber_access_program,
         };
         let attempt_result = drain_to_completed(
             &sess,
