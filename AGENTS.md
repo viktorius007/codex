@@ -1,3 +1,15 @@
+# Repository working principles
+
+- Treat every rule, preference, approach, expression of intent, and other instruction from the user as durable across sessions unless the user explicitly marks it as session-scoped. Persist each durable instruction in this root `AGENTS.md` so it is available at the start of future sessions.
+- Once the user's intent and scope are established, work independently within them. Do not assume either when they are unclear; clarify before starting and clarify again if material ambiguity or unexpected information would materially change the planned work.
+- Keep this clone current with upstream and organize local changes so upstream alignment remains quick and low-friction. Keep `main` as a fast-forward-only mirror of `origin/main`; keep durable local policy on `local/customizations`, rebased onto `origin/main`.
+- Prioritize fixing bugs locally and quickly over preparing changes for upstream submission. Use a dedicated `work/issue-<number>` branch for each GitHub issue and record work as small, coherent commits that can be cherry-picked independently; do not add pull-request ceremony unless the user is considering upstream submission.
+- When preparing an upstream submission, create a clean branch from `origin/main` and cherry-pick only the relevant issue commits so private local policy and unrelated work are excluded.
+- Take responsibility for repository housekeeping, including cleaning up worktrees, branches, and temporary files. Remove artifacts created by agents and branches or worktrees that are merged or demonstrably obsolete; preserve unknown uncommitted work and user-created artifacts.
+- Apply the Pareto principle to all work in this repository: identify and pursue the most direct, surgical approach that delivers the greatest value for the effort. Multiple options may be considered, but prefer the highest-value option.
+- Continuing work beyond the Pareto line requires the user's approval.
+- Always create subagents with fresh context. Never create them by forking existing context.
+
 # Rust/codex-rs
 
 In the codex-rs folder where the rust code lives:
