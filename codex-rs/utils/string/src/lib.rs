@@ -26,13 +26,13 @@ pub fn take_bytes_at_char_boundary(s: &str, maxb: usize) -> &str {
 }
 
 /// Sanitize a tag value to comply with metric tag validation rules:
-/// only ASCII alphanumeric, '.', '_', '-', and '/' are allowed.
+/// only ASCII alphanumeric, '.', '_', '-', '/', and '+' are allowed.
 pub fn sanitize_metric_tag_value(value: &str) -> String {
     const MAX_LEN: usize = 256;
     let sanitized: String = value
         .chars()
         .map(|ch| {
-            if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | '/') {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | '/' | '+') {
                 ch
             } else {
                 '_'
@@ -143,8 +143,8 @@ mod tests {
 
     #[test]
     fn sanitize_metric_tag_value_replaces_invalid_chars() {
-        let msg = "bad value!";
-        assert_eq!(sanitize_metric_tag_value(msg), "bad_value");
+        let msg = "bad 1.2.3+local.1!";
+        assert_eq!(sanitize_metric_tag_value(msg), "bad_1.2.3+local.1");
     }
 
     #[test]
