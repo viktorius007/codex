@@ -1597,21 +1597,11 @@ impl Session {
                     .await;
                 }
 
-                // Seed usage info from the recorded rollout so UIs can show token counts
-                // immediately on resume/fork.
-                if let Some(info) = Self::last_token_info_from_rollout(&rollout_items) {
-                    let mut state = self.state.lock().await;
-                    state.set_token_info(Some(info));
-                }
-                self.state.lock().await.latest_token_usage_record =
-                    Self::last_token_usage_record_from_rollout(&rollout_items);
-
                 // Checkpoint effective settings even when no turn follows the resume.
                 self.persist_rollout_items(&[RolloutItem::EventMsg(
                     thread_settings::applied_event(self).await,
                 )])
                 .await;
-
                 // Defer seeding the session's initial context until the first turn starts so
                 // turn/start overrides can be merged before we write model-visible context.
                 if !is_subagent {
@@ -1624,15 +1614,6 @@ impl Session {
                 Self::assign_missing_rollout_response_item_ids(&mut rollout_items);
                 self.apply_rollout_reconstruction(&turn_context, &rollout_items)
                     .await;
-
-                // Seed usage info from the recorded rollout so UIs can show token counts
-                // immediately on resume/fork.
-                if let Some(info) = Self::last_token_info_from_rollout(&rollout_items) {
-                    let mut state = self.state.lock().await;
-                    state.set_token_info(Some(info));
-                }
-                self.state.lock().await.latest_token_usage_record =
-                    Self::last_token_usage_record_from_rollout(&rollout_items);
 
                 let thread_settings_applied =
                     RolloutItem::EventMsg(thread_settings::applied_event(self).await);
@@ -1700,6 +1681,9 @@ impl Session {
     ) -> Option<PreviousTurnSettings> {
         let rollout_reconstruction::RolloutReconstruction {
             mut history,
+            token_info,
+            accepted_token_usage,
+            latest_token_usage_record,
             retained_context,
             guardian_history,
             previous_turn_settings,
@@ -1750,6 +1734,14 @@ impl Session {
             } else {
                 None
             };
+        // TokenCount is emitted after pending tools resolve, so its rollout position cannot prove
+        // which history items the server usage covered. When replay has no positioned
+        // TokenUsageRecord, use a local estimate of the exact reconstructed history instead.
+        let fallback_base_instructions = if accepted_token_usage.is_none() {
+            Some(self.get_base_instructions().await)
+        } else {
+            None
+        };
         {
             let mut state = self.state.lock().await;
             state.replace_annotated_history(
@@ -1757,11 +1749,30 @@ impl Session {
                 reference_context_item,
                 HistoryReplacement::Reset,
             );
-            state.history.restore_review_context(
-                Some(&retained_context),
-                guardian_history.as_ref(),
-                reviewer_compaction_hash.as_deref(),
-            );
+            let accepted_token_usage = accepted_token_usage.or_else(|| {
+                let base_instructions = fallback_base_instructions.as_ref()?;
+                let estimated_total_tokens = state
+                    .history
+                    .estimate_token_count_with_base_instructions(base_instructions)?;
+                Some(crate::context_manager::AcceptedTokenUsage::fully_accounted(
+                    TokenUsage {
+                        total_tokens: estimated_total_tokens.max(0),
+                        ..TokenUsage::default()
+                    },
+                    state.history.annotated_items().len(),
+                ))
+            });
+            state
+                .history
+                .set_token_info_and_accepted_usage(token_info, accepted_token_usage);
+            state.latest_token_usage_record = latest_token_usage_record;
+            state
+                .history
+                .restore_review_context(
+                    Some(&retained_context),
+                    guardian_history.as_ref(),
+                    reviewer_compaction_hash.as_deref(),
+                );
             if let Some(world_state) = world_state_baseline {
                 state.history.set_world_state_baseline(world_state);
             }
@@ -1808,13 +1819,6 @@ impl Session {
 
         let mut state = self.state.lock().await;
         state.set_auto_compact_window_estimated_prefill(tokens);
-    }
-
-    fn last_token_info_from_rollout(rollout_items: &[RolloutItem]) -> Option<TokenUsageInfo> {
-        rollout_items.iter().rev().find_map(|item| match item {
-            RolloutItem::EventMsg(EventMsg::TokenCount(ev)) => ev.info.clone(),
-            _ => None,
-        })
     }
 
     fn last_token_usage_record_from_rollout(
@@ -4662,37 +4666,21 @@ impl Session {
     }
 
     pub(crate) async fn recompute_token_usage(&self, turn_context: &TurnContext) {
-        let history = self.clone_history().await;
         let base_instructions = self.get_base_instructions().await;
-        let Some(estimated_total_tokens) =
-            history.estimate_token_count_with_base_instructions(&base_instructions)
-        else {
-            return;
-        };
-        {
+        let estimated_total_tokens = {
             let mut state = self.state.lock().await;
-            let mut info = state.token_info().unwrap_or(TokenUsageInfo {
-                total_token_usage: TokenUsage::default(),
-                last_token_usage: TokenUsage::default(),
-                model_context_window: None,
-            });
-
-            info.last_token_usage = TokenUsage {
-                input_tokens: 0,
-                cached_input_tokens: 0,
-                cache_write_input_tokens: 0,
-                output_tokens: 0,
-                reasoning_output_tokens: 0,
-                total_tokens: estimated_total_tokens.max(0),
-                codex_rollout_budget_units: None,
+            let Some(estimated_total_tokens) = state
+                .history
+                .estimate_token_count_with_base_instructions(&base_instructions)
+            else {
+                return;
             };
-
-            if let Some(model_context_window) = turn_context.model_context_window() {
-                info.model_context_window = Some(model_context_window);
-            }
-
-            state.set_token_info(Some(info));
-        }
+            state.set_recomputed_token_usage(
+                estimated_total_tokens,
+                turn_context.model_context_window(),
+            );
+            estimated_total_tokens
+        };
         self.set_auto_compact_window_estimated_prefill_for_scope(
             turn_context,
             estimated_total_tokens,
