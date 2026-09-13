@@ -78,7 +78,7 @@ Subagent history classification uses persisted inheritance markers (`forked_from
 
 Work the ledger in this order:
 
-1. **Privacy-safe request-fingerprint diagnostics.** Before attempting causal fixes, record and compare every cache-relevant request component so each warm cache drop identifies its first local difference or proves that no visible client difference exists. Store bounded, model-invisible JSONL sidecars under `~/.codex/cache-diagnostics/YYYY/MM/DD/<thread-id>.jsonl`; never store prompt text, tool arguments or output, file contents, credentials, or complete headers. Cap retained diagnostics at 100 MiB or 30 days, removing the oldest files first.
+1. **Privacy-safe request-fingerprint diagnostics.** Before attempting causal fixes, record and compare every cache-relevant request component so each warm cache drop identifies its first local difference or proves that no visible client difference exists. Store model-invisible JSONL sidecars with bounded records and memory under `~/.codex/cache-diagnostics/YYYY/MM/DD/<thread-id>.jsonl`; never store prompt text, tool arguments or output, file contents, credentials, or complete headers. Preserve diagnostic data indefinitely: no disk cap, age limit, or automatic deletion.
 2. **Core prefix construction.** Establish one deterministic representation and comparison surface for instructions, world state, skills, tools, request settings, and cache/routing identities. Every later investigation depends on this.
 3. **Session compaction.** Fix compact-request parity, trigger accounting, replacement-history stability, and resume parity because every long-running session crosses this boundary.
 4. **Fresh-context subagents.** Eliminate timeout-driven orchestrator polling, then prove that a child without inherited conversation history reuses the parent's still-warm stable startup prefix. This is the normal high-volume workflow.
@@ -92,7 +92,7 @@ Within each priority, handle confirmed current-source defects before suspected o
 
 | Priority | Mechanism | Current-source verdict | Primary issues | Next gate |
 |---:|---|---|---|---|
-| 1.1 | Bounded, privacy-safe request-fingerprint sidecar | Confirmed observability gap | #35706, #32479, #43615 | Persist redacted component hashes, serialized order, identities, timing, and first difference under `~/.codex/cache-diagnostics/`; prove the records are model-invisible and retention is bounded. |
+| 1.1 | Privacy-safe request-fingerprint sidecar | Confirmed observability gap | #35706, #32479, #43615 | Persist redacted component hashes, serialized order, identities, timing, and first difference under `~/.codex/cache-diagnostics/`; prove the records are model-invisible, individual records and memory are bounded, and evidence is never automatically deleted. |
 | 2.1 | Complete prefix construction and comparison surface | Confirmed observability gap | #35706, #32479, #43615 | Capture redacted instructions, input, tools, request settings, cache key, and transport identities in serialized order. |
 | 2.2 | Plugin skills expose mutable cache-version paths in the startup prefix | Confirmed design risk; stale-path handling partly improved | #25609, #24390, #25285 | Render stable semantic locators or aliases and compare equivalent startup prefixes across marketplace refreshes. |
 | 2.3 | Core prefix fields can change without a single explicit fingerprint/invariant | Test gap | #30425, #35925 | Define and test a cache-relevant prefix fingerprint across consecutive turns and warm resume. |
@@ -109,7 +109,7 @@ Within each priority, handle confirmed current-source defects before suspected o
 
 ## Delivery stages
 
-1. **Request-fingerprint diagnostics:** add the bounded model-invisible sidecar, first-difference comparison, and retention enforcement.
+1. **Request-fingerprint diagnostics:** add model-invisible sidecars, bounded records and memory, and first-difference comparison without automatic data deletion.
 2. **Core prefix construction:** establish the prefix invariant and remove volatile skill locators using the new diagnostics.
 3. **Session compaction:** fix local request parity, then accounting, then retained-tail continuity.
 4. **Fresh-context subagents:** add completion-driven parent wake-up without timeout polling, then prove warm parent-prefix reuse and stable identities without copying parent conversation history.
