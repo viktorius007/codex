@@ -197,6 +197,22 @@ pub(crate) struct McpConnectionSet {
 }
 
 impl McpConnectionSet {
+    pub(crate) fn has_same_server_connection_identity(&self, current: &Self, server: &str) -> bool {
+        let Some(sampled) = self.servers.get(server) else {
+            return false;
+        };
+        let Some(current) = current.servers.get(server) else {
+            return false;
+        };
+        Arc::ptr_eq(&sampled.connection, &current.connection)
+            || sampled
+                .connection
+                .identity
+                .as_ref()
+                .zip(current.connection.identity.as_ref())
+                .is_some_and(|(sampled, current)| sampled == current)
+    }
+
     /// Creates an MCP connection manager. Threadless callers can pass no `tx_event`; startup
     /// notifications are then skipped and interactive elicitations are declined.
     pub async fn new(

@@ -97,6 +97,43 @@ impl McpBinding {
             .cloned()
     }
 
+    /// Prepares an advertised call only while its captured execution authority remains current.
+    pub fn prepare_call_if_current(&self, current: PreparedMcpCall) -> Option<PreparedMcpCall> {
+        let server = current.server_name.as_str();
+        let tool = current.tool_info.tool.name.as_ref();
+        if let Some(sampled) = self.prepare_call(server, tool) {
+            return sampled
+                .has_same_execution_authority(&current)
+                .then_some(sampled);
+        }
+        let frozen = self
+            .tools
+            .iter()
+            .find(|info| info.server_name == server && info.tool.name.as_ref() == tool)?;
+        if self.config.as_ref() != current.config.as_ref()
+            || !self
+                .connections
+                .has_same_server_connection_identity(&current.connections, server)
+        {
+            return None;
+        }
+        // Generic caches omit all annotations; Apps caches redact only the read-only hint.
+        // Compare the sampled contract, then let the verified live connection supply execution hints.
+        let mut live = current.tool_info.clone();
+        // Cached startup can refresh process-specific presentation text without changing the call.
+        live.namespace_description = frozen.namespace_description.clone();
+        live.tool.description = frozen.tool.description.clone();
+        if frozen.tool.annotations.is_none() {
+            live.tool.annotations = None;
+        } else if let Some(annotations) = live.tool.annotations.as_mut() {
+            annotations.read_only_hint = None;
+        }
+        if frozen != &live {
+            return None;
+        }
+        Some(current)
+    }
+
     pub fn has_servers(&self) -> bool {
         self.connections.has_servers()
     }
@@ -182,6 +219,17 @@ pub struct PreparedMcpCall {
 }
 
 impl PreparedMcpCall {
+    /// Checks whether a refreshed call retains the sampled client, catalog, and permissions.
+    /// Equivalent configuration publications are allowed; replacement clients are not.
+    fn has_same_execution_authority(&self, current: &Self) -> bool {
+        self.server_name == current.server_name
+            && self.tool_info.tool.name == current.tool_info.tool.name
+            && Arc::ptr_eq(&self.client.client, &current.client.client)
+            && Arc::ptr_eq(&self.client.tool_catalog, &current.client.tool_catalog)
+            && self.catalog_revision == current.catalog_revision
+            && self.config.as_ref() == current.config.as_ref()
+    }
+
     #[expect(
         clippy::too_many_arguments,
         reason = "the exact call authority stays together"

@@ -2867,6 +2867,118 @@ async fn capture_binding_exposes_cached_tools_before_startup() {
     );
 }
 
+async fn capture_cached_binding_then_start_apps_tool(
+    cached_tool: ToolInfo,
+    live_tool: ToolInfo,
+) -> (McpBinding, McpBinding) {
+    let codex_home = tempdir().expect("tempdir");
+    let cache_context = create_codex_apps_tools_cache_context(
+        codex_home.path().to_path_buf(),
+        Some("account-one"),
+        Some("user-one"),
+    );
+    store_current_tools(&cache_context, vec![cached_tool]);
+    let (mut pending_client, wait_for_startup, release_startup) =
+        create_gated_async_managed_client(create_test_managed_client(vec![live_tool]).await);
+    pending_client.is_codex_apps_mcp_server = true;
+    pending_client.codex_apps_tools_cache_context = Some(cache_context);
+    let approval_policy = Constrained::allow_any(AskForApproval::OnRequest);
+    let permission_profile = Constrained::allow_any(PermissionProfile::default());
+    let mut manager = McpConnectionSet::new_uninitialized(
+        &approval_policy,
+        &permission_profile,
+        /*prefix_mcp_tool_names*/ true,
+    );
+    manager.insert_test_client(CODEX_APPS_MCP_SERVER_NAME, pending_client);
+    manager.set_test_server_metadata(
+        CODEX_APPS_MCP_SERVER_NAME,
+        McpServerMetadata {
+            environment_id: codex_config::DEFAULT_MCP_SERVER_ENVIRONMENT_ID.to_string(),
+            pollutes_memory: false,
+            origin: None,
+            supports_parallel_tool_calls: false,
+            default_tools_approval_mode: None,
+            tool_approval_modes: HashMap::new(),
+        },
+    );
+    let manager = Arc::new(manager);
+    let cached_binding = capture_binding(&manager).await;
+
+    let manager_for_startup = Arc::clone(&manager);
+    let startup = tokio::spawn(async move {
+        manager_for_startup
+            .wait_for_server_startup(CODEX_APPS_MCP_SERVER_NAME)
+            .await
+    });
+    wait_for_startup.await.expect("client startup should begin");
+    release_startup.send(()).expect("release client startup");
+    assert!(startup.await.expect("startup task"));
+
+    (cached_binding, capture_binding(&manager).await)
+}
+
+#[tokio::test]
+async fn cached_binding_accepts_matching_live_tool_with_live_execution_annotations() {
+    let mut tool = create_test_tool(CODEX_APPS_MCP_SERVER_NAME, "shared_cached_tool");
+    tool.tool.annotations = Some(
+        rmcp::model::ToolAnnotations::new()
+            .read_only(true)
+            .destructive(false)
+            .open_world(false),
+    );
+    let (cached_binding, live_binding) =
+        capture_cached_binding_then_start_apps_tool(tool.clone(), tool).await;
+    let current = live_binding
+        .prepare_call(CODEX_APPS_MCP_SERVER_NAME, "shared_cached_tool")
+        .expect("the live catalog should prepare the matching tool");
+    assert_eq!(
+        current.tool_info().tool.annotations,
+        Some(
+            rmcp::model::ToolAnnotations::new()
+                .read_only(true)
+                .destructive(false)
+                .open_world(false)
+        )
+    );
+
+    assert_eq!(
+        cached_binding.tools()[0].tool.annotations,
+        Some(
+            rmcp::model::ToolAnnotations::new()
+                .destructive(false)
+                .open_world(false)
+        )
+    );
+    let live_tool_info = current.tool_info().clone();
+    let prepared = cached_binding
+        .prepare_call_if_current(current)
+        .expect("the matching live tool should retain the sampled authority");
+
+    assert_eq!(prepared.tool_info(), &live_tool_info);
+}
+
+#[tokio::test]
+async fn cached_binding_rejects_changed_live_tool_schema() {
+    let cached_tool = create_test_tool(CODEX_APPS_MCP_SERVER_NAME, "shared_cached_tool");
+    let mut live_tool = cached_tool.clone();
+    live_tool.tool.input_schema = Arc::new(
+        serde_json::from_value(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "changed": { "type": "boolean" }
+            }
+        }))
+        .expect("valid tool input schema"),
+    );
+    let (cached_binding, live_binding) =
+        capture_cached_binding_then_start_apps_tool(cached_tool, live_tool).await;
+    let current = live_binding
+        .prepare_call(CODEX_APPS_MCP_SERVER_NAME, "shared_cached_tool")
+        .expect("the live catalog should prepare the changed tool");
+
+    assert!(cached_binding.prepare_call_if_current(current).is_none());
+}
+
 #[tokio::test(start_paused = true)]
 async fn capture_binding_skips_pending_optional_servers_after_configured_shared_startup_grace() {
     let approval_policy = Constrained::allow_any(AskForApproval::OnRequest);

@@ -46,6 +46,7 @@ use codex_protocol::config_types::CollaborationMode;
 use codex_protocol::config_types::ModeKind;
 use codex_protocol::config_types::ReasoningSummary;
 use codex_protocol::config_types::Settings;
+use codex_protocol::config_types::WebSearchMode;
 use codex_protocol::config_types::WindowsSandboxLevel;
 use codex_protocol::mcp_policy::McpServerIdentity;
 use codex_protocol::mcp_policy::McpServerRequirement;
@@ -605,6 +606,107 @@ async fn mcp_namespace_instructions_are_preserved_without_hiding_tools() -> anyh
         responses::namespace_child_tool(&body, "mcp__bounded", "echo").is_some(),
         "preserving the namespace must not hide a valid MCP tool"
     );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn mixed_tool_order_is_stable_across_mcp_insertion_orders() -> anyhow::Result<()> {
+    skip_if_wine_exec!(
+        Ok(()),
+        "requires a Windows test_stdio_server in the Wine-exec environment"
+    );
+    skip_if_no_network!(Ok(()));
+
+    let server = responses::start_mock_server().await;
+    let command = remote_aware_stdio_server_bin()?;
+    let mut serialized_tool_lists = Vec::new();
+
+    for (response_id, mcp_server_order) in [
+        ("ascending", ["alpha", "zeta"]),
+        ("descending", ["zeta", "alpha"]),
+    ] {
+        let message_id = format!("{response_id}-message");
+        let response = mount_sse_once(
+            &server,
+            responses::sse(vec![
+                responses::ev_response_created(response_id),
+                responses::ev_assistant_message(&message_id, "done"),
+                responses::ev_completed(response_id),
+            ]),
+        )
+        .await;
+        let command = command.clone();
+        let fixture = test_codex()
+            .with_model_info_override("gpt-5.4", |model| model.supports_search_tool = false)
+            .with_config(move |config| {
+                config
+                    .web_search_mode
+                    .set(WebSearchMode::Live)
+                    .expect("test web search mode should satisfy constraints");
+                for server_name in mcp_server_order {
+                    insert_mcp_server(
+                        config,
+                        server_name,
+                        stdio_transport(command.clone(), /*env*/ None, Vec::new()),
+                        TestMcpServerOptions {
+                            environment_id: remote_aware_environment_id(),
+                            ..Default::default()
+                        },
+                    );
+                }
+            })
+            .build_with_auto_env(&server)
+            .await?;
+
+        let startup = loop {
+            let event = fixture
+                .codex
+                .next_event()
+                .await
+                .context("event stream ended before MCP startup completed")?;
+            if let EventMsg::McpStartupComplete(startup) = event.msg {
+                break startup;
+            }
+        };
+        let mut ready_servers = startup.ready;
+        ready_servers.sort();
+        assert_eq!(ready_servers, ["alpha".to_string(), "zeta".to_string()]);
+
+        fixture
+            .submit_turn_with_permission_profile(
+                "show the complete tool inventory",
+                PermissionProfile::Disabled,
+            )
+            .await?;
+        let body = response.single_request().body_json();
+        let tools = body["tools"]
+            .as_array()
+            .expect("request body should include a tools array");
+        let mcp_namespaces = tools
+            .iter()
+            .filter_map(|tool| tool.get("name").and_then(Value::as_str))
+            .filter(|name| name.starts_with("mcp__"))
+            .collect::<Vec<_>>();
+        assert_eq!(mcp_namespaces, ["mcp__alpha", "mcp__zeta"]);
+        assert!(
+            tools
+                .iter()
+                .any(|tool| tool.get("type").and_then(Value::as_str) == Some("web_search")),
+            "fixture should include a hosted web search tool"
+        );
+        assert!(
+            tools.iter().any(|tool| {
+                tool.get("type").and_then(Value::as_str) == Some("function")
+                    && tool.get("name").and_then(Value::as_str) == Some("exec_command")
+            }),
+            "fixture should include the non-MCP exec_command tool"
+        );
+        serialized_tool_lists.push(body["tools"].clone());
+
+        fixture.codex.shutdown_and_wait().await?;
+    }
+
+    assert_eq!(serialized_tool_lists[0], serialized_tool_lists[1]);
     Ok(())
 }
 

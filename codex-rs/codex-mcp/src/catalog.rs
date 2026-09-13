@@ -561,6 +561,13 @@ pub struct ResolvedMcpCatalog {
     conflicts: Vec<McpServerConflict>,
 }
 
+// Equality describes effective server authority, not registration order or conflict diagnostics.
+impl PartialEq for ResolvedMcpCatalog {
+    fn eq(&self, other: &Self) -> bool {
+        self.disabled_server_names == other.disabled_server_names && self.servers == other.servers
+    }
+}
+
 impl ResolvedMcpCatalog {
     pub fn builder() -> McpCatalogBuilder {
         McpCatalogBuilder::default()
