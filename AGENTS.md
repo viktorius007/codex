@@ -1,5 +1,7 @@
 # Repository working principles
 
+- The user is a layperson, not a software engineer. Explain technical decisions, consequences, and risks in plain language, and do not assume software-development knowledge.
+- The user's computer is a MacBook Pro with an M3 Max, 16 CPU cores, 48 GB of memory, and a 1 TB NVMe drive. CPU and memory are rarely constraints, but disk space must be checked during work. Clean up agent-created build artifacts and temporary files proactively, and always perform a cleanup check before ending a session while preserving unknown or user-created files.
 - Treat every rule, preference, approach, expression of intent, and other instruction from the user as durable across sessions unless the user explicitly marks it as session-scoped. Persist each durable instruction in this root `AGENTS.md` so it is available at the start of future sessions.
 - Once the user's intent and scope are established, work independently within them. Do not assume either when they are unclear; clarify before starting and clarify again if material ambiguity or unexpected information would materially change the planned work.
 - Keep this clone current with upstream and organize local changes so upstream alignment remains quick and low-friction. Keep `main` as a fast-forward-only mirror of `origin/main`; base `local/customizations` on the current stable `rust-v*` release tag rather than `origin/main`, and rebase it onto each newer stable release after that release is selected for local use.
