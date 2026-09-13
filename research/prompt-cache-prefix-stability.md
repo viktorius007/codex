@@ -55,6 +55,16 @@ Baseline run on 2026-09-14, while the archive was live:
 
 The run scanned 3,762 rollouts (3.13 GiB) and 109,522 model-usage samples. It excluded 65 model/effort changes and 98 comparisons outside the warm window. Counts can increase as active rollouts are appended.
 
+### Baseline cohort boundary
+
+- The scan completed before baseline commit `41b496a829521e9bd18f69c3cb0a0be23a29316d`, committed at `2026-09-14T00:11:23+10:00`. Treat that as an upper-bound wall-clock timestamp; the scan itself finished a few minutes earlier.
+- Earliest included session creation: `2026-01-04T05:54:31.640Z`, root session `019b8792-5058-7d51-93f8-b307fb3a9a12`, rollout `2026/01/04/rollout-2026-01-04T15-54-31-019b8792-5058-7d51-93f8-b307fb3a9a12.jsonl`.
+- Latest included session creation: `2026-09-13T12:59:10.217Z`, thread `01a09ad9-a5fe-7243-9599-154e9d73dee3`, rollout `2026/09/13/rollout-2026-09-13T22-59-10-01a09ad9-a5fe-7243-9599-154e9d73dee3.jsonl`.
+- That latest thread belongs to root session `01a09ad9-a5aa-7413-87a2-99c6c6b620ee`. This root session is the practical high-water session marker for the baseline.
+- The latest rollout was live and continued growing after the scan. Therefore the immutable numerical boundary is the recorded combination of 3,762 rollout files and 109,522 usage samples, not the current contents of that final file.
+
+A post-fix comparison should include only sessions created after the fixed binary was installed and report rates per 1,000 model calls. It must not rescan the growing pre-fix archive and compare raw totals against this baseline.
+
 Two fresh-context subagent witnesses deserve early reproduction:
 
 - At `2026-09-09T00:34:07.309Z`, a child began 0.419 seconds after a related warm request. Cached input fell from 26,112 to zero on a 22,728-token request. Every startup component visible to the scanner had the same redacted fingerprint.
