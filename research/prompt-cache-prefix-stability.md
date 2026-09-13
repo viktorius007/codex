@@ -1,6 +1,6 @@
 # Prompt-cache prefix stability investigation
 
-Updated: 2026-09-13
+Updated: 2026-09-14
 
 Source snapshot: `local/customizations` at `ffabed54df`.
 
@@ -25,6 +25,44 @@ Objective: locate, reproduce, and fix every preventable unintended cache bust, s
 - Treat a changed cache key, request prefix, tool schema/order, or hidden routing identity as a cache-bust candidate.
 - Treat high token use with a stable, highly cached prefix as amplification, not a cache bust.
 - Before changing code, capture two otherwise-identical requests and identify the first differing cache-relevant field.
+
+## Local rollout baseline
+
+The privacy-safe scanner is `scripts/audit_prompt_cache.py`. It reads rollout JSONL locally and prints token counts, timing, structural event names, tool names, and changed field names. It never prints prompt text, model output, tool arguments or output, working directories, or world-state values.
+
+Run the summary with:
+
+```sh
+python3 scripts/audit_prompt_cache.py ~/.codex/sessions --limit 0
+```
+
+Use `--json --limit 1000` for machine-readable incident details, or pass an individual rollout path for a focused scan. The defaults flag a pair only when it is at most 30 minutes apart, the prior request had at least 1,024 cached tokens, at least 1,024 expected cached tokens were lost, and the new cached count is at most half of `min(previous cached tokens, current input tokens)`. Model and reasoning-effort changes are excluded. The 30-minute default is the current documented minimum cache lifetime for GPT-5.6+ `prompt_cache_options.ttl`; it is a conservative eligibility window, not an assertion that every cache entry expires at 30 minutes. [Official Responses API reference](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+
+Baseline run on 2026-09-14, while the archive was live:
+
+| Classification | Candidates | Estimated lost cached tokens |
+|---|---:|---:|
+| No cache-relevant rollout change visible | 440 | 29,261,067 |
+| Forked-history subagent start | 170 | 3,061,756 |
+| Post-compaction request | 141 | 2,918,467 |
+| World-state field changed | 6 | 287,818 |
+| Turn-context field changed | 5 | 348,467 |
+| Thread settings actually changed | 2 | 89,700 |
+| **Fresh-context subagent start** | **2** | **45,972** |
+| Local compaction request itself | 1 | 215,808 |
+| Other related-thread start | 1 | 28,611 |
+| **Total** | **768** | **36,257,666** |
+
+The run scanned 3,762 rollouts (3.13 GiB) and 109,522 model-usage samples. It excluded 65 model/effort changes and 98 comparisons outside the warm window. Counts can increase as active rollouts are appended.
+
+Two fresh-context subagent witnesses deserve early reproduction:
+
+- At `2026-09-09T00:34:07.309Z`, a child began 0.419 seconds after a related warm request. Cached input fell from 26,112 to zero on a 22,728-token request. Every startup component visible to the scanner had the same redacted fingerprint.
+- At `2026-09-09T14:21:28.899Z`, a child began 10.656 seconds after a related warm request. Cached input fell from 44,928 to zero on a 23,244-token request. Visible startup differences included `current_date`, environment/host-skill state, and multi-agent guidance. This is a concrete date/dynamic-context lead, not yet proof that any one field was the first differing provider-request byte.
+
+The largest same-thread witness fell from 237,440 cached tokens to zero after 33.802 seconds with no visible rollout change. These invisible cases are the strongest evidence for M0: current rollouts do not persist the complete serialized request, tool catalog, cache key, or transport identity needed to deterministically name the first differing field. The scanner narrows incidents and proves their timing; the M0 request-fingerprint work must supply the missing discriminator.
+
+Subagent history classification uses persisted inheritance markers (`forked_from_id`, `history_base`, or `subagent_history_start_ordinal`). A subagent without those markers is classified as fresh. This keeps the 170 avoidable forked-history candidates out of the two high-priority fresh-context witnesses.
 
 ## Sort order
 
