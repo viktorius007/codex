@@ -32,9 +32,6 @@ impl Session {
                 .await;
             return;
         }
-        let Some(_admission) = self.services.extensions.admit_turn_start() else {
-            return;
-        };
         *active = Some(ActiveTurn::default());
         drop(active);
 
