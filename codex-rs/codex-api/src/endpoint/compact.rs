@@ -3,7 +3,11 @@ use crate::common::CompactionInput;
 use crate::endpoint::session::EndpointSession;
 use crate::error::ApiError;
 use crate::provider::Provider;
+use crate::request_observer::CompactionHttpRequestObservation;
+use crate::request_observer::ResponsesRequestObserver;
+use crate::request_observer::SafeTransportIdentity;
 use codex_client::HttpTransport;
+use codex_client::RequestBody;
 use codex_client::RequestTelemetry;
 use codex_protocol::models::ResponseItem;
 use http::HeaderMap;
@@ -17,19 +21,27 @@ const X_CODEX_TURN_STATE_HEADER: &str = "x-codex-turn-state";
 
 pub struct CompactClient<T: HttpTransport> {
     session: EndpointSession<T>,
+    request_observer: Option<Arc<dyn ResponsesRequestObserver>>,
 }
 
 impl<T: HttpTransport> CompactClient<T> {
     pub fn new(transport: T, provider: Provider, auth: SharedAuthProvider) -> Self {
         Self {
             session: EndpointSession::new(transport, provider, auth),
+            request_observer: None,
         }
     }
 
     pub fn with_telemetry(self, request: Option<Arc<dyn RequestTelemetry>>) -> Self {
         Self {
             session: self.session.with_request_telemetry(request),
+            request_observer: self.request_observer,
         }
+    }
+
+    pub fn with_request_observer(mut self, observer: Arc<dyn ResponsesRequestObserver>) -> Self {
+        self.request_observer = Some(observer);
+        self
     }
 
     fn path() -> &'static str {
@@ -45,13 +57,29 @@ impl<T: HttpTransport> CompactClient<T> {
     ) -> Result<Vec<ResponseItem>, ApiError> {
         let resp = self
             .session
-            .execute_with(
+            .execute_prepared_json_with(
                 Method::POST,
                 Self::path(),
                 extra_headers,
-                Some(body),
+                body,
                 |req| {
                     req.timeout = Some(request_timeout);
+                },
+                |prepared_request| {
+                    let Some(observer) = self.request_observer.as_deref() else {
+                        return;
+                    };
+                    let Some(RequestBody::EncodedJson(prepared_body)) =
+                        prepared_request.body.as_ref()
+                    else {
+                        return;
+                    };
+                    observer.observe_compaction_http(CompactionHttpRequestObservation {
+                        prepared_body: prepared_body.as_bytes(),
+                        identity: SafeTransportIdentity::from_http_headers(
+                            &prepared_request.headers,
+                        ),
+                    });
                 },
             )
             .await?;

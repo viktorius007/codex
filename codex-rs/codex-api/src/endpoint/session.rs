@@ -114,26 +114,73 @@ impl<T: HttpTransport> EndpointSession<T> {
     }
 
     #[instrument(
+        name = "endpoint_session.execute_prepared_json_with",
+        level = "info",
+        skip_all,
+        fields(http.method = %method, api.path = path)
+    )]
+    pub(crate) async fn execute_prepared_json_with<C, O>(
+        &self,
+        method: Method,
+        path: &str,
+        extra_headers: HeaderMap,
+        body: Value,
+        configure: C,
+        observe: O,
+    ) -> Result<Response, ApiError>
+    where
+        C: Fn(&mut Request),
+        O: FnOnce(&Request),
+    {
+        let body = RequestBody::Json(body);
+        let mut request = self.make_request(&method, path, &extra_headers, Some(&body));
+        configure(&mut request);
+        let request = request.into_prepared().map_err(TransportError::Build)?;
+        observe(&request);
+        let make_request = || request.clone();
+
+        let response = run_with_request_telemetry(
+            self.provider.retry.to_policy(),
+            self.request_telemetry.clone(),
+            make_request,
+            |req| {
+                let auth = self.auth.clone();
+                let transport = &self.transport;
+                async move {
+                    let req = auth.apply_auth(req).await.map_err(TransportError::from)?;
+                    transport.execute(req).await
+                }
+            },
+        )
+        .await?;
+
+        Ok(response)
+    }
+
+    #[instrument(
         name = "endpoint_session.stream_encoded_json_with",
         level = "info",
         skip_all,
         fields(http.method = %method, api.path = path)
     )]
-    pub(crate) async fn stream_encoded_json_with<C>(
+    pub(crate) async fn stream_encoded_json_with<C, O>(
         &self,
         method: Method,
         path: &str,
         extra_headers: HeaderMap,
-        body: Option<EncodedJsonBody>,
+        body: EncodedJsonBody,
         configure: C,
+        observe: O,
     ) -> Result<StreamResponse, ApiError>
     where
         C: Fn(&mut Request),
+        O: FnOnce(&EncodedJsonBody, &Request),
     {
-        let body = body.map(RequestBody::EncodedJson);
-        let mut request = self.make_request(&method, path, &extra_headers, body.as_ref());
+        let mut request = self.make_request(&method, path, &extra_headers, None);
+        request.body = Some(RequestBody::EncodedJson(body.clone()));
         configure(&mut request);
         let request = request.into_prepared().map_err(TransportError::Build)?;
+        observe(&body, &request);
         let make_request = || request.clone();
 
         let stream = run_with_request_telemetry(
