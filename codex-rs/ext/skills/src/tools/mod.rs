@@ -35,6 +35,7 @@ use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::OnceCell;
 
+use crate::HostSkillsSnapshot;
 use crate::catalog::SkillAuthority;
 use crate::catalog::SkillCatalog;
 use crate::catalog::SkillCatalogEntry;
@@ -43,6 +44,7 @@ use crate::provider::SkillListQuery;
 use crate::provider::attribute_executor_plugins;
 use crate::shadow_selection_experiment::ShadowSelectionExperiment;
 use crate::sources::SkillProviders;
+use crate::state::HostSkillsStepState;
 use crate::state::SkillsSessionState;
 use crate::state::SkillsThreadState;
 use crate::telemetry::ActiveSkillTurnMetrics;
@@ -55,21 +57,41 @@ const SKILLS_NAMESPACE: &str = "skills";
 const MAX_HANDLE_BYTES: usize = 2_048;
 const MAX_SKILL_RESPONSE_BYTES: usize = 512 * 1024;
 
+#[derive(Default)]
+pub(crate) struct SkillToolCatalogInputs {
+    pub(crate) executor_query: Option<SkillListQuery>,
+    pub(crate) host_snapshot: Option<Arc<HostSkillsSnapshot>>,
+    pub(crate) host_catalog: Option<Arc<HostSkillsStepState>>,
+}
+
 pub(crate) fn skill_tools(
     providers: SkillProviders,
     session_store: &ExtensionData,
     thread_store: &ExtensionData,
-    executor_query: Option<SkillListQuery>,
+    catalog_inputs: SkillToolCatalogInputs,
     selected_plugins: Option<Arc<SelectedPluginSnapshot>>,
     sandbox_contexts: Option<Arc<HashMap<String, FileSystemSandboxContext>>>,
     shadow_selection: Arc<ShadowSelectionExperiment>,
 ) -> Vec<Arc<dyn for<'call> ToolExecutor<ToolCall<'call>>>> {
+    let SkillToolCatalogInputs {
+        executor_query,
+        host_snapshot,
+        host_catalog,
+    } = catalog_inputs;
     let Some(thread_state) = thread_store.get::<SkillsThreadState>() else {
         return Vec::new();
     };
     let orchestrator_available =
         providers.has_orchestrator_provider() && thread_state.orchestrator_skills_enabled();
-    if !orchestrator_available && executor_query.is_none() {
+    let host_plugins_available = host_catalog.as_ref().is_some_and(|catalog| {
+        catalog
+            .0
+            .entries
+            .iter()
+            .any(SkillCatalogEntry::is_plugin_package)
+    });
+    let list_available = orchestrator_available || executor_query.is_some();
+    if !list_available && !host_plugins_available {
         return Vec::new();
     }
     let mcp_resources = session_store
@@ -83,17 +105,21 @@ pub(crate) fn skill_tools(
         analytics,
         orchestrator_available,
         executor_query,
+        host_snapshot,
+        host_catalog,
         selected_plugins,
         sandbox_contexts,
         executor_catalog: Arc::new(OnceCell::new()),
         shadow_selection,
     };
-    vec![
-        Arc::new(list::ListTool {
+    let mut tools: Vec<Arc<dyn for<'call> ToolExecutor<ToolCall<'call>>>> = Vec::new();
+    if list_available {
+        tools.push(Arc::new(list::ListTool {
             context: context.clone(),
-        }),
-        Arc::new(read::ReadTool { context }),
-    ]
+        }));
+    }
+    tools.push(Arc::new(read::ReadTool { context }));
+    tools
 }
 
 #[derive(Clone)]
@@ -197,6 +223,8 @@ struct SkillToolContext {
     analytics: Option<SkillAnalytics>,
     orchestrator_available: bool,
     executor_query: Option<SkillListQuery>,
+    host_snapshot: Option<Arc<HostSkillsSnapshot>>,
+    host_catalog: Option<Arc<HostSkillsStepState>>,
     selected_plugins: Option<Arc<SelectedPluginSnapshot>>,
     sandbox_contexts: Option<Arc<HashMap<String, FileSystemSandboxContext>>>,
     executor_catalog: Arc<OnceCell<SkillCatalog>>,
