@@ -69,3 +69,7 @@ Additional test-writers running: skill_locator_tests (/private/tmp/codex-cache-s
 Coordinator integration worktree: /private/tmp/codex-cache-integration, work/cache-integration. All heavy builds use only its isolated codex-rs/target with jobs32/incremental enabled. Baseline preservation test started, exec session44147, log /private/tmp/codex-cache-run/core-build-baseline.log. Initial just test --no-run rejected because nextest --no-fail-fast conflicts; corrected to the real exec-completion regression. Never poll exec completion.
 
 Build readiness: preserve/install matching codex and codex-code-mode-host pair; full-suite footprint estimate 15–40 GiB, not measured. Shared target between agents prohibited; coordinator-only integration target reused across combined checks. Bazel absent; install if new diagnostic crate/dependencies require lock refresh. Version bump before final validation. Follow user test/fix/fmt ordering over contrary readiness-procedure suggestion.
+
+## Latest continuation
+
+See research/cache-repair-recovery.md, Restarted continuation (current), for active roles and validation state after the4096-limit restart. Initial speculative diagnostic reports are superseded by diagnostics-interface.md plus /private/tmp/codex-cache-run/diagnostics-brief.md refinements. No installation yet.
