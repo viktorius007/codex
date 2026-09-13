@@ -589,9 +589,8 @@ ignored = [
 ]
 
 [profile.dev]
-# Fresh agent worktrees cannot reuse Cargo's per-target incremental state;
-# disabling it reduced the measured cold target directory from 4.1 GiB to 1.4 GiB.
-incremental = false
+# Retain per-worktree compilation state to shorten the edit-build loop.
+incremental = true
 # Keep line tables/backtraces while avoiding expensive full variable debug info
 # across local dev builds.
 debug = "limited"
