@@ -1339,7 +1339,7 @@ async fn run_auto_compact(
             );
             run_inline_auto_compact_task(
                 Arc::clone(sess),
-                Arc::clone(turn_context),
+                Arc::clone(&step_context),
                 initial_context_injection,
                 reason,
                 phase,
