@@ -6,6 +6,8 @@ Corrected: 2026-09-14. Assessed installed source `4b0a1a1194d1393680c9dca1d75cb9
 
 “Specific local mechanism fixed” is narrower than proving every symptom or request in a GitHub issue resolved. “Not resolved” includes absent closure evidence; it does not assert that every historical report necessarily reproduces today. Each of the62 issue IDs appears once below; related reports can span several mechanisms.
 
+Follow-up: [root-cause investigation of #30425 and #35925](cache-repair-reports/issues-30425-35925-diagnosis.md) distinguishes unresolved mid-loop misses, compaction-consistent token decreases, the historical Azure remote-compaction route, and the confirmed counter-display limitation. Neither issue is closed by that investigation.
+
 | Disposition | Issues | Work and remaining obligation |
 |---|---|---|
 | Specific local mechanism fixed | [#37305](https://github.com/openai/codex/issues/37305) | Local compaction now retains the sampled tool catalog and parallel-call setting; commit 3ca29ec4b6 and failing/passing request regression. This does not close every post-compaction cache-loss report. |
