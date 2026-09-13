@@ -1,75 +1,58 @@
 # Cache repair run
 
-Started: 2026-09-14 Australia/Sydney
-Base: ea55207054 on local/customizations; version 0.154.0+local.1.
-Goal: trustworthy tested and installed binary with privacy-safe diagnostics and evidence-driven cache mechanism repairs.
+Started: 2026-09-14 Australia/Sydney.
+Goal: a trustworthy tested and installed local binary, private cache diagnostics, and direct evidence-driven cache repairs.
+
+## Current delivery state
+
+Candidate: `0.154.0+local.2` in `/private/tmp/codex-cache-integration`, branch `work/cache-integration`. Root coordination branch remains `local/customizations` at `dc8f07458aad1db2d7fe3940643b23732cba6876`. Production changes have not yet been committed or installed. The installed binary is still `0.154.0+local.1`.
+
+The full workspace suite passed all17,641 tests (47 skipped; one passed retry and one leaky label), using `just test --cargo-profile dev-small --test-threads 4 --features codex-v8-poc/sandbox`. Its authoritative log is `/private/tmp/codex-cache-run/final-full-workspace-2.log`. Scoped Clippy completed successfully; root corrected the remaining size/argument warnings without suppressions. The retry exposed a test synchronization weakness: it now asserts the exact sampled turn's successful completion event instead of polling transient status. Focused verification of those final corrections is running in `final-mechanism-and-lint-regressions.log`.
+
+The detailed chronology, corrections, and recovery instructions remain in [cache-repair-recovery.md](cache-repair-recovery.md). Historical issue discovery remains in [prompt-cache-prefix-stability.md](prompt-cache-prefix-stability.md); refresh it incrementally, never through blanket rediscovery.
 
 ## Authorization and boundaries
 
-- No automatic diagnostic deletion, disk cap, or age expiry; bounded records and memory.
-- Full tests and validated binary installation authorized; preserve prior binary and installation provenance.
-- Adapt priority from evidence within ledger stages 1–5. Beyond-Pareto work requires user approval.
-- Fresh-context Sol agents for load-bearing work; Terra only simple located edits. Coordinator owns integration, corrections, cleanup.
-- Fingerprint differences indicate observed client changes, not proven causes; equality does not prove backend fault.
-- Existing issue research is durable; refresh incrementally.
+- Preserve diagnostic evidence indefinitely: no automatic deletion, disk quota, or age expiry. Individual records and memory are bounded.
+- Full tests, experiments, and validated installation are authorized. Preserve the previous matching binary pair and record exact installation provenance.
+- Choose direct Pareto fixes from local evidence; GitHub proposals are clues. Do not expand into speculative backend or broad retained-history redesign.
+- Use fresh-context Sol agents for load-bearing work. The coordinator owns small corrections, integration, and cleanup.
+- Fingerprint differences are observed changes, not proven causes; equality does not prove a backend fault.
 
-## Progress
+## Implemented candidate and regression evidence
 
-| Task | Agent | Report | State |
-|---|---|---|---|
-| Diagnostic architecture | diagnostics_design | /private/tmp/codex-cache-run/diagnostics-design.md | running |
-| Compaction and tool inventory | mechanism_scout | /private/tmp/codex-cache-run/mechanism-scout.md | DONE: five mechanisms; report pending durable copy |
-| Prefix and fresh-child inventory | prefix_scout | /private/tmp/codex-cache-run/prefix-scout.md | running |
-| Build and installation readiness | build_readiness | /private/tmp/codex-cache-run/build-readiness.md | running |
-| Policy and durable coordination record | root | this file | in progress |
+| Area | Implemented behavior | Verification evidence in `/private/tmp/codex-cache-run/` |
+|---|---|---|
+| Diagnostic archive | Installation-keyed fingerprints, complete logical/wire observation, private append-only run files, bounded records/manifests, paired outcomes and usage; no automatic retention deletion | `records-api-lifecycle-green.log`:191 passed; `records-verifier.md` |
+| Runtime diagnostics | Ordinary requests, warmup, local/remote compaction, retries, reused WebSockets, and detached memory requests | `runtime-diagnostics-verifier-followup.md` and `runtime-diagnostics-memory-assessment.md`; lifecycle gates; memory regression in final318-test gate |
+| Offline analysis | Bounded read-only parsing, first observed differences, truthful missing/ambiguous evidence, normalized warm-comparison rates, independent before/after windows | `final-python-scanners.log`:21 passed; `analysis-verifier-followup.md` |
+| Usage accounting | Accepted usage stays paired with its covered history boundary; usage-less tails, replacement, and resume are accounted for | `usage-verifier.md`; focused history/reconstruction gates |
+| Compaction | Local compaction reuses active sampling tools; pending turn input contributes to thresholds without entering the compacted history | `compaction-verifier.md`; `pending-projection-fullsuite-review.md` |
+| Fresh-context startup | Shared startup context precedes role-specific instructions; private parent history stays out of child input | `fresh-prefix-verifier.md`; `local2-wake-fixtures-3.log`:17 passed |
+| Plugin skills | Stable semantic locators resolve through the active snapshot with containment protection | `locator-verifier-followup.md`; full skills gate176 passed |
+| Subagent completion | Bounded completion text wakes an idle parent; active waits avoid duplicate delivery | Focused wake/security/residency gates; final318-test gate |
+| MCP authority | Deterministic full tool order; sampled ready calls retain exact authority; lazy cached calls verify connection/configuration/schema before using live execution metadata | `tool-stability-final-audit.md`; `lazy-presentation-green.log`:322 passed |
+| Local version and fixtures | SemVer metadata preserved; host-sensitive tests retain their behavioral oracles | SemVer crate gates; `tui-final-gate.log`:4314 passed |
 
-## Next checkpoints
+## Explicit carry-forward boundaries
 
-1. Select smallest diagnostic implementation and test seams from architecture evidence.
-2. Delegate regression authoring, implementation, independent verification in fresh stages.
-3. Triage stages 2–5 into non-overlapping mechanism fixes with direct regression witnesses.
-4. Integrate small commits, run appropriate crate and full-suite checks, preservation regression, formatting/lint.
-5. Bump local version, build and install validated binary; record exact timestamp/hash and rollback binary.
-6. Preserve reports/evidence in research; remove completed worktrees and agent build artifacts.
+The original research queue contains proposals beyond these direct repairs. A hard-capped retained raw tail plus structured compaction checkpoint is not implemented. Later world-state, skill, and prompt-hook changes are not included in pending-turn projection. These remain separate compaction-continuity work; do not describe the whole original Stage3 as complete.
+
+Generic MCP `tools/list_changed` notifications remain unimplemented. This candidate protects sampled execution authority and stable ordering. Publishing a genuinely changed schema should change the prefix; notification support is separate capability freshness work. Forked-history redesign and provider-controlled cache affinity remain lower-priority research, not fixes claimed by this build.
+
+No provider-side cache improvement has been measured. The historical rollout scan cannot supply a complete request-fingerprint pre-fix window. Record installation start/end to millisecond precision and select new-process diagnostic runs for post-install analysis; old running processes remain on their old binary.
+
+## Remaining delivery gates
+
+1. Complete focused verification of the final causal synchronization and lint corrections; the full workspace gate is green.
+2. Run scoped `just fix` and repository `just fmt`; inspect changes. Bazel lock refresh has already succeeded with no generated diff.
+3. Regenerate and review the14 prepared commit groups. The temporary-index check already proves their combined blobs exactly reconstruct all90 candidate files. Preparation script: `/private/tmp/codex-cache-run/prepare-commit-patches.py`. Integrate small coherent commits into `local/customizations`.
+4. Rebuild the matching `codex` and `codex-code-mode-host` pair from the clean final commit. Run `/private/tmp/codex-cache-run/install-validated.py` with exact commit/version and the full-green test log. Preserve the previous pair and provenance.
+5. Run the installed CLI against a local mock provider, verifying its roundtrip and actual private diagnostic records. Preserve that diagnostic evidence.
+6. Save final reports, commit IDs, tests, binary hashes, installation timestamps, and cohort guidance. Remove only owned build/temp artifacts and finished worktrees/obsolete branches; preserve unknown files and diagnostic evidence. Check disk and Git state before closing.
 
 ## Environment
 
-Initial clean checkout; 57 GiB free. Cargo jobs 32, isolated targets, development incremental enabled; no compiler cache. No active Git hooks (sample files only). Existing binary ~/.local/bin/codex is 298263304 bytes, dated Sep 13 21:15. Do not replace a running executable in place; use atomic replacement after validation.
+MacBook Pro M3 Max,16 cores,48GB RAM. Cargo uses32 jobs, incremental development compilation, and one isolated integration target; agents run no concurrent Cargo builds. Open-file limit is4096 with unlimited hard limit. The verified Codex V8 archive/bindings are supplied by `run-check.py`; the full-suite V8 feature aligns the test marker with the linked sandbox build.
 
-## Validation and installation
-
-Pending.
-
-## Coordination notes
-
-- User is asleep; resolve routine blockers autonomously.
-- Policy integrated as d691087d0d. origin/main refreshed to 36f0dbe796 and main fast-forwarded; stable customization base unchanged.
-- macOS system python3 is too old for scanner union annotations. Use UV_CACHE_DIR=/private/tmp/codex-cache-run/uv-cache uv run --python 3.12 python.
-- Additional live pre-repair JSON scan started 2026-09-14T01:02:15+10:00; output research/cache-baselines/2026-09-14-pre-repair/scan.json. This is a new live cohort, not reconstruction of the original baseline.
-
-## Fix dispatches
-
-| Slice | Stage/agent | Worktree/branch | Report | State |
-|---|---|---|---|---|
-| Local compaction tool parity #37305 | test-writer compact_parity_tests | /private/tmp/codex-cache-compact-parity; work/issue-37305 | /private/tmp/codex-cache-run/compact-parity-tests.md | running |
-| Numeric usage boundary #35935 | test-writer usage_boundary_tests | /private/tmp/codex-cache-usage-boundary; work/issue-35935 | /private/tmp/codex-cache-run/usage-boundary-tests.md | running |
-
-Source inventory: direct local-compaction empty-tools mismatch; numeric usage boundary inferred from newest model item can advance without new usage; pending user/context not counted pre-turn; local operational tail dropped; MCP notifications ignored. Step catalog atomicity and deterministic producers already implemented, so avoid replacement machinery. Tail retention is indirect amplification and should remain lower priority than direct cache differences.
-
-Baseline scanner tests: 2026-09-14, Python3.12 unittest targeted invocation exited 0; /private/tmp/codex-cache-run/scanner-tests.log. Baseline integration commit 3af0d7dfbb.
-
-## Architecture checkpoint
-
-Initial diagnostic design is in research/cache-repair-reports/diagnostics-design-initial.md. Sol designer is refining a smaller interface that moves cross-session comparisons to offline analysis, avoiding runtime pointer/LRU/locking machinery while preserving immutable redacted evidence, exact logical/wire observations, and truthful incompleteness flags.
-
-Prefix report: stable semantic plugin locators require real resolver support; successful completion text lacks the existing 1000-token cap; V2 queued terminal completion does not trigger an idle parent. V1 duplicate delivery is lower priority than active V2. Fresh parent/child complete-prefix reuse is unproven, not a demonstrated routing defect; keep distinct thread IDs.
-
-Additional test-writers running: skill_locator_tests (/private/tmp/codex-cache-skill-locators, work/issue-25609; report skill-locator-tests.md), parent_completion_tests (/private/tmp/codex-cache-parent-completion, work/issue-37299; report parent-completion-tests.md). They own tests only; no separate Rust builds.
-
-Coordinator integration worktree: /private/tmp/codex-cache-integration, work/cache-integration. All heavy builds use only its isolated codex-rs/target with jobs32/incremental enabled. Baseline preservation test started, exec session44147, log /private/tmp/codex-cache-run/core-build-baseline.log. Initial just test --no-run rejected because nextest --no-fail-fast conflicts; corrected to the real exec-completion regression. Never poll exec completion.
-
-Build readiness: preserve/install matching codex and codex-code-mode-host pair; full-suite footprint estimate 15–40 GiB, not measured. Shared target between agents prohibited; coordinator-only integration target reused across combined checks. Bazel absent; install if new diagnostic crate/dependencies require lock refresh. Version bump before final validation. Follow user test/fix/fmt ordering over contrary readiness-procedure suggestion.
-
-## Latest continuation
-
-See research/cache-repair-recovery.md, Restarted continuation (current), for active roles and validation state after the4096-limit restart. Initial speculative diagnostic reports are superseded by diagnostics-interface.md plus /private/tmp/codex-cache-run/diagnostics-brief.md refinements. No installation yet.
+CMake, GStreamer, and Bazelisk were installed as required test/build prerequisites. Python tools use UV Python3.12 with the task-local cache. Disk headroom reached approximately11GiB during the full build. Do not remove its active target; clean owned incremental/build artifacts after Cargo completes and after preserving the final binaries/evidence.

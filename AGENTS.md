@@ -22,6 +22,7 @@
 - Preserve cache diagnostic evidence indefinitely: no disk cap, age limit, or automatic deletion. Cleanup applies to agent-created temporary/build artifacts, not diagnostic evidence.
 - For cache repair work, adapt priorities to new evidence within the agreed Pareto scope; treat GitHub proposals as clues and choose the simplest locally justified root-cause fix with regression protection. Keep a durable run ledger and small independently applicable commits.
 - Use Sol for load-bearing investigation, architecture, implementation decisions, and verification; use Terra only for basic, tightly scoped work. Delegate independent work with fresh context; the coordinator owns small corrections, integration, and cleanup.
+- Assert the mechanism, not the clock: regression tests should observe exact causal events and outcomes; use timeouts only as hung-test guards, not as substitutes for synchronization or correctness assertions.
 - Cache repair full-suite tests are authorized. The deliverable is a trustworthy installed local binary; build and install validated milestones when this does not disrupt the running harness, preserving the previous binary and recording installation time/version.
 
 # Local exec-completion customization
