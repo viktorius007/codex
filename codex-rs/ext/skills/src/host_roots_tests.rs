@@ -340,6 +340,83 @@ async fn plugin_roots_preserve_plugin_resolution_metadata() {
     assert!(Arc::ptr_eq(&root.file_system, &LOCAL_FS));
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn user_layer_precedes_symlinked_plugin_root_without_reading_the_real_home() {
+    use std::os::unix::fs::symlink;
+
+    let temp_dir = TempDir::new().expect("temp dir");
+    let codex_home = absolute(temp_dir.path().join("codex-home"));
+    let empty_home = absolute(temp_dir.path().join("home"));
+    let workspace = absolute(temp_dir.path().join("workspace"));
+    let plugin_root = codex_home.join("plugins/cache/test/sample/local");
+    let plugin_skills_root = plugin_root.join("skills");
+    let plugin_skill_dir = plugin_skills_root.join("search");
+    fs::create_dir_all(&plugin_skill_dir).expect("create plugin skill directory");
+    let plugin_skill_path = plugin_skill_dir.join("SKILL.md");
+    fs::write(
+        &plugin_skill_path,
+        "---\nname: search\ndescription: shared skill\n---\n",
+    )
+    .expect("write plugin skill");
+    let plugin_skill_path =
+        absolute(dunce::canonicalize(plugin_skill_path).expect("canonical plugin skill path"));
+    fs::create_dir_all(plugin_root.join(".codex-plugin"))
+        .expect("create plugin manifest directory");
+    fs::write(
+        plugin_root.join(".codex-plugin/plugin.json"),
+        r#"{"name":"sample"}"#,
+    )
+    .expect("write plugin manifest");
+    fs::create_dir_all(&empty_home).expect("create empty home");
+    fs::create_dir_all(&workspace).expect("create workspace");
+    symlink(&plugin_skills_root, codex_home.join("skills"))
+        .expect("symlink user skills root to plugin skills root");
+
+    let roots = resolve_skill_roots_with_home_dir(
+        /*repository_file_system*/ None,
+        &stack(vec![user_layer(&codex_home)]),
+        &workspace,
+        /*home_dir*/ Some(&empty_home),
+        vec![PluginSkillRoot {
+            path: plugin_skills_root,
+            plugin_identity: PluginIdentity {
+                plugin_id: "sample@test".to_string(),
+                remote_plugin_id: None,
+            },
+            plugin_namespace: "sample".to_string(),
+            plugin_root,
+            discovery_mode: SkillDiscoveryMode::Recursive,
+        }],
+        Vec::new(),
+    )
+    .await;
+    let outcome = load_and_merge_host_skill_roots(
+        roots,
+        &Semaphore::new(MAX_CONCURRENT_ROOT_SCANS),
+        /*restriction_product*/ None,
+        /*plugin_skill_snapshots*/ None,
+    )
+    .await;
+
+    assert_eq!(outcome.errors, Vec::new());
+    assert_eq!(
+        outcome.skills,
+        vec![SkillMetadata {
+            name: "sample:search".to_string(),
+            description: "shared skill".to_string(),
+            short_description: None,
+            interface: None,
+            dependencies: None,
+            policy: None,
+            path_to_skills_md: plugin_skill_path,
+            scope: SkillScope::User,
+            plugin_id: None,
+            remote_plugin_id: None,
+        }]
+    );
+}
+
 #[tokio::test]
 async fn unique_extra_root_loads_as_recursive_user_root() {
     let temp_dir = TempDir::new().expect("temp dir");

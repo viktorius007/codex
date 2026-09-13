@@ -191,6 +191,7 @@ struct SkillLine<'a> {
 impl<'a> SkillLine<'a> {
     fn new(entry: &'a SkillCatalogEntry, policy: SkillCatalogRenderPolicy) -> Self {
         let locator = match &entry.authority.kind {
+            SkillSourceKind::Host if entry.is_plugin_package() => entry.id.0.as_str(),
             SkillSourceKind::Executor | SkillSourceKind::Orchestrator => entry.id.0.as_str(),
             SkillSourceKind::Host | SkillSourceKind::Custom(_) => entry.rendered_path(),
         };
@@ -208,6 +209,7 @@ impl<'a> SkillLine<'a> {
             description: truncate_catalog_skill_description(description),
             locator,
             locator_kind: match &entry.authority.kind {
+                SkillSourceKind::Host if entry.is_plugin_package() => "plugin package",
                 SkillSourceKind::Host => "file",
                 SkillSourceKind::Executor => "executor package",
                 SkillSourceKind::Orchestrator => "orchestrator package",
@@ -508,7 +510,7 @@ pub(crate) fn render_available_skills(
             .collect(),
         budget,
         Vec::new(),
-        SkillPromptKind::Unaliased,
+        prompt_kind_for_entries(&entries, SkillPromptKind::Unaliased),
         policy,
     );
     let selected = if let Some(aliased) =
@@ -669,7 +671,7 @@ struct CatalogLines<'a> {
 impl<'a> CatalogLines<'a> {
     fn unaliased(entries: &[&'a SkillCatalogEntry], policy: SkillCatalogRenderPolicy) -> Self {
         Self {
-            prompt_kind: SkillPromptKind::Unaliased,
+            prompt_kind: prompt_kind_for_entries(entries, SkillPromptKind::Unaliased),
             skills: entries
                 .iter()
                 .map(|entry| SkillLine::new(entry, policy))
@@ -684,10 +686,13 @@ impl<'a> CatalogLines<'a> {
         };
 
         Self {
-            prompt_kind: entries
-                .first()
-                .map(|entry| SkillPromptKind::for_aliased_source(&entry.authority.kind))
-                .unwrap_or(SkillPromptKind::Unaliased),
+            prompt_kind: prompt_kind_for_entries(
+                entries,
+                entries
+                    .first()
+                    .map(|entry| SkillPromptKind::for_aliased_source(&entry.authority.kind))
+                    .unwrap_or(SkillPromptKind::Unaliased),
+            ),
             skills: entries
                 .iter()
                 .map(|entry| {
@@ -700,6 +705,17 @@ impl<'a> CatalogLines<'a> {
                 .collect(),
             root_lines: plan.root_lines(),
         }
+    }
+}
+
+fn prompt_kind_for_entries(
+    entries: &[&SkillCatalogEntry],
+    default: SkillPromptKind,
+) -> SkillPromptKind {
+    if entries.iter().any(|entry| entry.is_plugin_package()) {
+        SkillPromptKind::HostPluginPackages
+    } else {
+        default
     }
 }
 
@@ -1071,6 +1087,7 @@ pub(crate) fn build_alias_plan(entries: &[&SkillCatalogEntry]) -> Option<AliasPl
 
 fn render_skill_locator_with_aliases(entry: &SkillCatalogEntry, plan: &AliasPlan) -> String {
     let locator = match &entry.authority.kind {
+        SkillSourceKind::Host if entry.is_plugin_package() => entry.id.0.as_str(),
         SkillSourceKind::Executor | SkillSourceKind::Orchestrator => entry.id.0.as_str(),
         SkillSourceKind::Host | SkillSourceKind::Custom(_) => entry.rendered_path(),
     };
