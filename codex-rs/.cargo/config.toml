@@ -1,3 +1,8 @@
+[build]
+# Two build jobs per core reduced cold-worktree wall time without exceeding
+# this Mac's open-file limit; 64 jobs failed before compilation could start.
+jobs = 32
+
 [target.'cfg(all(windows, target_env = "msvc"))']
 rustflags = ["-C", "link-arg=/STACK:8388608", "-C", "target-feature=+crt-static"]
 
