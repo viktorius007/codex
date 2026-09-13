@@ -26,10 +26,19 @@ pub(crate) async fn context_window_token_status(
     sess: &Session,
     turn_context: &TurnContext,
 ) -> ContextWindowTokenStatus {
+    context_window_token_status_with_pending_tokens(sess, turn_context, /*pending_tokens*/ 0).await
+}
+
+pub(super) async fn context_window_token_status_with_pending_tokens(
+    sess: &Session,
+    turn_context: &TurnContext,
+    pending_tokens: i64,
+) -> ContextWindowTokenStatus {
     context_window_token_status_with_config(
         sess,
         turn_context.config.as_ref(),
         turn_context.model_info().as_ref(),
+        pending_tokens,
     )
     .await
 }
@@ -46,15 +55,17 @@ pub(crate) async fn context_window_token_status_for_model(
         turn_context.use_model_token_budget_defaults,
         model_info,
     );
-    context_window_token_status_with_config(sess, &config, model_info).await
+    context_window_token_status_with_config(sess, &config, model_info, /*pending_tokens*/ 0).await
 }
 
 async fn context_window_token_status_with_config(
     sess: &Session,
     config: &Config,
     model_info: &ModelInfo,
+    pending_tokens: i64,
 ) -> ContextWindowTokenStatus {
-    let active_context_tokens = sess.get_total_token_usage().await;
+    let stored_context_tokens = sess.get_total_token_usage().await;
+    let active_context_tokens = stored_context_tokens.saturating_add(pending_tokens);
 
     // Count either the full active context or only the tokens added after the initial prefix.
     let (auto_compact_scope_tokens, auto_compact_scope_limit, auto_compact_window_prefill_tokens) =

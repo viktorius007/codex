@@ -4536,7 +4536,7 @@ async fn auto_compact_body_after_prefix_counts_growth_after_compaction() {
             config.model_provider = model_provider;
             set_test_compact_prompt(config);
             config.model_context_window = Some(200_000);
-            config.model_auto_compact_token_limit = Some(40);
+            config.model_auto_compact_token_limit = Some(80);
             config.model_auto_compact_token_limit_scope =
                 AutoCompactTokenLimitScope::BodyAfterPrefix;
         })
@@ -4594,7 +4594,7 @@ async fn auto_compact_body_after_prefix_still_caps_at_context_window() {
 
     let first_turn = sse(vec![
         ev_assistant_message("m1", FIRST_REPLY),
-        ev_completed_with_usage("r1", /*input_tokens*/ 80, /*output_tokens*/ 5),
+        ev_completed_with_usage("r1", /*input_tokens*/ 10, /*output_tokens*/ 5),
     ]);
     let second_turn = sse(vec![
         ev_assistant_message("m2", SECOND_LARGE_REPLY),
@@ -4853,6 +4853,87 @@ async fn auto_compact_runs_when_reasoning_header_clears_between_turns() {
         compact_requests.len(),
         1,
         "remote compaction should run once after the reasoning header clears"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn pre_turn_auto_compact_counts_incoming_user_input_without_compacting_it() {
+    skip_if_no_network!();
+
+    let server = start_mock_server().await;
+    let pending_user_input = format!("PENDING_USER_INPUT {}", "x".repeat(800));
+    let request_log = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_assistant_message("m1", FIRST_REPLY),
+                ev_completed_with_tokens("r1", /*total_tokens*/ 190),
+            ]),
+            sse(vec![
+                ev_assistant_message("m2", "PRE_TURN_SUMMARY"),
+                ev_completed_with_tokens("r2", /*total_tokens*/ 50),
+            ]),
+            sse(vec![
+                ev_assistant_message("m3", FINAL_REPLY),
+                ev_completed_with_tokens("r3", /*total_tokens*/ 40),
+            ]),
+        ],
+    )
+    .await;
+
+    let model_provider = non_openai_model_provider(&server);
+    let codex = test_codex()
+        .with_config(move |config| {
+            config.model_provider = model_provider;
+            set_test_compact_prompt(config);
+            config.model_auto_compact_token_limit = Some(200);
+        })
+        .build(&server)
+        .await
+        .expect("build codex")
+        .codex;
+
+    for user_input in ["STORED_USER_INPUT", pending_user_input.as_str()] {
+        codex
+            .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+                text: user_input.to_string(),
+                text_elements: Vec::new(),
+            }]))
+            .await
+            .expect("submit user input");
+        wait_for_event(&codex, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    }
+
+    let requests = request_log.requests();
+    assert_eq!(
+        requests.len(),
+        3,
+        "incoming user input should trigger compaction before the next sampling request"
+    );
+
+    let compact_body = requests[1].body_json().to_string();
+    assert!(
+        body_contains_text(&compact_body, SUMMARIZATION_PROMPT),
+        "the second request should compact the stored history"
+    );
+    assert!(
+        !body_contains_text(&compact_body, &pending_user_input),
+        "incoming user input should not be included in the compact request"
+    );
+
+    let follow_up_body = requests[2].body_json().to_string();
+    assert!(
+        !body_contains_text(&follow_up_body, SUMMARIZATION_PROMPT),
+        "the post-compaction request should be an ordinary sampling request"
+    );
+    assert_eq!(
+        requests[2]
+            .message_input_texts("user")
+            .iter()
+            .filter(|text| *text == &pending_user_input)
+            .count(),
+        1,
+        "post-compaction sampling should include the incoming user input exactly once"
     );
 }
 
