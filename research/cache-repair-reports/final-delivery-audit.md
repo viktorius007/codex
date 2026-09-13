@@ -1,5 +1,7 @@
 # Cache repair delivery audit
 
+**Correction:** this audit establishes an installed milestone only. Its earlier narrowed acceptance does not establish completion of the original objective. See [the corrected issue disposition](../cache-repair-issue-disposition.md) for all62 reports and unfinished original obligations.
+
 Delivered: 2026-09-14, Australia/Sydney. Source commit: `4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7`. Installed version: `0.154.0+local.2`.
 
 This audit covers the user's advanced diagnostics and locally justified Pareto repairs, not every speculative proposal in the historical issue queue. The user authorized priority changes, full tests, installation, and cleanup. No provider improvement is claimed.

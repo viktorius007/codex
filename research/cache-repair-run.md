@@ -5,6 +5,8 @@ Goal: a trustworthy tested and installed local binary, private cache diagnostics
 
 ## Current delivery state
 
+**Scope correction:** the installed milestone is complete, but the original overall cache-repair objective is not. See [all62 issue dispositions](cache-repair-issue-disposition.md). Unfinished original stage2–5 obligations remain outstanding; prior scope exclusions did not satisfy them.
+
 Installed: **`0.154.0+local.2`**, built from clean source commit `4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7` on `local/customizations`. Fourteen source commits preserve the mechanism boundaries. The matching previous `0.154.0+local.1` executable/helper pair is backed up.
 
 Installation cutover completed **2026-09-14T06:41:42.165+10:00** (Sydney), Unix milliseconds **1789332102165**. Full machine-readable hashes, binary paths, backup, source, and timestamps are in [installation-local2.json](cache-repair-reports/installation-local2.json). Newly started processes use the new build; already-running processes retain the old executable.
