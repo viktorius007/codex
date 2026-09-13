@@ -2,6 +2,7 @@ mod history;
 mod normalize;
 pub(crate) mod updates;
 
+pub(crate) use history::AcceptedTokenUsage;
 pub(crate) use history::ContextManager;
 pub(crate) use history::HistoryReplacement;
 pub(crate) use history::estimate_image_bytes;

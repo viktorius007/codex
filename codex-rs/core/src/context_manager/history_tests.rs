@@ -544,7 +544,10 @@ fn non_last_reasoning_tokens_return_zero_when_no_user_messages() {
     let history =
         create_history_with_items(vec![reasoning_with_encrypted_content(/*len*/ 800)]);
 
-    assert_eq!(history.get_non_last_reasoning_items_tokens(), 0);
+    assert_eq!(
+        history.get_non_last_reasoning_items_tokens(history.annotated_items().len()),
+        0
+    );
 }
 
 #[test]
@@ -559,7 +562,10 @@ fn non_last_reasoning_tokens_ignore_entries_after_last_user() {
     // first: (900 * 0.75 - 650) / 4 = 6.25 tokens
     // second: (1000 * 0.75 - 650) / 4 = 25 tokens
     // first + second = 62.5
-    assert_eq!(history.get_non_last_reasoning_items_tokens(), 32);
+    assert_eq!(
+        history.get_non_last_reasoning_items_tokens(history.annotated_items().len()),
+        32
+    );
 }
 
 #[test]
@@ -781,6 +787,163 @@ fn total_token_usage_includes_all_items_after_last_model_generated_item() {
         history.get_total_token_usage(/*server_reasoning_included*/ true),
         100 + estimate_item_token_count(&added_user)
             + estimate_item_token_count(&added_tool_output)
+    );
+}
+
+#[test]
+fn usage_less_response_does_not_move_last_accepted_token_usage_boundary() {
+    let accepted_tool_call = ResponseItem::CustomToolCall {
+        id: None,
+        status: None,
+        call_id: "accepted-call".to_string(),
+        name: "test_tool".to_string(),
+        namespace: None,
+        input: "{}".to_string(),
+        internal_chat_message_metadata_passthrough: None,
+    };
+    let mut history = create_history_with_items(vec![accepted_tool_call]);
+    history.update_token_info(
+        &TokenUsage {
+            total_tokens: 100,
+            ..Default::default()
+        },
+        /*model_context_window*/ None,
+    );
+    let pending_tool_output =
+        custom_tool_call_output("accepted-call", "output after accepted usage");
+    let pending_user = user_msg("user input after accepted usage");
+    let usage_less_assistant = assistant_msg("assistant response without usage");
+    let following_user = user_msg("user input after usage-less response");
+    let uncounted_items = [
+        &pending_tool_output,
+        &pending_user,
+        &usage_less_assistant,
+        &following_user,
+    ];
+    history.record_items(uncounted_items, TruncationPolicy::Tokens(10_000));
+
+    let expected_total = uncounted_items
+        .into_iter()
+        .map(estimate_item_token_count)
+        .fold(100i64, i64::saturating_add);
+    assert_eq!(
+        history.get_total_token_usage(/*server_reasoning_included*/ true),
+        expected_total,
+        "items after the accepted usage boundary must remain estimated when a later response has no usage"
+    );
+}
+
+#[test]
+fn replacing_history_invalidates_accepted_token_usage() {
+    let mut history = create_history_with_items(vec![assistant_msg("accepted response")]);
+    history.update_token_info(
+        &TokenUsage {
+            total_tokens: 100,
+            ..Default::default()
+        },
+        /*model_context_window*/ None,
+    );
+    let replacement = user_msg("replacement history");
+
+    history.replace(vec![replacement.clone()]);
+
+    assert_eq!(
+        history.get_total_token_usage(/*server_reasoning_included*/ true),
+        estimate_item_token_count(&replacement),
+        "replacing history must discard usage accepted for the previous history"
+    );
+}
+
+#[test]
+fn removing_oldest_item_invalidates_accepted_token_usage() {
+    let surviving_item = user_msg("surviving history");
+    let mut history = create_history_with_items(vec![
+        assistant_msg("removed accepted response"),
+        surviving_item.clone(),
+    ]);
+    history.update_token_info(
+        &TokenUsage {
+            total_tokens: 100,
+            ..Default::default()
+        },
+        /*model_context_window*/ None,
+    );
+
+    history.remove_first_item();
+
+    assert_eq!(
+        history.get_total_token_usage(/*server_reasoning_included*/ true),
+        estimate_item_token_count(&surviving_item),
+        "removing accepted history must discard its stale usage total"
+    );
+}
+
+#[derive(Clone, Copy)]
+enum AcceptedReasoningUsage {
+    ServerReported,
+    FullyAccounted,
+}
+
+#[test_case(AcceptedReasoningUsage::ServerReported; "server-reported usage")]
+#[test_case(AcceptedReasoningUsage::FullyAccounted; "fully-accounted local usage")]
+fn encrypted_reasoning_is_counted_once_across_the_accepted_boundary(
+    accepted_usage: AcceptedReasoningUsage,
+) {
+    let accepted_reasoning = reasoning_with_encrypted_content(/*len*/ 1_000);
+    let mut history = create_history_with_items(vec![
+        accepted_reasoning.clone(),
+        user_msg("accepted user message"),
+    ]);
+    match accepted_usage {
+        AcceptedReasoningUsage::ServerReported => history.update_token_info(
+            &TokenUsage {
+                total_tokens: 100,
+                ..Default::default()
+            },
+            /*model_context_window*/ None,
+        ),
+        AcceptedReasoningUsage::FullyAccounted => history.set_token_usage_full(100),
+    }
+    let tail_reasoning = reasoning_with_encrypted_content(/*len*/ 1_400);
+    let tail_user = user_msg("unaccepted user message");
+    history.record_items(
+        [&tail_reasoning, &tail_user],
+        TruncationPolicy::Tokens(10_000),
+    );
+
+    let accepted_reasoning_compatibility_tokens = match accepted_usage {
+        AcceptedReasoningUsage::ServerReported => estimate_item_token_count(&accepted_reasoning),
+        AcceptedReasoningUsage::FullyAccounted => 0,
+    };
+    let expected_total = 100
+        + accepted_reasoning_compatibility_tokens
+        + estimate_item_token_count(&tail_reasoning)
+        + estimate_item_token_count(&tail_user);
+    assert_eq!(
+        history.get_total_token_usage(/*server_reasoning_included*/ false),
+        expected_total,
+        "encrypted reasoning in the estimated tail must not be counted again as accepted reasoning"
+    );
+}
+
+#[test_case(true; "server includes reasoning")]
+#[test_case(false; "server omits reasoning")]
+fn forced_full_usage_uses_the_context_window_as_the_active_total(server_reasoning_included: bool) {
+    let mut history = ContextManager::new();
+    history.update_token_info(
+        &TokenUsage {
+            total_tokens: 120,
+            ..Default::default()
+        },
+        /*model_context_window*/ None,
+    );
+
+    history.set_token_usage_full(/*context_window*/ 128);
+
+    assert_eq!(
+        history.get_total_token_usage(server_reasoning_included),
+        128,
+        "forced-full accounting must preserve the context-exceeded compaction signal"
     );
 }
 

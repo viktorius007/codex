@@ -5,11 +5,13 @@ use super::tests::make_session_and_context;
 use super::tests::raw_history_items;
 use crate::context::CompactionSummary;
 use crate::context::ContextualUserFragment;
+use crate::context_manager::estimate_item_token_count;
 use codex_history::CompactedItem;
 use codex_history::InitialHistory;
 use codex_history::ResponseItemEnvelope;
 use codex_history::ResumedHistory;
 use codex_protocol::AgentPath;
+use codex_protocol::SessionId;
 use codex_protocol::ThreadId;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
@@ -17,10 +19,15 @@ use codex_protocol::protocol::InterAgentCommunication;
 use codex_protocol::protocol::SessionContextWindow;
 use codex_protocol::protocol::SessionMeta;
 use codex_protocol::protocol::SessionMetaLine;
+use codex_protocol::protocol::TokenCountEvent;
+use codex_protocol::protocol::TokenUsage;
+use codex_protocol::protocol::TokenUsageInfo;
+use codex_protocol::protocol::TokenUsageRecord;
 use codex_protocol::protocol::WorldStateItem;
 use codex_protocol::security_risk::SecurityRiskScore;
 use codex_rollout::ModelContextScan;
 use codex_rollout::ModelContextScanProgress;
+use codex_utils_output_truncation::approx_token_count;
 use core_test_support::responses::strip_metadata_from_items;
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -57,6 +64,25 @@ fn assistant_message(text: &str) -> ResponseItem {
         phase: None,
         internal_chat_message_metadata_passthrough: None,
     }
+}
+
+fn with_unknown_content_metadata(mut item: ResponseItem) -> ResponseItem {
+    let ResponseItem::Message {
+        internal_chat_message_metadata_passthrough,
+        ..
+    } = &mut item
+    else {
+        panic!("expected message fixture");
+    };
+    *internal_chat_message_metadata_passthrough = Some(
+        codex_protocol::models::InternalChatMessageMetadataPassthrough {
+            content_item_kinds: Some(vec![codex_protocol::models::ContentItemKind(
+                "unknown".to_string(),
+            )]),
+            ..Default::default()
+        },
+    );
+    item
 }
 
 fn annotated(items: Vec<ResponseItem>) -> Vec<ResponseItemEnvelope> {
@@ -181,6 +207,176 @@ async fn record_initial_history_ignores_security_risk_scores() {
             &session.state.lock().await.clone_history()
         )),
         vec![user_item]
+    );
+}
+
+#[tokio::test]
+async fn resumed_history_restores_last_accepted_token_usage_boundary() {
+    let (session, _turn_context) = make_session_and_context().await;
+    let thread_id = ThreadId::new();
+    let accepted_usage = TokenUsage {
+        total_tokens: 100,
+        ..Default::default()
+    };
+    let accepted_tool_call = ResponseItem::CustomToolCall {
+        id: None,
+        status: None,
+        call_id: "accepted-call".to_string(),
+        name: "test_tool".to_string(),
+        namespace: None,
+        input: "{}".to_string(),
+        internal_chat_message_metadata_passthrough: None,
+    };
+    let pending_tool_output = ResponseItem::CustomToolCallOutput {
+        id: None,
+        call_id: "accepted-call".to_string(),
+        name: None,
+        output: codex_protocol::models::FunctionCallOutputPayload::from_text(
+            "output after accepted usage".to_string(),
+        ),
+        internal_chat_message_metadata_passthrough: None,
+    };
+    let pending_user =
+        with_unknown_content_metadata(user_message("user input after accepted usage"));
+    let usage_less_assistant =
+        with_unknown_content_metadata(assistant_message("assistant response without usage"));
+    let following_user =
+        with_unknown_content_metadata(user_message("user input after usage-less response"));
+    let uncounted_items = [
+        &pending_tool_output,
+        &pending_user,
+        &usage_less_assistant,
+        &following_user,
+    ];
+    let rollout_items = vec![
+        RolloutItem::ResponseItem(accepted_tool_call.into()),
+        RolloutItem::TokenUsageRecord(TokenUsageRecord {
+            thread_id,
+            turn_id: "turn-1".to_string(),
+            session_id: SessionId::from(thread_id),
+            root_turn_id: "turn-1".to_string(),
+            response_id: "response-with-usage".to_string(),
+            usage: accepted_usage.clone(),
+            turn_token_usage: accepted_usage.clone(),
+            thread_token_usage: accepted_usage.clone(),
+        }),
+        RolloutItem::EventMsg(EventMsg::TokenCount(TokenCountEvent {
+            info: Some(TokenUsageInfo {
+                total_token_usage: accepted_usage.clone(),
+                last_token_usage: accepted_usage,
+                model_context_window: Some(128_000),
+            }),
+            rate_limits: None,
+        })),
+        RolloutItem::ResponseItem(pending_tool_output.clone().into()),
+        RolloutItem::ResponseItem(pending_user.clone().into()),
+        RolloutItem::ResponseItem(usage_less_assistant.clone().into()),
+        RolloutItem::ResponseItem(following_user.clone().into()),
+    ];
+
+    session
+        .record_initial_history(InitialHistory::Resumed(ResumedHistory {
+            conversation_id: thread_id,
+            history: Arc::new(rollout_items),
+            rollout_path: None,
+        }))
+        .await;
+
+    let expected_total = uncounted_items
+        .into_iter()
+        .map(estimate_item_token_count)
+        .fold(100i64, i64::saturating_add);
+    assert_eq!(
+        session.get_total_token_usage().await,
+        expected_total,
+        "resume must restore the accepted usage boundary from rollout order"
+    );
+}
+
+#[derive(Clone, Copy)]
+enum UnpositionedUsageReplay {
+    LegacyHistory,
+    CompactedHistory,
+}
+
+#[test_case(UnpositionedUsageReplay::LegacyHistory; "legacy TokenCount-only history")]
+#[test_case(UnpositionedUsageReplay::CompactedHistory; "post-compaction TokenCount-only history")]
+#[tokio::test]
+async fn resumed_history_without_positioned_usage_recomputes_full_context(
+    replay: UnpositionedUsageReplay,
+) {
+    let (session, _turn_context) = make_session_and_context().await;
+    let base_instructions_text = "DISTINCTIVE_RESUME_BASE_INSTRUCTIONS ".repeat(128);
+    session
+        .state
+        .lock()
+        .await
+        .session_configuration
+        .base_instructions = base_instructions_text.clone();
+    let compacted_summary = with_unknown_content_metadata(assistant_message("compacted summary"));
+    let resumed_tail = with_unknown_content_metadata(user_message("history after usage snapshot"));
+    let expected_items = [compacted_summary.clone(), resumed_tail.clone()];
+    let token_count = || {
+        RolloutItem::EventMsg(EventMsg::TokenCount(TokenCountEvent {
+            info: Some(TokenUsageInfo {
+                total_token_usage: TokenUsage {
+                    total_tokens: 700,
+                    ..Default::default()
+                },
+                last_token_usage: TokenUsage {
+                    total_tokens: 7,
+                    ..Default::default()
+                },
+                model_context_window: Some(128_000),
+            }),
+            rate_limits: None,
+        }))
+    };
+    let rollout_items = match replay {
+        UnpositionedUsageReplay::LegacyHistory => vec![
+            RolloutItem::ResponseItem(compacted_summary.into()),
+            token_count(),
+            RolloutItem::ResponseItem(resumed_tail.into()),
+        ],
+        UnpositionedUsageReplay::CompactedHistory => vec![
+            RolloutItem::Compacted(CompactedItem {
+                message: String::new(),
+                replacement_history: Some(annotated(vec![compacted_summary])),
+                retained_context: None,
+                guardian_history: None,
+                mcp_resource_origins: None,
+                window_number: None,
+                first_window_id: None,
+                previous_window_id: None,
+                window_id: None,
+                compaction_response_id: None,
+                latest_token_usage_record: None,
+            }),
+            token_count(),
+            RolloutItem::ResponseItem(resumed_tail.into()),
+        ],
+    };
+
+    session
+        .record_initial_history(InitialHistory::Resumed(ResumedHistory {
+            conversation_id: ThreadId::new(),
+            history: Arc::new(rollout_items),
+            rollout_path: None,
+        }))
+        .await;
+
+    let expected_total = i64::try_from(approx_token_count(&base_instructions_text))
+        .unwrap_or(i64::MAX)
+        .saturating_add(
+            expected_items
+                .iter()
+                .map(estimate_item_token_count)
+                .fold(0i64, i64::saturating_add),
+        );
+    assert_eq!(
+        session.get_total_token_usage().await,
+        expected_total,
+        "replay without a positioned usage record must estimate the full prepared history and current base instructions"
     );
 }
 

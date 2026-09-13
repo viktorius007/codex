@@ -4857,6 +4857,91 @@ async fn auto_compact_runs_when_reasoning_header_clears_between_turns() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn auto_compact_counts_usage_less_history_before_next_sampling() {
+    skip_if_no_network!();
+
+    let server = start_mock_server().await;
+    let usage_less_reply = format!("USAGE_LESS_REPLY {}", "y".repeat(2_000));
+    let request_log = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_assistant_message("m1", FIRST_REPLY),
+                ev_completed_with_tokens("r1", /*total_tokens*/ 100),
+            ]),
+            sse(vec![
+                ev_assistant_message("m2", &usage_less_reply),
+                json!({"type": "response.completed", "response": {"id": "r2"}}),
+            ]),
+            sse(vec![
+                ev_assistant_message("m3", "USAGE_LESS_TAIL_SUMMARY"),
+                ev_completed_with_tokens("r3", /*total_tokens*/ 50),
+            ]),
+            sse(vec![
+                ev_assistant_message("m4", FINAL_REPLY),
+                ev_completed_with_tokens("r4", /*total_tokens*/ 40),
+            ]),
+        ],
+    )
+    .await;
+
+    let model_provider = non_openai_model_provider(&server);
+    let codex = test_codex()
+        .with_config(move |config| {
+            config.model_provider = model_provider;
+            set_test_compact_prompt(config);
+            config.model_auto_compact_token_limit = Some(400);
+        })
+        .build(&server)
+        .await
+        .expect("build codex")
+        .codex;
+
+    for user_input in ["USAGE_RECORDED_USER", "USAGE_LESS_USER", "NEXT_USER"] {
+        codex
+            .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+                text: user_input.to_string(),
+                text_elements: Vec::new(),
+            }]))
+            .await
+            .expect("submit user input");
+        wait_for_event(&codex, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    }
+
+    let requests = request_log.requests();
+    assert_eq!(
+        requests.len(),
+        4,
+        "the uncounted history tail should trigger compaction before the third turn samples"
+    );
+
+    let compact_body = requests[2].body_json().to_string();
+    assert!(
+        body_contains_text(&compact_body, SUMMARIZATION_PROMPT),
+        "the third request should compact history after the usage-less response"
+    );
+    assert!(
+        body_contains_text(&compact_body, &usage_less_reply),
+        "compaction should receive the usage-less response that crossed the threshold"
+    );
+
+    let follow_up_body = requests[3].body_json().to_string();
+    assert!(
+        !body_contains_text(&follow_up_body, SUMMARIZATION_PROMPT),
+        "the post-compaction request should be an ordinary sampling request"
+    );
+    assert_eq!(
+        requests[3]
+            .message_input_texts("user")
+            .iter()
+            .filter(|text| text.as_str() == "NEXT_USER")
+            .count(),
+        1,
+        "post-compaction sampling should include the third user input exactly once"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 // TODO(ccunningham): Update once pre-turn compaction includes incoming user input.
 async fn snapshot_request_shape_pre_turn_compaction_including_incoming_user_message() {
     skip_if_no_network!();

@@ -1,6 +1,7 @@
 use super::*;
 use crate::context::GuardianContextMode;
 use crate::context::world_state::WorldStateSnapshot;
+use crate::context_manager::AcceptedTokenUsage;
 use crate::context_manager::is_user_turn_boundary;
 use codex_history::ResponseItemEnvelope;
 use codex_protocol::protocol::SessionContextWindow;
@@ -11,6 +12,9 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub(super) struct RolloutReconstruction {
     pub(super) history: Vec<ResponseItemEnvelope>,
+    pub(super) token_info: Option<TokenUsageInfo>,
+    pub(super) accepted_token_usage: Option<AcceptedTokenUsage>,
+    pub(super) latest_token_usage_record: Option<TokenUsageRecord>,
     pub(super) retained_context: codex_history::RetainedContext,
     pub(super) guardian_history: Option<codex_history::GuardianHistoryCheckpoint>,
     pub(super) previous_turn_settings: Option<PreviousTurnSettings>,
@@ -343,6 +347,8 @@ impl Session {
             self.guardian_context_mode,
             &turn_context.session_source,
         );
+        let mut token_info = None;
+        let mut accepted_token_usage = None;
         let mut saw_legacy_compaction_without_replacement_history = false;
         if let Some(checkpoint) = base_compaction
             && let Some(items) = &checkpoint.compacted.replacement_history
@@ -376,6 +382,19 @@ impl Session {
                     );
                 }
                 RolloutItem::InterAgentCommunicationMetadata { .. } => {}
+                RolloutItem::TokenUsageRecord(record) => {
+                    // The record's rollout position proves exactly which reconstructed items its
+                    // numeric usage covers.
+                    token_info = TokenUsageInfo::new_or_append(
+                        &token_info,
+                        &Some(record.usage.clone()),
+                        /*model_context_window*/ None,
+                    );
+                    accepted_token_usage = Some(AcceptedTokenUsage::server_reported(
+                        record.usage.clone(),
+                        history.annotated_items().len(),
+                    ));
+                }
                 RolloutItem::Compacted(compacted) => {
                     // Reverse replay already chose the newest surviving checkpoint. Any newer
                     // replacement checkpoint belongs to a rolled-back turn; replay its original
@@ -408,17 +427,24 @@ impl Session {
                         let retained_context = history.retained_context().clone();
                         history.replace_annotated(rebuilt);
                         history.restore_retained_context(Some(&retained_context));
+                        accepted_token_usage = None;
                     }
                 }
                 RolloutItem::EventMsg(EventMsg::ThreadRolledBack(rollback)) => {
                     history.drop_last_n_user_turns(rollback.num_turns);
+                    accepted_token_usage = None;
+                }
+                RolloutItem::EventMsg(EventMsg::TokenCount(event)) => {
+                    // TokenCount is a UI snapshot and carries no independent history position.
+                    if let Some(info) = &event.info {
+                        token_info = Some(info.clone());
+                    }
                 }
                 RolloutItem::EventMsg(_)
                 | RolloutItem::TurnContext(_)
                 | RolloutItem::RealtimeItem(_)
                 | RolloutItem::WorldState(_)
                 | RolloutItem::SecurityRiskScore(_)
-                | RolloutItem::TokenUsageRecord(_)
                 | RolloutItem::SessionMeta(_) => {}
             }
         }
@@ -477,6 +503,9 @@ impl Session {
             retained_context: history.retained_context().clone(),
             guardian_history: history.guardian_history_checkpoint(),
             history: history.into_annotated_items(),
+            token_info,
+            accepted_token_usage,
+            latest_token_usage_record: Self::last_token_usage_record_from_rollout(rollout_items),
             previous_turn_settings,
             reference_context_item,
             world_state_baseline,

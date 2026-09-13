@@ -2,6 +2,7 @@ use anyhow::Result;
 use app_test_support::MockResponsesConfig;
 use app_test_support::TestAppServer;
 use app_test_support::write_models_cache;
+use app_test_support::write_models_cache_with_models;
 use codex_app_server_protocol::ClientRequest;
 use codex_app_server_protocol::JSONRPCMessage;
 use codex_app_server_protocol::JSONRPCNotification;
@@ -32,6 +33,7 @@ use codex_protocol::protocol::SessionSource;
 use codex_protocol::protocol::SubAgentSource;
 use codex_state::StateRuntime;
 use codex_utils_absolute_path::test_support::PathExt;
+use core_test_support::load_default_config_for_test;
 use core_test_support::responses;
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -292,6 +294,7 @@ async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
     const COMPACT_SETUP_PROMPT: &str = "prepare the parent for compaction";
     const COMPACT_PROMPT: &str = "summarize the compacted parent";
     const COMPACTED_SUMMARY: &str = "preserved compacted parent summary";
+    const NORMAL_CONTEXT_MODEL: &str = "gpt-5.4-normal-context";
     const SPAWN_PROMPT: &str = "spawn the compacted-history worker";
     const CHILD_PROMPT: &str = "inspect the compacted parent history";
     const SETUP_CALL_ID: &str = "trigger-parent-compaction";
@@ -373,13 +376,25 @@ async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
     MockResponsesConfig::new(&server.uri())
         .with_model("gpt-5.4")
         .with_root_config(&format!(
-            "developer_instructions = {PARENT_INSTRUCTIONS:?}\nmodel_context_window = 100\nmodel_auto_compact_token_limit = 90\ncompact_prompt = {COMPACT_PROMPT:?}"
+            "developer_instructions = {PARENT_INSTRUCTIONS:?}\ncompact_prompt = {COMPACT_PROMPT:?}"
         ))
         .with_extra_config(&format!(
             "[features.multi_agent_v2]\nenabled = true\nsubagent_developer_instructions = {CHILD_INSTRUCTIONS:?}"
         ))
         .write(codex_home.path())?;
-    write_models_cache(codex_home.path())?;
+    let config = load_default_config_for_test(&codex_home).await;
+    let mut compacting_model =
+        codex_core::test_support::construct_model_info_offline("gpt-5.4", &config);
+    compacting_model.context_window = Some(100);
+    compacting_model.auto_compact_token_limit = Some(90);
+    let mut normal_context_model = compacting_model.clone();
+    normal_context_model.slug = NORMAL_CONTEXT_MODEL.to_string();
+    normal_context_model.context_window = Some(272_000);
+    normal_context_model.auto_compact_token_limit = None;
+    write_models_cache_with_models(
+        codex_home.path(),
+        vec![compacting_model, normal_context_model],
+    )?;
 
     let mut app_server = TestAppServer::builder()
         .with_codex_home(codex_home.path())
@@ -423,6 +438,7 @@ async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
             request_id,
             params: TurnStartParams {
                 thread_id: thread.id,
+                model: Some(NORMAL_CONTEXT_MODEL.to_string()),
                 input: vec![UserInput::Text {
                     text: SPAWN_PROMPT.to_string(),
                     text_elements: Vec::new(),

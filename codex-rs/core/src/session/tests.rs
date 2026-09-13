@@ -2982,11 +2982,14 @@ async fn recompute_token_usage_updates_model_context_window() {
 
     {
         let mut state = session.state.lock().await;
-        state.set_token_info(Some(TokenUsageInfo {
-            total_token_usage: TokenUsage::default(),
-            last_token_usage: TokenUsage::default(),
-            model_context_window: Some(258_400),
-        }));
+        state.history.set_token_info_and_accepted_usage(
+            Some(TokenUsageInfo {
+                total_token_usage: TokenUsage::default(),
+                last_token_usage: TokenUsage::default(),
+                model_context_window: Some(258_400),
+            }),
+            /*accepted_usage*/ None,
+        );
     }
 
     update_turn_settings_for_test(&mut turn_context, |settings| {
@@ -11964,11 +11967,14 @@ async fn abort_empty_active_turn_preserves_pending_input() {
 
 async fn set_total_token_usage(sess: &Session, total_token_usage: TokenUsage) {
     let mut state = sess.state.lock().await;
-    state.set_token_info(Some(TokenUsageInfo {
-        total_token_usage,
-        last_token_usage: TokenUsage::default(),
-        model_context_window: None,
-    }));
+    state.history.set_token_info_and_accepted_usage(
+        Some(TokenUsageInfo {
+            total_token_usage,
+            last_token_usage: TokenUsage::default(),
+            model_context_window: None,
+        }),
+        /*accepted_usage*/ None,
+    );
 }
 
 #[tokio::test]

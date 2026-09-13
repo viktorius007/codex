@@ -12,6 +12,7 @@ use super::AdditionalContextStore;
 use super::auto_compact_window::AutoCompactWindow;
 use super::auto_compact_window::AutoCompactWindowIds;
 use super::auto_compact_window::AutoCompactWindowSnapshot;
+use crate::context_manager::AcceptedTokenUsage;
 use crate::context_manager::ContextManager;
 use crate::context_manager::HistoryReplacement;
 use crate::session::PreviousTurnSettings;
@@ -154,10 +155,6 @@ impl SessionState {
         self.auto_compact_window.clear_prefill();
     }
 
-    pub(crate) fn set_token_info(&mut self, info: Option<TokenUsageInfo>) {
-        self.history.set_token_info(info);
-    }
-
     pub(crate) fn record_token_usage(
         &mut self,
         thread_id: ThreadId,
@@ -211,6 +208,35 @@ impl SessionState {
         model_context_window: Option<i64>,
     ) {
         self.history.update_token_info(usage, model_context_window);
+    }
+
+    pub(crate) fn set_recomputed_token_usage(
+        &mut self,
+        estimated_total_tokens: i64,
+        model_context_window: Option<i64>,
+    ) {
+        let mut info = self.token_info().unwrap_or(TokenUsageInfo {
+            total_token_usage: TokenUsage::default(),
+            last_token_usage: TokenUsage::default(),
+            model_context_window: None,
+        });
+        info.last_token_usage = TokenUsage {
+            total_tokens: estimated_total_tokens.max(0),
+            ..TokenUsage::default()
+        };
+        if let Some(model_context_window) = model_context_window {
+            info.model_context_window = Some(model_context_window);
+        }
+
+        let accepted_history_items = self.history.annotated_items().len();
+        let accepted_usage = info.last_token_usage.clone();
+        self.history.set_token_info_and_accepted_usage(
+            Some(info),
+            Some(AcceptedTokenUsage::fully_accounted(
+                accepted_usage,
+                accepted_history_items,
+            )),
+        );
     }
 
     pub(crate) fn ensure_auto_compact_window_server_prefill_from_usage(
