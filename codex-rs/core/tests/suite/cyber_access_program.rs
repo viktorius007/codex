@@ -26,6 +26,61 @@ use wiremock::matchers::header;
 use wiremock::matchers::method;
 use wiremock::matchers::path;
 
+fn body_contains(request: &wiremock::Request, text: &str) -> bool {
+    let body = match request
+        .headers
+        .get("content-encoding")
+        .and_then(|encoding| encoding.to_str().ok())
+    {
+        Some(encoding) if encoding.eq_ignore_ascii_case("zstd") => {
+            zstd::stream::decode_all(std::io::Cursor::new(&request.body)).ok()
+        }
+        _ => Some(request.body.clone()),
+    };
+    body.and_then(|body| String::from_utf8(body).ok())
+        .is_some_and(|body| body.contains(text))
+}
+
+async fn mount_root_completion(
+    server: &wiremock::MockServer,
+    completion_text: String,
+    response_id: String,
+) -> responses::ResponseMock {
+    responses::mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            !request.headers.contains_key("x-openai-subagent")
+                && body_contains(request, "Message Type: FINAL_ANSWER")
+                && body_contains(request, &completion_text)
+        },
+        responses::sse(vec![
+            responses::ev_response_created(&response_id),
+            responses::ev_assistant_message(
+                &format!("message-{response_id}"),
+                "completion handled",
+            ),
+            responses::ev_completed(&response_id),
+        ]),
+    )
+    .await
+}
+
+fn assert_root_completion_requested(request: &responses::ResponseMock, completion_text: &str) {
+    assert_eq!(
+        request
+            .requests()
+            .iter()
+            .filter(|request| {
+                request.header("x-openai-subagent").is_none()
+                    && request.body_contains_text("Message Type: FINAL_ANSWER")
+                    && request.body_contains_text(completion_text)
+            })
+            .count(),
+        1,
+        "the terminal child should trigger exactly one matching root completion request"
+    );
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn recover_turn_restores_cyber_access_program_without_making_it_sticky() -> Result<()> {
     // Keep sampling pending until interruption so restart must reload the unfinished turn.
@@ -237,11 +292,10 @@ async fn cyber_access_program_survives_mid_turn_remote_compaction_v2() -> Result
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
-    // Final answers defer late child completion mail to the next parent turn.
     let final_response = |id: &str| {
         responses::sse(vec![
             responses::ev_response_created(id),
-            responses::ev_assistant_message(&format!("message-{id}"), "Done."),
+            responses::ev_assistant_message(&format!("message-{id}"), &format!("Done: {id}.")),
             responses::ev_completed(id),
         ])
     };
@@ -284,6 +338,18 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
             final_response("resp-child-initial"),
         )
         .await;
+        let initial_root_completion = if is_v2 {
+            Some(
+                mount_root_completion(
+                    &server,
+                    "Done: resp-child-initial.".to_string(),
+                    "resp-parent-initial-wake".to_string(),
+                )
+                .await,
+            )
+        } else {
+            None
+        };
         let test = test_codex()
             .with_auth(CodexAuth::create_dummy_chatgpt_auth_for_testing())
             .with_model(if is_v2 { "gpt-5.6-sol" } else { "gpt-5.1" })
@@ -306,6 +372,18 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
         let child_id = created_threads.recv().await?;
         let child = test.thread_manager.get_thread(child_id).await?;
         wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+        if is_v2 {
+            wait_for_event(&test.codex, |event| {
+                matches!(event, EventMsg::TurnComplete(_))
+            })
+            .await;
+            assert_root_completion_requested(
+                initial_root_completion
+                    .as_ref()
+                    .expect("v2 completion mock should be mounted"),
+                "Done: resp-child-initial.",
+            );
+        }
 
         let child_programs = |requests: &responses::ResponseMock| {
             requests
@@ -323,7 +401,7 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
             "namespace={namespace}, fork_turns={fork_turns}"
         );
 
-        for (program, expected, reload) in [
+        for (turn_index, (program, expected, reload)) in [
             (
                 Some(CyberAccessProgram::Standard),
                 json!({"cyber": "standard"}),
@@ -340,7 +418,10 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
                 json!({"cyber": "standard"}),
                 true,
             ),
-        ] {
+        ]
+        .into_iter()
+        .enumerate()
+        {
             if reload {
                 let child = test.thread_manager.get_thread(child_id).await?;
                 child.shutdown_and_wait().await?;
@@ -372,15 +453,41 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
                 responses::ev_completed("resp-followup"),
             ]));
             responses::mount_sse_sequence(&server, reply_sequence).await;
+            let child_response_id = format!("resp-child-next-{turn_index}");
             let followup_child_request = responses::mount_sse_once_match(
                 &server,
                 header("x-openai-subagent", "collab_spawn"),
-                final_response("resp-child-next"),
+                final_response(&child_response_id),
             )
             .await;
+            let completion_text = format!("Done: {child_response_id}.");
+            let root_completion_request = if is_v2 {
+                Some(
+                    mount_root_completion(
+                        &server,
+                        completion_text.clone(),
+                        format!("resp-parent-wake-{turn_index}"),
+                    )
+                    .await,
+                )
+            } else {
+                None
+            };
             submit(&test, program).await?;
             let child = test.thread_manager.get_thread(child_id).await?;
             wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+            if is_v2 {
+                wait_for_event(&test.codex, |event| {
+                    matches!(event, EventMsg::TurnComplete(_))
+                })
+                .await;
+                assert_root_completion_requested(
+                    root_completion_request
+                        .as_ref()
+                        .expect("v2 completion mock should be mounted"),
+                    &completion_text,
+                );
+            }
             assert_eq!(
                 child_programs(&followup_child_request),
                 vec![expected],

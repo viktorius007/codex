@@ -417,14 +417,25 @@ async fn guardian_subagent_review_preserves_late_root_user_authorization(
     mount_sse_once_match(
         &server,
         move |request: &wiremock::Request| {
+            is_root_request(request, root_thread_id)
+                && contains_text(request, "Sender: /root/worker")
+                && contains_text(request, "Waiting for user authorization.")
+        },
+        sse(vec![ev_completed("response-root-completion-wake")]),
+    )
+    .await;
+    core_test_support::responses::mount_response_once_match(
+        &server,
+        move |request: &wiremock::Request| {
             is_worker_request(request, root_thread_id)
                 && contains_text(request, INITIAL_TASK)
                 && !contains_text(request, FORWARDED_AGENT_MESSAGE)
         },
-        sse(vec![
+        core_test_support::responses::sse_response(sse(vec![
             ev_assistant_message("worker-initial", "Waiting for user authorization."),
             ev_completed("worker-initial-response"),
-        ]),
+        ]))
+        .set_delay(Duration::from_secs(1)),
     )
     .await;
 
@@ -468,6 +479,11 @@ async fn guardian_subagent_review_preserves_late_root_user_authorization(
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    // Finish the automatic parent wake before injecting the retained-history fixture.
     // Exceed both the retained-record storage cap and the reviewer text budget.
     let oversized_instruction = "Root instruction 0. ".repeat(1_000);
     // Streaming commentary could be preempted by the worker's completion notice

@@ -93,18 +93,38 @@ async fn mount_completed_worker(
     parent_call_id: &'static str,
 ) -> ResponseMock {
     let response_id = format!("resp-worker-{parent_call_id}");
-    mount_sse_once_match(
+    let completion_message = format!("worker completed for {parent_call_id}");
+    core_test_support::responses::mount_response_once_match(
         server,
         move |request: &wiremock::Request| {
             body_contains(request, task) && !has_function_call_output(request, parent_call_id)
         },
-        sse(vec![
+        core_test_support::responses::sse_response(sse(vec![
             ev_response_created(&response_id),
-            ev_assistant_message(&format!("msg-worker-{parent_call_id}"), "worker completed"),
+            ev_assistant_message(&format!("msg-worker-{parent_call_id}"), &completion_message),
             ev_completed(&response_id),
-        ]),
+        ]))
+        .set_delay(Duration::from_secs(1)),
     )
     .await
+}
+
+async fn mount_parent_completion_wake(
+    server: &wiremock::MockServer,
+    child_name: &'static str,
+    parent_call_id: &'static str,
+) {
+    let sender = format!("Sender: /root/{child_name}");
+    let completion_match = format!("worker completed for {parent_call_id}");
+    let response_id = format!("resp-{parent_call_id}-parent-wake");
+    mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            body_contains(request, &sender) && body_contains(request, &completion_match)
+        },
+        sse(vec![ev_completed(&response_id)]),
+    )
+    .await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -291,6 +311,7 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     )
     .await;
     mount_completed_worker(&server, FIRST_TASK, "first-call").await;
+    mount_parent_completion_wake(&server, "first", "first-call").await;
 
     mount_root_collaboration_call(
         &server,
@@ -301,6 +322,7 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     )
     .await;
     mount_completed_worker(&server, SECOND_TASK, "replacement-call").await;
+    mount_parent_completion_wake(&server, "replacement", "replacement-call").await;
 
     mount_root_collaboration_call(
         &server,
@@ -312,6 +334,7 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     .await;
     let reloaded_worker_request =
         mount_completed_worker(&server, FOLLOWUP_TASK, "followup-call").await;
+    mount_parent_completion_wake(&server, "first", "followup-call").await;
 
     let mut builder = test_codex()
         .with_model("gpt-5.6-sol")
@@ -422,7 +445,12 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
 
+    // Drain each automatic parent wake before changing residency or environment state.
     let mut parent_environment = child_environment.clone();
     if reload == ResidencyReload::OwnerRevokesWorkspaceRoot {
         parent_environment.workspace_roots.truncate(1);
@@ -452,6 +480,10 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
         .get_thread(replacement_thread_id)
         .await?;
     wait_for_event(replacement_thread.as_ref(), |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    wait_for_event(&test.codex, |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
@@ -521,6 +553,10 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     test.submit_text_turn(FOLLOWUP_PROMPT).await?;
     let reloaded_worker = test.thread_manager.get_thread(first_thread_id).await?;
     wait_for_event(reloaded_worker.as_ref(), |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    wait_for_event(&test.codex, |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
