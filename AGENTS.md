@@ -1,5 +1,7 @@
 # Repository working principles
 
+- Index every generated document and report in root `AGENTS.md` with a direct link and a clear, simple, single-line description of its contents; update the index when files are added, moved, or removed.
+
 - The user is a layperson, not a software engineer. Explain technical decisions, consequences, and risks in plain language, and do not assume software-development knowledge.
 - The user's computer is a MacBook Pro with an M3 Max, 16 CPU cores, 48 GB of memory, and a 1 TB NVMe drive. CPU and memory are rarely constraints, but disk space must be checked during work. Clean up agent-created build artifacts and temporary files proactively, and always perform a cleanup check before ending a session while preserving unknown or user-created files.
 - Treat every rule, preference, approach, expression of intent, and other instruction from the user as durable across sessions unless the user explicitly marks it as session-scoped. Persist each durable instruction in this root `AGENTS.md` so it is available at the start of future sessions.
@@ -358,3 +360,43 @@ Tests and features must support Linux, macOS and Windows unless feature is expli
 
 Codex supports running connected app-server and exec-server on different operating systems. See the
 `$remote-tests` skill for details about integration testing these configurations.
+
+## Generated document index
+
+- [cache-diagnostics-guide.md](research/cache-diagnostics-guide.md) — Explains how to collect and interpret private cache diagnostics.
+- [cache-repair-run.md](research/cache-repair-run.md) — Records the cache repair work, decisions, validation, and delivery milestones.
+- [cache-repair-recovery.md](research/cache-repair-recovery.md) — Preserves historical recovery checkpoints from the interrupted repair run.
+- [cache-repair-issue-disposition.md](research/cache-repair-issue-disposition.md) — Tracks investigated issues, completed repairs, and remaining obligations.
+- [prompt-cache-prefix-stability.md](research/prompt-cache-prefix-stability.md) — Records the original prefix-stability investigation and issue research.
+- [prefix-cache-code-audit.md](research/prefix-cache-code-audit.md) — Maps the code that constructs and changes cache-relevant request prefixes.
+- [compaction-resume-cache-validation.md](research/compaction-resume-cache-validation.md) — Reports live cache reuse across compaction and cold session resumes.
+- [scan.json](research/cache-baselines/2026-09-14-pre-repair/scan.json) — Stores the pre-repair diagnostic baseline measurements.
+- [provenance.json](research/cache-baselines/2026-09-14-pre-repair/provenance.json) — Records the origin and scope of the pre-repair baseline.
+- [compaction-resume-probe.json](research/cache-repair-reports/compaction-resume-probe.json) — Stores sanitized request comparisons and usage from the compaction/resume tests.
+- [runtime-cache-scan-20260914.json](research/cache-repair-reports/runtime-cache-scan-20260914.json) — Classifies recorded cache drops after installation of the local binary.
+- [installation-local2.json](research/cache-repair-reports/installation-local2.json) — Records the installed binary version, checksums, installation time, and rollback location.
+- [final-delivery-audit.md](research/cache-repair-reports/final-delivery-audit.md) — Reviews the installed milestone and states its limits against the original objective.
+- [issues-30425-35925-diagnosis.md](research/cache-repair-reports/issues-30425-35925-diagnosis.md) — Investigates the causes reported in issues 30425 and 35925.
+- [build-readiness.md](research/cache-repair-reports/build-readiness.md) — Records the initial build environment and prerequisites.
+- [compact-parity-builder.md](research/cache-repair-reports/compact-parity-builder.md) — Describes the repair that keeps compaction tools aligned with the active turn.
+- [compact-parity-tests.md](research/cache-repair-reports/compact-parity-tests.md) — Describes regression tests for matching ordinary and compaction tool catalogs.
+- [compaction-tools-inventory.md](research/cache-repair-reports/compaction-tools-inventory.md) — Maps compaction request construction and tool-related repair candidates.
+- [compaction-verifier.md](research/cache-repair-reports/compaction-verifier.md) — Records independent verification of the compaction tool-catalog repair.
+- [diagnostics-design-initial.md](research/cache-repair-reports/diagnostics-design-initial.md) — Preserves the initial diagnostic design proposal and its tradeoffs.
+- [diagnostics-interface.md](research/cache-repair-reports/diagnostics-interface.md) — Describes the proposed interfaces between diagnostic records and request handling.
+- [records-verifier.md](research/cache-repair-reports/records-verifier.md) — Records the historical review of bounded diagnostic records and outstanding checks.
+- [analysis-verifier-followup.md](research/cache-repair-reports/analysis-verifier-followup.md) — Records verification of the offline cache-diagnostics analyzer.
+- [runtime-diagnostics-verifier-followup.md](research/cache-repair-reports/runtime-diagnostics-verifier-followup.md) — Reviews diagnostic coverage of warm-ups, compaction, retries, and fallback requests.
+- [runtime-diagnostics-memory-assessment.md](research/cache-repair-reports/runtime-diagnostics-memory-assessment.md) — Reviews diagnostic coverage of background memory requests.
+- [prefix-subagents-inventory.md](research/cache-repair-reports/prefix-subagents-inventory.md) — Maps prefix construction for subagents and identifies stability candidates.
+- [fresh-prefix-verifier.md](research/cache-repair-reports/fresh-prefix-verifier.md) — Records verification of stable initial context ordering for fresh subagents.
+- [parent-completion-tests.md](research/cache-repair-reports/parent-completion-tests.md) — Describes tests for parent notification when subagents complete.
+- [grandchild-context-flake-diagnosis.md](research/cache-repair-reports/grandchild-context-flake-diagnosis.md) — Explains a synchronization race in the grandchild context test.
+- [locator-verifier-followup.md](research/cache-repair-reports/locator-verifier-followup.md) — Reviews stable plugin skill locations and their regression coverage.
+- [tool-stability-final-audit.md](research/cache-repair-reports/tool-stability-final-audit.md) — Records the final review and test results for tool ordering and presentation stability.
+- [pending-projection-verifier.md](research/cache-repair-reports/pending-projection-verifier.md) — Records the initial review of pending-input context accounting.
+- [pending-projection-fullsuite-review.md](research/cache-repair-reports/pending-projection-fullsuite-review.md) — Records follow-up verification of pending-input accounting and corrected fixtures.
+- [usage-boundary-tests.md](research/cache-repair-reports/usage-boundary-tests.md) — Describes regression tests for usage accounting across history changes and resume.
+- [usage-verifier.md](research/cache-repair-reports/usage-verifier.md) — Records independent verification of restored usage and active-context estimates.
+- [README.md](docs/experiments/README.md) — Provides the entry point for local engineering experiments.
+- [local-build-pipeline.md](docs/experiments/local-build-pipeline.md) — Records measured local build settings and compiler-cache experiments.
