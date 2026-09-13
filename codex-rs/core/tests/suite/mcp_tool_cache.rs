@@ -35,12 +35,17 @@ use core_test_support::apps_test_server::AppsTestServer;
 use core_test_support::apps_test_server::SEARCH_CALENDAR_CREATE_TOOL;
 use core_test_support::apps_test_server::SEARCH_CALENDAR_NAMESPACE;
 use core_test_support::apps_test_server::apps_enabled_builder;
+use core_test_support::apps_test_server::recorded_apps_tool_calls;
 use core_test_support::is_remote_test_environment;
 use core_test_support::responses;
 use core_test_support::responses::ResponseMock;
 use core_test_support::responses::mount_sse_once;
 use core_test_support::skip_if_no_network;
 use core_test_support::skip_if_wine_exec;
+use core_test_support::streaming_sse::StreamingSseChunk;
+use core_test_support::streaming_sse::StreamingSseServer;
+use core_test_support::streaming_sse::start_streaming_sse_server;
+use core_test_support::test_codex::TestCodex;
 use core_test_support::test_codex::test_codex;
 use core_test_support::test_codex::test_env;
 use core_test_support::wait_for_event;
@@ -49,6 +54,8 @@ use pretty_assertions::assert_eq;
 use serde_json::Value;
 use serde_json::json;
 use test_case::test_case;
+use tokio::sync::oneshot;
+use wiremock::MockServer;
 
 use super::rmcp_client::remote_aware_environment_id;
 use super::rmcp_client::remote_aware_stdio_server_bin;
@@ -262,6 +269,280 @@ async fn mcp_calls_stay_bound_to_each_thread() -> anyhow::Result<()> {
     fixture.codex.shutdown_and_wait().await?;
     second_thread.shutdown_and_wait().await?;
     responses_server.verify().await;
+    Ok(())
+}
+
+struct SampledMcpCallFixture {
+    fixture: TestCodex,
+    model_server: StreamingSseServer,
+    old_server: MockServer,
+    new_server: MockServer,
+    new_url: String,
+    reverse_equivalent_catalog_order: Arc<AtomicBool>,
+    release_sampled_call: oneshot::Sender<()>,
+}
+
+struct EquivalentCatalogOrderContributor {
+    reverse_order: Arc<AtomicBool>,
+}
+
+impl McpServerContributor<Config> for EquivalentCatalogOrderContributor {
+    fn id(&self) -> &'static str {
+        "equivalent_catalog_order_test"
+    }
+
+    fn contribute<'a>(
+        &'a self,
+        _context: McpServerContributionContext<'a, Config>,
+    ) -> ExtensionFuture<'a, Vec<McpServerContribution>> {
+        Box::pin(async move {
+            let contribution = |name: &str| McpServerContribution::Set {
+                name: name.to_string(),
+                config: Box::new(
+                    serde_json::from_value(json!({
+                        "url": format!("https://{name}.invalid/mcp"),
+                        "enabled": false,
+                    }))
+                    .expect("disabled equivalent-order MCP config"),
+                ),
+            };
+            let mut contributions = vec![
+                contribution("ordering_alpha"),
+                contribution("ordering_zeta"),
+            ];
+            if self.reverse_order.load(Ordering::SeqCst) {
+                contributions.reverse();
+            }
+            contributions
+        })
+    }
+}
+
+async fn sampled_mcp_call_fixture() -> anyhow::Result<SampledMcpCallFixture> {
+    let old_server = responses::start_mock_server().await;
+    let old_apps = AppsTestServer::mount(&old_server).await?;
+    let new_server = responses::start_mock_server().await;
+    let new_apps = AppsTestServer::mount(&new_server).await?;
+    let old_url = format!("{}/api/codex/ps/mcp", old_apps.chatgpt_base_url);
+    let new_url = format!("{}/api/codex/ps/mcp", new_apps.chatgpt_base_url);
+
+    let (release_sampled_call, sampled_call_gate) = oneshot::channel();
+    let call_id = "sampled-before-mcp-refresh";
+    let first_response = vec![
+        StreamingSseChunk {
+            gate: None,
+            body: responses::sse(vec![responses::ev_response_created("resp-1")]),
+        },
+        StreamingSseChunk {
+            gate: Some(sampled_call_gate),
+            body: responses::sse(vec![
+                responses::ev_function_call_with_namespace(
+                    call_id,
+                    NAMESPACE,
+                    "calendar_create_event",
+                    r#"{"title":"captured","starts_at":"2026-01-01T00:00:00Z"}"#,
+                ),
+                responses::ev_completed("resp-1"),
+            ]),
+        },
+    ];
+    let final_response = vec![StreamingSseChunk {
+        gate: None,
+        body: responses::sse(vec![
+            responses::ev_assistant_message("msg-1", "done"),
+            responses::ev_completed("resp-2"),
+        ]),
+    }];
+    let (model_server, _completions) =
+        start_streaming_sse_server(vec![first_response, final_response]).await;
+    let reverse_equivalent_catalog_order = Arc::new(AtomicBool::new(false));
+    let mut extensions = ExtensionRegistryBuilder::new();
+    extensions.mcp_server_contributor(Arc::new(EquivalentCatalogOrderContributor {
+        reverse_order: Arc::clone(&reverse_equivalent_catalog_order),
+    }));
+
+    let fixture = test_codex()
+        .with_model_info_override("gpt-5.4", |model| model.supports_search_tool = false)
+        .with_extensions(Arc::new(extensions.build()))
+        .with_config(move |config| {
+            config.permissions.approval_policy = Constrained::allow_any(AskForApproval::Never);
+            config
+                .permissions
+                .set_permission_profile(PermissionProfile::Disabled)
+                .expect("test config should allow disabled permissions");
+            let mut servers = config.mcp_servers.get().clone();
+            servers.insert(
+                SERVER_NAME.to_string(),
+                serde_json::from_value(json!({
+                    "url": old_url,
+                    "http_headers": { "Authorization": "Bearer old-binding-token" },
+                    "enabled_tools": ["calendar_create_event"],
+                    "startup_timeout_sec": 10,
+                }))
+                .expect("initial HTTP MCP server configuration"),
+            );
+            config
+                .mcp_servers
+                .set(servers)
+                .expect("initial MCP server configuration");
+        })
+        .build_with_streaming_server(&model_server)
+        .await?;
+    wait_for_mcp_server(&fixture.codex, SERVER_NAME).await?;
+
+    fixture
+        .codex
+        .start_or_steer_turn(user_turn("Call the cached MCP tool."))
+        .await?;
+    model_server.wait_for_request_count(1).await;
+    let first_requests = model_server.requests().await;
+    let first_request: Value = serde_json::from_slice(&first_requests[0])?;
+    assert!(
+        responses::namespace_child_tool(&first_request, NAMESPACE, "calendar_create_event")
+            .is_some(),
+        "the captured step must have advertised the sampled MCP tool"
+    );
+
+    Ok(SampledMcpCallFixture {
+        fixture,
+        model_server,
+        old_server,
+        new_server,
+        new_url,
+        reverse_equivalent_catalog_order,
+        release_sampled_call,
+    })
+}
+
+async fn complete_sampled_mcp_call(
+    test: SampledMcpCallFixture,
+) -> anyhow::Result<(String, Vec<Value>, Vec<Value>)> {
+    test.release_sampled_call
+        .send(())
+        .expect("sampled MCP call gate should still be waiting");
+    wait_for_event(&test.fixture.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    test.model_server.wait_for_request_count(2).await;
+
+    let requests = test.model_server.requests().await;
+    let completion_request: Value = serde_json::from_slice(&requests[1])?;
+    let output = completion_request
+        .get("input")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .find(|item| {
+            item.get("type").and_then(Value::as_str) == Some("function_call_output")
+                && item.get("call_id").and_then(Value::as_str) == Some("sampled-before-mcp-refresh")
+        })
+        .and_then(|item| item.get("output"))
+        .map(|output| {
+            output
+                .as_str()
+                .map(str::to_string)
+                .unwrap_or_else(|| output.to_string())
+        })
+        .expect("sampled MCP call should return output to the model");
+    let old_calls = recorded_apps_tool_calls(&test.old_server).await;
+    let new_calls = recorded_apps_tool_calls(&test.new_server).await;
+
+    test.fixture.codex.shutdown_and_wait().await?;
+    test.model_server.shutdown().await;
+    Ok((output, old_calls, new_calls))
+}
+
+fn assert_stale_sampled_call_failed(output: &str, old_calls: &[Value], new_calls: &[Value]) {
+    assert_eq!(old_calls, &[] as &[Value]);
+    assert_eq!(new_calls, &[] as &[Value]);
+    assert!(
+        output.contains(&format!(
+            "MCP tool `{SERVER_NAME}/calendar_create_event` is not available to the model"
+        )),
+        "sampled MCP call should fail at the stale authority boundary: {output}"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sampled_mcp_call_executes_when_runtime_authority_is_unchanged() -> anyhow::Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let test = sampled_mcp_call_fixture().await?;
+    let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
+
+    assert!(output.contains(r#"{"_codex_apps":null}"#));
+    assert_eq!(old_calls.len(), 1);
+    assert_eq!(new_calls, Vec::<Value>::new());
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sampled_mcp_call_executes_after_equivalent_runtime_republish() -> anyhow::Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let test = sampled_mcp_call_fixture().await?;
+    test.reverse_equivalent_catalog_order
+        .store(true, Ordering::SeqCst);
+    test.fixture
+        .codex
+        .refresh_runtime_config(test.fixture.config.clone())
+        .await;
+    wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
+
+    let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
+    assert!(output.contains(r#"{"_codex_apps":null}"#));
+    assert_eq!(old_calls.len(), 1);
+    assert_eq!(new_calls, Vec::<Value>::new());
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sampled_mcp_call_does_not_switch_to_replacement_server() -> anyhow::Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let test = sampled_mcp_call_fixture().await?;
+    let mut refreshed_config = test.fixture.config.clone();
+    let mut refreshed_servers = refreshed_config.mcp_servers.get().clone();
+    let refreshed_server = refreshed_servers
+        .get_mut(SERVER_NAME)
+        .expect("configured MCP server");
+    let McpServerTransportConfig::StreamableHttp { url, .. } = &mut refreshed_server.transport
+    else {
+        unreachable!("expected streamable HTTP transport");
+    };
+    *url = test.new_url.clone();
+    refreshed_config.mcp_servers.set(refreshed_servers)?;
+    test.fixture
+        .codex
+        .refresh_runtime_config(refreshed_config)
+        .await;
+    wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
+
+    let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
+    assert_stale_sampled_call_failed(&output, &old_calls, &new_calls);
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sampled_mcp_call_does_not_bypass_narrowed_tool_allowlist() -> anyhow::Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let test = sampled_mcp_call_fixture().await?;
+    let mut refreshed_config = test.fixture.config.clone();
+    let mut refreshed_servers = refreshed_config.mcp_servers.get().clone();
+    refreshed_servers
+        .get_mut(SERVER_NAME)
+        .expect("configured MCP server")
+        .enabled_tools = Some(Vec::new());
+    refreshed_config.mcp_servers.set(refreshed_servers)?;
+    test.fixture
+        .codex
+        .refresh_runtime_config(refreshed_config)
+        .await;
+
+    let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
+    assert_stale_sampled_call_failed(&output, &old_calls, &new_calls);
     Ok(())
 }
 
