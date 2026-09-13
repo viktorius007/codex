@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
@@ -1609,6 +1610,7 @@ async fn run_sampling_request(
     );
     let max_retries = turn_context.provider.info().stream_max_retries();
     let mut retry_state = ResponsesStreamRetryState::default();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
     let mut initial_input = Some(input);
     let mut original_input = None;
     let mut executed_tool_calls_by_output = HashMap::new();
@@ -1650,6 +1652,7 @@ async fn run_sampling_request(
             Arc::clone(&turn_diff_tracker),
             &prompt,
             cancellation_token.child_token(),
+            &diagnostic_attempts,
         )
         .await
         {
@@ -2456,6 +2459,7 @@ async fn try_run_sampling_request(
     turn_diff_tracker: SharedTurnDiffTracker,
     prompt: &Prompt,
     cancellation_token: CancellationToken,
+    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
 ) -> CodexResult<SamplingRequestResult> {
     let turn_context = Arc::clone(&step_context.turn);
     feedback_tags!(
@@ -2483,7 +2487,7 @@ async fn try_run_sampling_request(
         .enabled(Feature::ConcurrentReasoningSummaries)
         && turn_context.provider.info().is_openai();
     let mut stream = client_session
-        .stream(
+        .stream_with_diagnostic_attempts(
             prompt,
             &step_context.settings.model_info,
             &step_context.session_telemetry,
@@ -2496,6 +2500,7 @@ async fn try_run_sampling_request(
             step_context.settings.service_tier.clone(),
             responses_metadata,
             &inference_trace,
+            diagnostic_attempts,
         )
         .instrument(trace_span!("stream_request"))
         .or_cancel(&cancellation_token)

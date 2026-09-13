@@ -7,6 +7,7 @@
 
 mod apply_patch;
 mod apps;
+mod cache_diagnostics;
 mod client;
 mod client_common;
 mod realtime_context;

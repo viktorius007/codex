@@ -1712,6 +1712,7 @@ impl Session {
                     &initial_history,
                     InitialHistory::Resumed(_) | InitialHistory::Forked(_)
                 ))
+                .with_cache_diagnostics(config.codex_home.as_path())
                 .with_session_context(
                     crate::guardian::prompt_cache_key_override_for_review_session(
                         &session_configuration.session_source,

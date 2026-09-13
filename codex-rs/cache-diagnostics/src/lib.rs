@@ -11,7 +11,6 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::PoisonError;
 
-use codex_api::CompactionInput;
 use codex_api::ResponsesApiRequest;
 use serde::Serialize;
 
@@ -19,7 +18,6 @@ use crate::manifest::Fingerprint;
 use crate::manifest::Fingerprinter;
 use crate::manifest::LineageManifest;
 use crate::manifest::LogicalManifest;
-use crate::manifest::LogicalRequestManifest;
 use crate::manifest::ManifestObservation;
 use crate::manifest::WireManifest;
 use crate::manifest::optional_identity;
@@ -80,7 +78,7 @@ impl Collector {
                     request_kind: context.request_kind,
                     retry_ordinal: context.retry_ordinal,
                     lineage: LineageManifest::new(&self.fingerprinter, context),
-                    logical: LogicalRequestManifest::Responses(logical),
+                    logical,
                     wire: WireManifest::missing(),
                 })
         });
@@ -95,41 +93,6 @@ impl Collector {
         })
     }
 
-    /// Starts one compact-endpoint attempt from its finalized logical payload.
-    pub fn start_compaction_attempt(
-        self: &Arc<Self>,
-        context: AttemptContext<'_>,
-        logical: &CompactionInput<'_>,
-    ) -> Arc<Attempt> {
-        let attempt_id = key::random_id().ok();
-        let request = attempt_id.as_ref().and_then(|attempt_id| {
-            LogicalManifest::new_compaction(&self.fingerprinter, logical)
-                .ok()
-                .map(|logical| RequestRecord {
-                    schema_version: SCHEMA_VERSION,
-                    event: "request",
-                    run_id: self.run_id.clone(),
-                    key_scope: self.key_scope.clone(),
-                    attempt_id: attempt_id.clone(),
-                    sequence: 0,
-                    timestamp_unix_ms: None,
-                    request_kind: context.request_kind,
-                    retry_ordinal: context.retry_ordinal,
-                    lineage: LineageManifest::new(&self.fingerprinter, context),
-                    logical: LogicalRequestManifest::Compaction(logical),
-                    wire: WireManifest::missing(),
-                })
-        });
-        let attempt_id = request.as_ref().map(|record| record.attempt_id.clone());
-        Arc::new(Attempt {
-            collector: Arc::clone(self),
-            attempt_id,
-            state: Mutex::new(AttemptState {
-                request,
-                outcome_written: false,
-            }),
-        })
-    }
 }
 
 /// Raw request context accepted only long enough to create keyed fingerprints.
@@ -218,8 +181,6 @@ pub enum EndpointKind {
     Guardian,
     /// Lightweight Guardian classification.
     GuardianClassifier,
-    /// The unary Responses compaction route.
-    Compact,
 }
 
 /// Prepared HTTP body compression retained as a bounded enum.
@@ -432,7 +393,7 @@ struct RequestRecord {
     request_kind: RequestKind,
     retry_ordinal: u32,
     lineage: LineageManifest,
-    logical: LogicalRequestManifest,
+    logical: LogicalManifest,
     wire: WireManifest,
 }
 

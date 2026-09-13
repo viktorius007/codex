@@ -3,7 +3,6 @@ use std::io::Write;
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use codex_api::CompactionInput;
 use codex_api::ResponsesApiRequest;
 use hmac::Hmac;
 use hmac::Mac;
@@ -124,32 +123,6 @@ pub(crate) struct LogicalManifest {
     access_programs: ManifestObservation<Fingerprint>,
 }
 
-#[derive(Serialize)]
-#[serde(untagged)]
-pub(crate) enum LogicalRequestManifest {
-    Responses(LogicalManifest),
-    Compaction(CompactionLogicalManifest),
-}
-
-#[derive(Serialize)]
-pub(crate) struct CompactionLogicalManifest {
-    body: Fingerprint,
-    model: Fingerprint,
-    instructions: Fingerprint,
-    input: ListManifest,
-    tools: ManifestObservation<ListManifest>,
-    #[serde(rename = "parallelToolCalls")]
-    parallel_tool_calls: Fingerprint,
-    reasoning: ManifestObservation<Fingerprint>,
-    #[serde(rename = "serviceTier")]
-    service_tier: ManifestObservation<Fingerprint>,
-    #[serde(rename = "promptCacheKey")]
-    prompt_cache_key: ManifestObservation<Fingerprint>,
-    text: ManifestObservation<Fingerprint>,
-    #[serde(rename = "accessPrograms")]
-    access_programs: ManifestObservation<Fingerprint>,
-}
-
 impl LogicalManifest {
     pub(crate) fn new(
         fingerprinter: &Fingerprinter,
@@ -208,47 +181,6 @@ impl LogicalManifest {
         })
     }
 
-    pub(crate) fn new_compaction(
-        fingerprinter: &Fingerprinter,
-        request: &CompactionInput<'_>,
-    ) -> serde_json::Result<CompactionLogicalManifest> {
-        Ok(CompactionLogicalManifest {
-            body: fingerprinter.fingerprint_json("logical.body", request)?,
-            model: fingerprinter.fingerprint_json("logical.model", request.model)?,
-            instructions: fingerprinter
-                .fingerprint_json("logical.instructions", request.instructions)?,
-            input: fingerprinter.list_manifest(
-                "logical.input",
-                "logical.input.item",
-                "logical.input.omitted",
-                request.input,
-            )?,
-            tools: tools_manifest(fingerprinter, request.tools.as_ref()),
-            parallel_tool_calls: fingerprinter
-                .fingerprint_json("logical.parallel_tool_calls", &request.parallel_tool_calls)?,
-            reasoning: optional_json(
-                fingerprinter,
-                "logical.reasoning",
-                request.reasoning.as_ref(),
-            )?,
-            service_tier: optional_json(
-                fingerprinter,
-                "logical.service_tier",
-                request.service_tier.as_ref(),
-            )?,
-            prompt_cache_key: optional_json(
-                fingerprinter,
-                "logical.prompt_cache_key",
-                request.prompt_cache_key.as_ref(),
-            )?,
-            text: optional_json(fingerprinter, "logical.text", request.text.as_ref())?,
-            access_programs: optional_json(
-                fingerprinter,
-                "logical.access_programs",
-                request.access_programs.as_ref(),
-            )?,
-        })
-    }
 }
 
 #[derive(Serialize)]
