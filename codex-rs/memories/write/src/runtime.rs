@@ -264,7 +264,8 @@ impl MemoryStartupContext {
             /*concurrent_reasoning_summaries_enabled*/ false,
             /*attestation_provider*/ None,
             config.http_client_factory(),
-        );
+        )
+        .with_cache_diagnostics(config.codex_home.as_path());
 
         let mut client_session = model_client.new_session();
         let window_id = format!("{}:0", self.thread_id);

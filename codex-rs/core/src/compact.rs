@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::Prompt;
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client_common::ResponseEvent;
 use crate::context::CompactionSummary;
@@ -266,6 +267,7 @@ async fn run_compact_task_inner_impl(
     let max_retries = turn_context.provider.info().stream_max_retries();
     let mut retries = 0;
     let mut client_session = sess.services.model_client.new_session();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
     // Reuse one client session so turn-scoped state (sticky routing, websocket incremental
     // request tracking)
     // survives retries within this compact turn.
@@ -293,6 +295,7 @@ async fn run_compact_task_inner_impl(
             &mut client_session,
             &responses_metadata,
             &prompt,
+            &diagnostic_attempts,
         )
         .await;
 
@@ -765,9 +768,10 @@ async fn drain_to_completed(
     client_session: &mut ModelClientSession,
     responses_metadata: &CodexResponsesMetadata,
     prompt: &Prompt,
+    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
 ) -> CodexResult<String> {
     let mut stream = client_session
-        .stream(
+        .stream_with_diagnostic_attempts(
             prompt,
             turn_context.model_info(),
             &turn_context.session_telemetry,
@@ -778,6 +782,7 @@ async fn drain_to_completed(
             // Rollout tracing currently models remote compaction only; local compaction streams
             // are left untraced until the reducer has a first-class local compaction lifecycle.
             &InferenceTraceContext::disabled(),
+            diagnostic_attempts,
         )
         .await?;
     loop {

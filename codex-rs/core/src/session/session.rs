@@ -1483,6 +1483,7 @@ impl Session {
                     config.http_client_factory(),
                 )
                 .with_free_guardian_enabled(config.free_guardian_enabled())
+                .with_cache_diagnostics(config.codex_home.as_path())
                 .with_session_context(
                     crate::guardian::prompt_cache_key_override_for_review_session(
                         &session_configuration.session_source,

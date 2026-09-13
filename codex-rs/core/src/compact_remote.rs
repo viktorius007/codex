@@ -219,6 +219,7 @@ async fn run_remote_compact_task_inner_impl(
         &compaction_trace,
         compaction_metadata,
         analytics_details,
+        /*retry_ordinal*/ 0,
     )
     .await;
     let (attempt, compaction_turn_context) = match attempt {
@@ -247,6 +248,7 @@ async fn run_remote_compact_task_inner_impl(
                 &fallback_compaction_trace,
                 compaction_metadata,
                 analytics_details,
+                /*retry_ordinal*/ 1,
             )
             .await;
             record_model_fallback(

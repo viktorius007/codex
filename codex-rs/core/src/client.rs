@@ -118,6 +118,9 @@ use uuid::Uuid;
 use crate::attestation::AttestationContext;
 use crate::attestation::AttestationProvider;
 use crate::attestation::X_OAI_ATTESTATION_HEADER;
+use crate::cache_diagnostics::CacheDiagnosticAttempt;
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
+use crate::cache_diagnostics::CacheDiagnostics;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
 use crate::client_common::ResponseStream;
@@ -261,6 +264,7 @@ pub struct ModelClient {
     free_guardian_enabled: bool,
     event_sender: Option<Sender<ProtocolEvent>>,
     http_client_factory: HttpClientFactory,
+    cache_diagnostics: Option<CacheDiagnostics>,
 }
 
 /// A turn-scoped streaming session created from a [`ModelClient`].
@@ -483,7 +487,15 @@ impl ModelClient {
             free_guardian_enabled: false,
             event_sender: None,
             http_client_factory,
+            cache_diagnostics: None,
         }
+    }
+
+    /// Records private request fingerprints under Codex home when local storage is available.
+    /// Failure to open diagnostic storage leaves model requests unaffected.
+    pub fn with_cache_diagnostics(mut self, codex_home: &std::path::Path) -> Self {
+        self.cache_diagnostics = CacheDiagnostics::open(codex_home);
+        self
     }
 
     pub(crate) fn with_free_guardian_enabled(mut self, free_guardian_enabled: bool) -> Self {
@@ -586,6 +598,7 @@ impl ModelClient {
         session_telemetry: &SessionTelemetry,
         compaction_trace: &CompactionTraceContext,
         responses_metadata: &CodexResponsesMetadata,
+        retry_ordinal: u32,
     ) -> Result<Vec<ResponseItem>> {
         if prompt.input.is_empty() {
             return Ok(Vec::new());
@@ -670,19 +683,32 @@ impl ModelClient {
             .api_provider
             .stream_idle_timeout
             .saturating_mul(COMPACT_REQUEST_TIMEOUT_IDLE_MULTIPLIER);
-        let client =
+        let cache_diagnostic_attempt = self.cache_diagnostics.as_ref().map(|diagnostics| {
+            diagnostics.start_compaction_attempt(responses_metadata, &payload, retry_ordinal)
+        });
+        let mut client =
             ApiCompactClient::new(transport, client_setup.api_provider, client_setup.api_auth)
                 .with_telemetry(Some(request_telemetry));
+        if let Some(attempt) = &cache_diagnostic_attempt {
+            client = client.with_request_observer(attempt.clone());
+        }
         let trace_attempt = compaction_trace.start_attempt(&payload);
-        let result = client
+        let api_result = client
             .compact_input(
                 &payload,
                 extra_headers,
                 compact_request_timeout,
                 turn_state.as_deref(),
             )
-            .await
-            .map_err(|error| self.state.provider.map_api_error(error));
+            .await;
+        if let Some(attempt) = &cache_diagnostic_attempt {
+            if api_result.is_ok() {
+                attempt.completed_without_usage();
+            } else {
+                attempt.failed();
+            }
+        }
+        let result = api_result.map_err(|error| self.state.provider.map_api_error(error));
         trace_attempt.record_result(result.as_deref());
         result
     }
@@ -1569,6 +1595,7 @@ impl ModelClientSession {
         service_tier: Option<String>,
         responses_metadata: &CodexResponsesMetadata,
         inference_trace: &InferenceTraceContext,
+        diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
     ) -> Result<ResponseStream> {
         let auth_manager = self.client.state.provider.auth_manager();
         let mut auth_recovery = auth_manager
@@ -1645,13 +1672,25 @@ impl ModelClientSession {
             let inference_trace_attempt = inference_trace.start_attempt();
             inference_trace_attempt.add_request_headers(&mut options.extra_headers);
             inference_trace_attempt.record_started(&request);
-            let client = ApiResponsesClient::new(
+            let cache_diagnostic_attempt =
+                self.client.cache_diagnostics.as_ref().map(|diagnostics| {
+                    diagnostics.start_responses_attempt(
+                        responses_metadata,
+                        &request,
+                        diagnostic_attempts.next(),
+                        /*previous_response_id*/ None,
+                    )
+                });
+            let mut client = ApiResponsesClient::new(
                 transport,
                 client_setup.api_provider,
                 client_setup.api_auth,
             )
             .with_endpoint(endpoint)
             .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+            if let Some(attempt) = &cache_diagnostic_attempt {
+                client = client.with_request_observer(attempt.clone());
+            }
             let stream_result = client.stream_request(request, options).await;
 
             match stream_result {
@@ -1661,6 +1700,7 @@ impl ModelClientSession {
                         request_session_telemetry,
                         inference_trace_attempt,
                         Arc::clone(&self.client.state.provider),
+                        cache_diagnostic_attempt,
                     );
                     return Ok(stream);
                 }
@@ -1678,6 +1718,9 @@ impl ModelClientSession {
                         response_debug_context.request_id.as_deref(),
                         /*output_items*/ &[],
                     );
+                    if let Some(attempt) = &cache_diagnostic_attempt {
+                        attempt.failed();
+                    }
                     pending_retry = PendingUnauthorizedRetry::from_recovery(
                         handle_unauthorized(
                             unauthorized_transport,
@@ -1701,6 +1744,9 @@ impl ModelClientSession {
                         response_debug_context.request_id.as_deref(),
                         /*output_items*/ &[],
                     );
+                    if let Some(attempt) = &cache_diagnostic_attempt {
+                        attempt.failed();
+                    }
                     return Err(err);
                 }
             }
@@ -1734,6 +1780,7 @@ impl ModelClientSession {
         warmup: bool,
         request_trace: Option<W3cTraceContext>,
         inference_trace: &InferenceTraceContext,
+        diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
     ) -> Result<WebsocketStreamOutcome> {
         let provider = Arc::clone(&self.client.state.provider);
         let auth_manager = provider.auth_manager();
@@ -1880,6 +1927,25 @@ impl ModelClientSession {
                 client_setup.auth.as_ref(),
                 endpoint,
             );
+            let cache_diagnostic_attempt =
+                self.client.cache_diagnostics.as_ref().map(|diagnostics| {
+                    let retry_ordinal = diagnostic_attempts.next();
+                    if warmup {
+                        diagnostics.start_warmup_attempt(
+                            responses_metadata,
+                            &request,
+                            retry_ordinal,
+                            ws_payload.previous_response_id.as_deref(),
+                        )
+                    } else {
+                        diagnostics.start_responses_attempt(
+                            responses_metadata,
+                            &request,
+                            retry_ordinal,
+                            ws_payload.previous_response_id.as_deref(),
+                        )
+                    }
+                });
             let mut ws_request = ResponsesWsRequest::ResponseCreate(ws_payload);
             stamp_ws_stream_request_start_ms(&mut ws_request);
             if !previous_response_id_from_untraced_warmup {
@@ -1892,13 +1958,24 @@ impl ModelClientSession {
                         "websocket connection is unavailable".to_string(),
                     ))
                 })?;
-            let stream_result = websocket_connection
-                .stream_request(
-                    ws_request,
-                    self.websocket_session.connection_reused(),
-                    Some(Arc::clone(&self.turn_state)),
-                )
-                .await;
+            let stream_result = if let Some(attempt) = &cache_diagnostic_attempt {
+                websocket_connection
+                    .stream_request_observed(
+                        ws_request,
+                        self.websocket_session.connection_reused(),
+                        Some(Arc::clone(&self.turn_state)),
+                        attempt.clone(),
+                    )
+                    .await
+            } else {
+                websocket_connection
+                    .stream_request(
+                        ws_request,
+                        self.websocket_session.connection_reused(),
+                        Some(Arc::clone(&self.turn_state)),
+                    )
+                    .await
+            };
             if let Some(original_item_ids) = original_item_ids {
                 for (item, original_item_id) in request.input.iter_mut().zip(original_item_ids) {
                     item.set_id(original_item_id);
@@ -1914,6 +1991,9 @@ impl ModelClientSession {
                     response_debug_context.request_id.as_deref(),
                     /*output_items*/ &[],
                 );
+                if let Some(attempt) = &cache_diagnostic_attempt {
+                    attempt.failed();
+                }
                 err
             })?;
             let (stream, last_request_rx) = map_response_stream(
@@ -1921,6 +2001,7 @@ impl ModelClientSession {
                 request_session_telemetry,
                 inference_trace_attempt,
                 Arc::clone(&self.client.state.provider),
+                cache_diagnostic_attempt,
             );
             self.websocket_session.last_response_rx = Some(last_request_rx);
             return Ok(WebsocketStreamOutcome::Stream(stream));
@@ -1981,6 +2062,7 @@ impl ModelClientSession {
         }
 
         let disabled_trace = InferenceTraceContext::disabled();
+        let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
         match self
             .stream_responses_websocket(
                 prompt,
@@ -1993,6 +2075,7 @@ impl ModelClientSession {
                 /*warmup*/ true,
                 current_span_w3c_trace_context(),
                 &disabled_trace,
+                &diagnostic_attempts,
             )
             .await
         {
@@ -2035,6 +2118,34 @@ impl ModelClientSession {
         responses_metadata: &CodexResponsesMetadata,
         inference_trace: &InferenceTraceContext,
     ) -> Result<ResponseStream> {
+        let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
+        self.stream_with_diagnostic_attempts(
+            prompt,
+            model_info,
+            session_telemetry,
+            effort,
+            summary,
+            service_tier,
+            responses_metadata,
+            inference_trace,
+            &diagnostic_attempts,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn stream_with_diagnostic_attempts(
+        &mut self,
+        prompt: &Prompt,
+        model_info: &ModelInfo,
+        session_telemetry: &SessionTelemetry,
+        effort: Option<ReasoningEffortConfig>,
+        summary: ReasoningSummaryConfig,
+        service_tier: Option<String>,
+        responses_metadata: &CodexResponsesMetadata,
+        inference_trace: &InferenceTraceContext,
+        diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
+    ) -> Result<ResponseStream> {
         let wire_api = self.client.state.provider.info().wire_api;
         match wire_api {
             WireApi::Responses => {
@@ -2052,6 +2163,7 @@ impl ModelClientSession {
                             /*warmup*/ false,
                             request_trace,
                             inference_trace,
+                            diagnostic_attempts,
                         )
                         .await?
                     {
@@ -2071,6 +2183,7 @@ impl ModelClientSession {
                     service_tier,
                     responses_metadata,
                     inference_trace,
+                    diagnostic_attempts,
                 )
                 .await
             }
@@ -2154,15 +2267,33 @@ fn map_response_stream(
     session_telemetry: SessionTelemetry,
     inference_trace_attempt: InferenceTraceAttempt,
     provider: SharedModelProvider,
+    cache_diagnostic_attempt: Option<Arc<CacheDiagnosticAttempt>>,
 ) -> (ResponseStream, oneshot::Receiver<LastResponse>) {
     let codex_api::ResponseStream {
         rx_event,
         upstream_request_id,
     } = api_stream;
-    let api_stream = codex_api::ResponseStream {
+    let mut api_stream = codex_api::ResponseStream {
         rx_event,
         upstream_request_id: None,
     };
+    let api_stream = futures::stream::poll_fn(move |context| {
+        let event = futures::Stream::poll_next(std::pin::Pin::new(&mut api_stream), context);
+        if let std::task::Poll::Ready(event) = &event
+            && let Some(attempt) = &cache_diagnostic_attempt
+        {
+            match event {
+                Some(Ok(ResponseEvent::Completed {
+                    response_id,
+                    token_usage,
+                    ..
+                })) => attempt.completed(response_id, token_usage.as_ref()),
+                Some(Err(_)) | None => attempt.failed(),
+                Some(Ok(_)) => {}
+            }
+        }
+        event
+    });
     map_response_events(
         upstream_request_id,
         api_stream,

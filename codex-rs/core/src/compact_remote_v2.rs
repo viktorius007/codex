@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::Prompt;
 use crate::ResponseStream;
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client_common::ResponseEvent;
 use crate::compact::CompactedHistoryMetadata;
@@ -382,9 +383,10 @@ async fn run_remote_compaction_request_v2(
         .stream_max_retries()
         .min(MAX_REMOTE_COMPACTION_V2_STREAM_RETRIES);
     let mut retry_state = ResponsesStreamRetryState::default();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
     loop {
         let result = match client_session
-            .stream(
+            .stream_with_diagnostic_attempts(
                 prompt,
                 turn_context.model_info(),
                 &turn_context.session_telemetry,
@@ -393,6 +395,7 @@ async fn run_remote_compaction_request_v2(
                 step_context.settings.service_tier.clone(),
                 responses_metadata,
                 &InferenceTraceContext::disabled(),
+                &diagnostic_attempts,
             )
             .await
         {

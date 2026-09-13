@@ -204,6 +204,7 @@ async fn compact_uses_bearer_after_agent_identity_session_fallback() -> anyhow::
             &test_session_telemetry(),
             &CompactionTraceContext::disabled(),
             &responses_metadata,
+            /*retry_ordinal*/ 0,
         )
         .await?;
 

@@ -2987,6 +2987,7 @@ dependencies = [
  "codex-apply-patch",
  "codex-async-utils",
  "codex-attachment-store",
+ "codex-cache-diagnostics",
  "codex-client",
  "codex-code-mode",
  "codex-config",

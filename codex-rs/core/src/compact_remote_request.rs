@@ -27,6 +27,7 @@ pub(super) async fn run_remote_compact_attempt(
     compaction_trace: &CompactionTraceContext,
     compaction_metadata: CompactionTurnMetadata,
     analytics_details: &mut CompactionAnalyticsDetails,
+    retry_ordinal: u32,
 ) -> CodexResult<RemoteCompactAttempt> {
     let turn_context = &step_context.turn;
     let mut history = sess.clone_history().await;
@@ -94,6 +95,7 @@ pub(super) async fn run_remote_compact_attempt(
             &turn_context.session_telemetry,
             compaction_trace,
             &responses_metadata,
+            retry_ordinal,
         )
         .await?;
     Ok(RemoteCompactAttempt {

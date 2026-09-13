@@ -590,6 +590,10 @@ async fn memories_startup_phase2_prunes_old_extension_resources_without_stage1_i
 #[tokio::test]
 async fn memories_startup_phase1_uses_live_thread_service_tier_and_detached_metadata()
 -> anyhow::Result<()> {
+    const PROMPT_CANARY: &str = "PRIVATE-MEMORY-DIAGNOSTIC-PROMPT";
+    const OUTPUT_CANARY: &str = "PRIVATE-MEMORY-DIAGNOSTIC-OUTPUT";
+    const RESPONSE_ID: &str = "private-memory-diagnostic-response";
+
     let server = start_mock_server().await;
     let home = Arc::new(TempDir::new()?);
     let test = build_test_codex(&server, home).await?;
@@ -636,20 +640,47 @@ async fn memories_startup_phase1_uses_live_thread_service_tier_and_detached_meta
     let stage_one = mount_sse_once(
         &server,
         sse(vec![
-            ev_response_created("resp-phase1"),
-            ev_assistant_message("msg-phase1", "phase1 complete"),
-            ev_completed("resp-phase1"),
+            ev_response_created(RESPONSE_ID),
+            ev_assistant_message("private-memory-diagnostic-message", OUTPUT_CANARY),
+            serde_json::json!({
+                "type": "response.completed",
+                "response": {
+                    "id": RESPONSE_ID,
+                    "usage": {
+                        "input_tokens": 83,
+                        "input_tokens_details": {
+                            "cached_tokens": 29,
+                            "cache_write_tokens": 7,
+                        },
+                        "output_tokens": 31,
+                        "output_tokens_details": { "reasoning_tokens": 13 },
+                        "total_tokens": 114,
+                    },
+                },
+            }),
         ]),
     )
     .await;
+    let mut prompt = codex_core::Prompt::default();
+    prompt.input = vec![ResponseItem::Message {
+        id: None,
+        role: "user".to_string(),
+        content: vec![ContentItem::InputText {
+            text: PROMPT_CANARY.to_string(),
+        }],
+        phase: None,
+        internal_chat_message_metadata_passthrough: None,
+    }];
     context
-        .stream_stage_one_prompt(
-            &test.config,
-            &codex_core::Prompt::default(),
-            &request_context,
-        )
+        .stream_stage_one_prompt(&test.config, &prompt, &request_context)
         .await?;
     let request = wait_for_single_request(&stage_one).await;
+    assert!(
+        request
+            .body_bytes()
+            .windows(PROMPT_CANARY.len())
+            .any(|window| window == PROMPT_CANARY.as_bytes())
+    );
     let metadata_header = request
         .header("x-codex-turn-metadata")
         .expect("detached memory request should include workspace metadata");
@@ -686,6 +717,99 @@ async fn memories_startup_phase1_uses_live_thread_service_tier_and_detached_meta
     assert!(metadata.get("workspaces").is_some());
 
     shutdown_test_codex(&test).await?;
+
+    let mut directories = vec![
+        test.config
+            .codex_home
+            .join("cache-diagnostics")
+            .to_path_buf(),
+    ];
+    let mut diagnostic_paths = Vec::new();
+    while let Some(directory) = directories.pop() {
+        let mut entries = tokio::fs::read_dir(directory).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let path = entry.path();
+            if entry.file_type().await?.is_dir() {
+                directories.push(path);
+            } else if path.extension().and_then(|extension| extension.to_str()) == Some("jsonl") {
+                diagnostic_paths.push(path);
+            }
+        }
+    }
+    diagnostic_paths.sort();
+    assert!(!diagnostic_paths.is_empty());
+    let mut archive = Vec::new();
+    for path in diagnostic_paths {
+        archive.extend(tokio::fs::read(path).await?);
+    }
+    let records = archive
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(serde_json::from_slice)
+        .collect::<Result<Vec<serde_json::Value>, _>>()?;
+    assert_eq!(records.len(), 2);
+    let diagnostic_request = &records[0];
+    let diagnostic_outcome = &records[1];
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| {
+                (
+                    record["schemaVersion"].as_u64(),
+                    record["sequence"].as_u64(),
+                    record["event"].as_str(),
+                )
+            })
+            .collect::<Vec<_>>(),
+        vec![
+            (Some(1), Some(1), Some("request")),
+            (Some(1), Some(2), Some("outcome")),
+        ]
+    );
+    assert_eq!(diagnostic_request["runId"], diagnostic_outcome["runId"]);
+    for field in ["runId", "attemptId"] {
+        assert!(
+            diagnostic_request[field]
+                .as_str()
+                .is_some_and(|value| !value.is_empty())
+        );
+    }
+    assert_eq!(
+        diagnostic_request["attemptId"],
+        diagnostic_outcome["attemptId"]
+    );
+    assert_eq!(diagnostic_request["requestKind"], "memory");
+    assert_eq!(diagnostic_request["retryOrdinal"], 0);
+    assert_eq!(diagnostic_request["wire"]["kind"], "http");
+    assert_eq!(
+        diagnostic_request["wire"]["transport"]["endpoint"],
+        "responses"
+    );
+    assert_eq!(
+        diagnostic_request["wire"]["body"]["bytes"],
+        request.body_bytes().len()
+    );
+    assert_eq!(diagnostic_outcome["terminal"], "completed");
+    assert!(diagnostic_outcome["responseId"]["hmac"].is_string());
+    assert_eq!(
+        diagnostic_outcome["usage"],
+        serde_json::json!({
+            "input": 83,
+            "cachedInput": 29,
+            "cacheWrite": 7,
+            "output": 31,
+            "reasoning": 13,
+            "total": 114,
+        })
+    );
+    for canary in [PROMPT_CANARY, OUTPUT_CANARY, RESPONSE_ID] {
+        assert!(
+            !archive
+                .windows(canary.len())
+                .any(|window| window == canary.as_bytes()),
+            "diagnostic archive exposed private canary {canary}"
+        );
+    }
     Ok(())
 }
 
