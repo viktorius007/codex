@@ -7,6 +7,8 @@ use crate::context::ContextualUserFragment;
 use crate::context::InterAgentCompletionMessage;
 
 const COMPLETION_MESSAGE_MAX_TOKENS: usize = 1_000;
+// The truncator adds its marker outside the requested content budget.
+const COMPLETION_TRUNCATION_MARKER_TOKEN_RESERVE: usize = 32;
 const COMPLETION_MESSAGE_ENVELOPE_TOKEN_RESERVE: usize = 100;
 const ERROR_MAX_TOKENS: usize =
     COMPLETION_MESSAGE_MAX_TOKENS - COMPLETION_MESSAGE_ENVELOPE_TOKEN_RESERVE;
@@ -32,7 +34,12 @@ pub(crate) fn format_inter_agent_completion_message(
         AgentStatus::NotFound => "Agent was not found.".to_string(),
         AgentStatus::PendingInit | AgentStatus::Running | AgentStatus::Interrupted => return None,
     };
-    Some(InterAgentCompletionMessage::new(task_name, sender, payload).render())
+    Some(truncate_text(
+        &InterAgentCompletionMessage::new(task_name, sender, payload).render(),
+        TruncationPolicy::Tokens(
+            COMPLETION_MESSAGE_MAX_TOKENS - COMPLETION_TRUNCATION_MARKER_TOKEN_RESERVE,
+        ),
+    ))
 }
 
 #[cfg(test)]
