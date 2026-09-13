@@ -78,12 +78,13 @@ Subagent history classification uses persisted inheritance markers (`forked_from
 
 Work the ledger in this order:
 
-1. **Core prefix construction.** Establish one deterministic representation and comparison surface for instructions, world state, skills, tools, request settings, and cache/routing identities. Every later investigation depends on this.
-2. **Session compaction.** Fix compact-request parity, trigger accounting, replacement-history stability, and resume parity because every long-running session crosses this boundary.
-3. **Fresh-context subagents.** Eliminate timeout-driven orchestrator polling, then prove that a child without inherited conversation history reuses the parent's still-warm stable startup prefix. This is the normal high-volume workflow.
-4. **Tool stability.** Preserve deterministic ordering and freeze one complete catalog revision at each sampling boundary.
-5. **Forked-history subagents.** Keep below fresh-context behavior because this mode is rarer and avoidable.
-6. **Backend-dependent, amplification, and excluded reports.** Separate these from client-controlled prefix fixes.
+1. **Privacy-safe request-fingerprint diagnostics.** Before attempting causal fixes, record and compare every cache-relevant request component so each warm cache drop identifies its first local difference or proves that no visible client difference exists. Store bounded, model-invisible JSONL sidecars under `~/.codex/cache-diagnostics/YYYY/MM/DD/<thread-id>.jsonl`; never store prompt text, tool arguments or output, file contents, credentials, or complete headers. Cap retained diagnostics at 100 MiB or 30 days, removing the oldest files first.
+2. **Core prefix construction.** Establish one deterministic representation and comparison surface for instructions, world state, skills, tools, request settings, and cache/routing identities. Every later investigation depends on this.
+3. **Session compaction.** Fix compact-request parity, trigger accounting, replacement-history stability, and resume parity because every long-running session crosses this boundary.
+4. **Fresh-context subagents.** Eliminate timeout-driven orchestrator polling, then prove that a child without inherited conversation history reuses the parent's still-warm stable startup prefix. This is the normal high-volume workflow.
+5. **Tool stability.** Preserve deterministic ordering and freeze one complete catalog revision at each sampling boundary.
+6. **Forked-history subagents.** Keep below fresh-context behavior because this mode is rarer and avoidable.
+7. **Backend-dependent, amplification, and excluded reports.** Separate these from client-controlled prefix fixes.
 
 Within each priority, handle confirmed current-source defects before suspected or backend-dependent behavior. Then sort by blast radius, expected wasted uncached tokens, reproducibility, and independence of the fix.
 
@@ -91,30 +92,32 @@ Within each priority, handle confirmed current-source defects before suspected o
 
 | Priority | Mechanism | Current-source verdict | Primary issues | Next gate |
 |---:|---|---|---|---|
-| 1.1 | Complete prefix construction and first-difference diagnostics | Confirmed observability gap | #35706, #32479, #43615 | Capture redacted instructions, input, tools, request settings, cache key, and transport identities in serialized order. |
-| 1.2 | Plugin skills expose mutable cache-version paths in the startup prefix | Confirmed design risk; stale-path handling partly improved | #25609, #24390, #25285 | Render stable semantic locators or aliases and compare equivalent startup prefixes across marketplace refreshes. |
-| 1.3 | Core prefix fields can change without a single explicit fingerprint/invariant | Test gap | #30425, #35925 | Define and test a cache-relevant prefix fingerprint across consecutive turns and warm resume. |
-| 2.1 | Local compaction request omits the active tool specification | Confirmed present | #37305 | Prove compact and normal requests share the maximum eligible prefix; then pass active tools and parallel-call settings into local compaction. |
-| 2.2 | Compaction is triggered from stale token accounting and discards the current operational tail | Confirmed/strongly evidenced | #32888, #35935, #36665, #36721, #29319, #34017 | Fix the provider-usage/history-boundary invariant before changing retained-history design. |
-| 3.1 | Completion-driven parent wake-up without timeout polling | Active waits are event-driven; idle/expired waits can still require repeated model turns | #37299, #41875 | Inject one bounded completion and wake or continue the parent when a child becomes terminal; suppress a duplicate when an active wait consumed it. |
-| 3.2 | Fresh-context subagent reuse of the warm parent startup prefix | Identity handling present; prefix reuse unproven | #39808; related #44716 | Compare parent and child byte prefixes and cached tokens while omitting parent conversation history. |
-| 4.1 | MCP inventory depends on asynchronous startup and ignores later `tools/list_changed` | Confirmed present | #43642, #33266, #37417, #35583, #10105, #19155, #20605 | Freeze an atomic catalog revision at a turn boundary and refresh deterministically for the next boundary. |
-| 4.2 | MCP ordering across complete serialized tool arrays | Reported defect appears addressed; regression gap remains | #37351 | Compare the complete tool array across fresh processes, including namespace, hosted, and non-MCP tools. |
-| 5.1 | Forked-history subagent cache lineage | Client-side identity handling appears improved; backend reuse unproven | #24704, #44716 | Run only after fresh-context subagent reuse is established. |
-| 6.1 | Transport `session-id` influences cache affinity independently of `prompt_cache_key` | Backend-dependent and unresolved | #44716, #30425, #33821, #20301, #21756 | Run paced identity controls before changing identity semantics. |
-| 6.2 | Independent sessions lack deliberate shared affinity and providers lack an explicit breakpoint | Product/provider gaps | #21796, #29377, #26283, #35300 | Specify safe cache affinity separately from conversation identity. |
-| 6.3 | Goal steering includes changing usage counters | Present, cache effect unproven | #25320 | Verify whether updates append after the cached prefix or replace earlier content. |
+| 1.1 | Bounded, privacy-safe request-fingerprint sidecar | Confirmed observability gap | #35706, #32479, #43615 | Persist redacted component hashes, serialized order, identities, timing, and first difference under `~/.codex/cache-diagnostics/`; prove the records are model-invisible and retention is bounded. |
+| 2.1 | Complete prefix construction and comparison surface | Confirmed observability gap | #35706, #32479, #43615 | Capture redacted instructions, input, tools, request settings, cache key, and transport identities in serialized order. |
+| 2.2 | Plugin skills expose mutable cache-version paths in the startup prefix | Confirmed design risk; stale-path handling partly improved | #25609, #24390, #25285 | Render stable semantic locators or aliases and compare equivalent startup prefixes across marketplace refreshes. |
+| 2.3 | Core prefix fields can change without a single explicit fingerprint/invariant | Test gap | #30425, #35925 | Define and test a cache-relevant prefix fingerprint across consecutive turns and warm resume. |
+| 3.1 | Local compaction request omits the active tool specification | Confirmed present | #37305 | Prove compact and normal requests share the maximum eligible prefix; then pass active tools and parallel-call settings into local compaction. |
+| 3.2 | Compaction is triggered from stale token accounting and discards the current operational tail | Confirmed/strongly evidenced | #32888, #35935, #36665, #36721, #29319, #34017 | Fix the provider-usage/history-boundary invariant before changing retained-history design. |
+| 4.1 | Completion-driven parent wake-up without timeout polling | Active waits are event-driven; idle/expired waits can still require repeated model turns | #37299, #41875 | Inject one bounded completion and wake or continue the parent when a child becomes terminal; suppress a duplicate when an active wait consumed it. |
+| 4.2 | Fresh-context subagent reuse of the warm parent startup prefix | Identity handling present; prefix reuse unproven | #39808; related #44716 | Compare parent and child byte prefixes and cached tokens while omitting parent conversation history. |
+| 5.1 | MCP inventory depends on asynchronous startup and ignores later `tools/list_changed` | Confirmed present | #43642, #33266, #37417, #35583, #10105, #19155, #20605 | Freeze an atomic catalog revision at a turn boundary and refresh deterministically for the next boundary. |
+| 5.2 | MCP ordering across complete serialized tool arrays | Reported defect appears addressed; regression gap remains | #37351 | Compare the complete tool array across fresh processes, including namespace, hosted, and non-MCP tools. |
+| 6.1 | Forked-history subagent cache lineage | Client-side identity handling appears improved; backend reuse unproven | #24704, #44716 | Run only after fresh-context subagent reuse is established. |
+| 7.1 | Transport `session-id` influences cache affinity independently of `prompt_cache_key` | Backend-dependent and unresolved | #44716, #30425, #33821, #20301, #21756 | Run paced identity controls before changing identity semantics. |
+| 7.2 | Independent sessions lack deliberate shared affinity and providers lack an explicit breakpoint | Product/provider gaps | #21796, #29377, #26283, #35300 | Specify safe cache affinity separately from conversation identity. |
+| 7.3 | Goal steering includes changing usage counters | Present, cache effect unproven | #25320 | Verify whether updates append after the cached prefix or replace earlier content. |
 
 ## Delivery stages
 
-1. **Core prefix construction:** add the comparison harness, establish a prefix fingerprint/invariant, and remove volatile skill locators.
-2. **Session compaction:** fix local request parity, then accounting, then retained-tail continuity.
-3. **Fresh-context subagents:** add completion-driven parent wake-up without timeout polling, then prove warm parent-prefix reuse and stable identities without copying parent conversation history.
-4. **Tool stability:** verify complete-array ordering, then make startup and notification-driven catalog changes atomic at turn boundaries.
-5. **Forked-history subagents:** verify lineage only after the common fresh-context path is stable.
-6. **Backend and efficiency work:** investigate hidden affinity, optional breakpoints, goal counters, and residual wait amplification separately.
+1. **Request-fingerprint diagnostics:** add the bounded model-invisible sidecar, first-difference comparison, and retention enforcement.
+2. **Core prefix construction:** establish the prefix invariant and remove volatile skill locators using the new diagnostics.
+3. **Session compaction:** fix local request parity, then accounting, then retained-tail continuity.
+4. **Fresh-context subagents:** add completion-driven parent wake-up without timeout polling, then prove warm parent-prefix reuse and stable identities without copying parent conversation history.
+5. **Tool stability:** verify complete-array ordering, then make startup and notification-driven catalog changes atomic at turn boundaries.
+6. **Forked-history subagents:** verify lineage only after the common fresh-context path is stable.
+7. **Backend and efficiency work:** investigate hidden affinity, optional breakpoints, goal counters, and residual wait amplification separately.
 
-The Pareto line is after stage 4. Obtain user approval before forked-history, backend/capability, or non-bust efficiency work.
+The Pareto line is after stage 5. Obtain user approval before forked-history, backend/capability, or non-bust efficiency work.
 
 ## Mechanism records
 
