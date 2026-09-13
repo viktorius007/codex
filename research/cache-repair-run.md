@@ -5,9 +5,13 @@ Goal: a trustworthy tested and installed local binary, private cache diagnostics
 
 ## Current delivery state
 
-Candidate: `0.154.0+local.2` in `/private/tmp/codex-cache-integration`, branch `work/cache-integration`. Root coordination branch remains `local/customizations` at `dc8f07458aad1db2d7fe3940643b23732cba6876`. Production changes have not yet been committed or installed. The installed binary is still `0.154.0+local.1`.
+Installed: **`0.154.0+local.2`**, built from clean source commit `4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7` on `local/customizations`. Fourteen source commits preserve the mechanism boundaries. The matching previous `0.154.0+local.1` executable/helper pair is backed up.
 
-The full workspace suite passed all17,641 tests (47 skipped; one passed retry and one leaky label), using `just test --cargo-profile dev-small --test-threads 4 --features codex-v8-poc/sandbox`. Its authoritative log is `/private/tmp/codex-cache-run/final-full-workspace-2.log`. Scoped Clippy completed successfully; root corrected the remaining size/argument warnings without suppressions. The retry exposed a test synchronization weakness: it now asserts the exact sampled turn's successful completion event instead of polling transient status. Focused verification of those final corrections is running in `final-mechanism-and-lint-regressions.log`.
+Installation cutover completed **2026-09-14T06:41:42.165+10:00** (Sydney), Unix milliseconds **1789332102165**. Full machine-readable hashes, binary paths, backup, source, and timestamps are in [installation-local2.json](cache-repair-reports/installation-local2.json). Newly started processes use the new build; already-running processes retain the old executable.
+
+The full workspace suite passed **17,641/17,641**, with47 skips, one successful retry, and one leaky label. The retry's transient-status fixture now asserts the exact sampled turn's successful completion event. The final focused gate passed376/376, including both corrected fork variants and all API/records/skills tests. Scoped Clippy finished with no remaining warnings and repository formatting passed. The final clean-commit build and installed CLI localhost roundtrip passed; its actual sidecar passed the offline analyzer too. The smoke is synthetic and proves collection behavior, not provider cache improvement.
+
+Permanent private run evidence is retained under `/Users/viktor/.codex/cache-repair-evidence/2026-09-14-local2/run/`, including full test logs, commit mappings, installation provenance, and diagnostic smoke evidence. Source-worktree archives are preserved alongside that run directory. Cleanup completion is recorded below.
 
 The detailed chronology, corrections, and recovery instructions remain in [cache-repair-recovery.md](cache-repair-recovery.md). Historical issue discovery remains in [prompt-cache-prefix-stability.md](prompt-cache-prefix-stability.md); refresh it incrementally, never through blanket rediscovery.
 
@@ -42,14 +46,28 @@ Generic MCP `tools/list_changed` notifications remain unimplemented. This candid
 
 No provider-side cache improvement has been measured. The historical rollout scan cannot supply a complete request-fingerprint pre-fix window. Record installation start/end to millisecond precision and select new-process diagnostic runs for post-install analysis; old running processes remain on their old binary.
 
-## Remaining delivery gates
+## Delivery and cleanup
 
-1. Complete focused verification of the final causal synchronization and lint corrections; the full workspace gate is green.
-2. Run scoped `just fix` and repository `just fmt`; inspect changes. Bazel lock refresh has already succeeded with no generated diff.
-3. Regenerate and review the14 prepared commit groups. The temporary-index check already proves their combined blobs exactly reconstruct all90 candidate files. Preparation script: `/private/tmp/codex-cache-run/prepare-commit-patches.py`. Integrate small coherent commits into `local/customizations`.
-4. Rebuild the matching `codex` and `codex-code-mode-host` pair from the clean final commit. Run `/private/tmp/codex-cache-run/install-validated.py` with exact commit/version and the full-green test log. Preserve the previous pair and provenance.
-5. Run the installed CLI against a local mock provider, verifying its roundtrip and actual private diagnostic records. Preserve that diagnostic evidence.
-6. Save final reports, commit IDs, tests, binary hashes, installation timestamps, and cohort guidance. Remove only owned build/temp artifacts and finished worktrees/obsolete branches; preserve unknown files and diagnostic evidence. Check disk and Git state before closing.
+Source integration, full and focused test gates, lint, formatting, clean-commit rebuild, validated installation, previous-pair preservation, and installed-sidecar smoke are complete. Sixteen completed agent worktrees were verified byte-for-byte against their private archive before removal; their obsolete branches were removed. The final integration target/worktree and task caches were removed after evidence preservation. Only the root worktree and `main`/`local/customizations` branches remain; the cleanup check found41GiB free. Unknown pre-existing temporary artifacts were preserved. Diagnostic evidence has no automatic deletion policy.
+
+## Source commits
+
+```text
+4b0a1a1194 Stabilize host-sensitive test fixtures
+8c5e8401e8 Wake idle parents for terminal subagent results
+ed3f293b13 Bound successful subagent completion messages
+ab966ac087 Use stable locators for plugin skills
+1e9fa7b0b5 Validate sampled MCP execution authority
+a2157431be Keep shared startup context before agent role hints
+3ca29ec4b6 Reuse sampling tools for local compaction
+8b4b96eb23 Project pending input into compaction thresholds
+822499499c Track accepted token usage against history
+02973de896 Add the offline cache diagnostics audit
+72746d3ec5 Record diagnostics across model request lifecycles
+e380697e74 Observe final Responses transport requests
+7bb3784a7c Add private cache diagnostic archives
+b75edf8ca2 Preserve local SemVer metadata in runtime tags
+```
 
 ## Environment
 
