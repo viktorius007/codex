@@ -4,6 +4,9 @@ use crate::common::ResponsesApiRequest;
 use crate::endpoint::session::EndpointSession;
 use crate::error::ApiError;
 use crate::provider::Provider;
+use crate::request_observer::HttpRequestObservation;
+use crate::request_observer::ResponsesRequestObserver;
+use crate::request_observer::SafeTransportIdentity;
 use crate::requests::Compression;
 use crate::requests::headers::build_session_headers;
 use crate::requests::headers::insert_header;
@@ -12,6 +15,7 @@ use crate::sse::spawn_response_stream;
 use crate::telemetry::SseTelemetry;
 use codex_client::EncodedJsonBody;
 use codex_client::HttpTransport;
+use codex_client::RequestBody;
 use codex_client::RequestCompression;
 use codex_client::RequestTelemetry;
 use codex_protocol::protocol::SessionSource;
@@ -23,9 +27,34 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use tracing::instrument;
 
+/// Responses-compatible inference routes supported by Codex backend.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ResponsesEndpoint {
+    /// Regular user-owned model inference.
+    #[default]
+    Responses,
+    /// Full Guardian approval-review agent inference.
+    Guardian,
+    /// Lightweight asynchronous Guardian risk classification.
+    GuardianClassifier,
+}
+
+impl ResponsesEndpoint {
+    /// Returns the provider-relative path for this inference surface.
+    pub const fn path(self) -> &'static str {
+        match self {
+            Self::Responses => "/responses",
+            Self::Guardian => "/guardian",
+            Self::GuardianClassifier => "/guardian-classifier",
+        }
+    }
+}
+
 pub struct ResponsesClient<T: HttpTransport> {
     session: EndpointSession<T>,
     sse_telemetry: Option<Arc<dyn SseTelemetry>>,
+    request_observer: Option<Arc<dyn ResponsesRequestObserver>>,
+    endpoint: ResponsesEndpoint,
 }
 
 #[derive(Default)]
@@ -43,6 +72,8 @@ impl<T: HttpTransport> ResponsesClient<T> {
         Self {
             session: EndpointSession::new(transport, provider, auth),
             sse_telemetry: None,
+            request_observer: None,
+            endpoint: ResponsesEndpoint::Responses,
         }
     }
 
@@ -54,7 +85,15 @@ impl<T: HttpTransport> ResponsesClient<T> {
         Self {
             session: self.session.with_request_telemetry(request),
             sse_telemetry: sse,
+            request_observer: self.request_observer,
+            endpoint: self.endpoint,
         }
+    }
+
+    /// Attaches an observer for exact Responses request bytes and safe transport identities.
+    pub fn with_request_observer(mut self, observer: Arc<dyn ResponsesRequestObserver>) -> Self {
+        self.request_observer = Some(observer);
+        self
     }
 
     #[instrument(
@@ -136,15 +175,34 @@ impl<T: HttpTransport> ResponsesClient<T> {
             .session
             .stream_encoded_json_with(
                 Method::POST,
-                "/responses",
+                self.endpoint.path(),
                 extra_headers,
-                Some(body),
+                body,
                 |req| {
                     req.headers.insert(
                         http::header::ACCEPT,
                         HeaderValue::from_static("text/event-stream"),
                     );
                     req.compression = request_compression;
+                },
+                |uncompressed_body, prepared_request| {
+                    let Some(observer) = self.request_observer.as_deref() else {
+                        return;
+                    };
+                    let Some(RequestBody::EncodedJson(prepared_body)) =
+                        prepared_request.body.as_ref()
+                    else {
+                        return;
+                    };
+                    observer.observe_http(HttpRequestObservation {
+                        uncompressed_json: uncompressed_body.as_bytes(),
+                        prepared_body: prepared_body.as_bytes(),
+                        endpoint: self.endpoint,
+                        compression,
+                        identity: SafeTransportIdentity::from_http_headers(
+                            &prepared_request.headers,
+                        ),
+                    });
                 },
             )
             .await?;
