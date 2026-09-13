@@ -1,0 +1,28 @@
+[package]
+name = "codex-cache-diagnostics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "codex_cache_diagnostics"
+path = "src/lib.rs"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+base64 = { workspace = true }
+chrono = { workspace = true }
+codex-api = { workspace = true }
+hmac = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["raw_value"] }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+codex-protocol = { workspace = true }
+pretty_assertions = { workspace = true }
+tempfile = { workspace = true }

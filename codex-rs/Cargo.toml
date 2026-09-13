@@ -8,6 +8,7 @@ members = [
     "backend-client",
     "bwrap",
     "build-info",
+    "cache-diagnostics",
     "ansi-escape",
     "attachment-store",
     "async-utils",
@@ -186,6 +187,7 @@ codex-arg0 = { path = "arg0" }
 codex-async-utils = { path = "async-utils" }
 codex-backend-client = { path = "backend-client" }
 codex-build-info = { path = "build-info" }
+codex-cache-diagnostics = { path = "cache-diagnostics" }
 codex-chatgpt = { path = "chatgpt" }
 codex-client = { path = "codex-client" }
 codex-collaboration-mode-templates = { path = "collaboration-mode-templates" }
