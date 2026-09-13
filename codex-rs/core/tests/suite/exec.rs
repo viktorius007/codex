@@ -153,8 +153,13 @@ assert os.read(master, 4) == b"ping""#
     ];
 
     let output = run_test_cmd(tmp, cmd).await.unwrap();
+    assert_eq!(output.exit_code, 0);
     assert_eq!(output.stdout.text, "");
-    assert_eq!(output.stderr.text, "");
+    // Apple's Python launcher may fall back to /tmp before the PTY script runs.
+    let stderr = output.stderr.text.strip_prefix(
+        "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+    ).unwrap_or(&output.stderr.text);
+    assert_eq!(stderr, "");
 }
 
 /// Writing a file fails and should be considered a sandbox error
