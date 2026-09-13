@@ -8,6 +8,7 @@ members = [
     "backend-client",
     "bwrap",
     "build-info",
+    "cache-diagnostics",
     "ansi-escape",
     "attachment-store",
     "async-utils",
@@ -149,7 +150,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.154.0+local.1"
+version = "0.154.0+local.2"
 # Track the edition for all workspace crates in one place. Individual
 # crates can still override this value, but keeping it here means new
 # crates created with `cargo new -w ...` automatically inherit the 2024
@@ -181,6 +182,7 @@ codex-arg0 = { path = "arg0" }
 codex-async-utils = { path = "async-utils" }
 codex-backend-client = { path = "backend-client" }
 codex-build-info = { path = "build-info" }
+codex-cache-diagnostics = { path = "cache-diagnostics" }
 codex-chatgpt = { path = "chatgpt" }
 codex-client = { path = "codex-client" }
 codex-collaboration-mode-templates = { path = "collaboration-mode-templates" }
