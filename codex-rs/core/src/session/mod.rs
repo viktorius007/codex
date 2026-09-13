@@ -4079,7 +4079,7 @@ impl Session {
                 .render_fragment(),
             );
         }
-        // Render the active mode after the usage hint so it can override that hint.
+        let mut initial_multi_agent_usage_hint = None;
         let mut initial_multi_agent_mode = None;
         let mut managed_developer_instructions = None;
         for fragment in world_state.render_full() {
@@ -4101,12 +4101,12 @@ impl Session {
                 "developer"
                     if fragment.markers().0 == MultiAgentRoleInstructions::type_markers().0 =>
                 {
-                    separate_developer_sections.push(fragment.render_fragment());
+                    initial_multi_agent_usage_hint = Some(fragment);
                 }
                 "developer"
                     if fragment.requires_separate_message() && fragment.markers().0.is_empty() =>
                 {
-                    separate_developer_sections.push(fragment.render_fragment());
+                    initial_multi_agent_usage_hint = Some(fragment);
                 }
                 "developer" => developer_sections.push(fragment.render_fragment()),
                 "user" => contextual_user_sections.push(fragment.render_fragment()),
@@ -4127,17 +4127,25 @@ impl Session {
                 items.push(developer_message);
             }
         }
+        if let Some(contextual_user_message) =
+            crate::context_manager::updates::build_rendered_message(contextual_user_sections)
+        {
+            items.push(contextual_user_message);
+        }
+        if let Some(initial_multi_agent_usage_hint) = initial_multi_agent_usage_hint
+            && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![
+                initial_multi_agent_usage_hint.render_fragment(),
+            ])
+        {
+            items.push(message);
+        }
+        // Render the active mode after the usage hint so it can override that hint.
         if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
             && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![
                 initial_multi_agent_mode.render_fragment(),
             ])
         {
             items.push(message);
-        }
-        if let Some(contextual_user_message) =
-            crate::context_manager::updates::build_rendered_message(contextual_user_sections)
-        {
-            items.push(contextual_user_message);
         }
         // Emit the guardian policy prompt as a separate developer item so the guardian
         // subagent sees a distinct, easy-to-audit instruction block.
