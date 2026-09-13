@@ -14,10 +14,14 @@
 - Take responsibility for repository housekeeping, including cleaning up worktrees, branches, and temporary files. Remove artifacts created by agents and branches or worktrees that are merged or demonstrably obsolete; preserve unknown uncommitted work and user-created artifacts.
 - Apply the Pareto principle to all work in this repository: identify and pursue the most direct, surgical approach that delivers the greatest value for the effort. Multiple options may be considered, but prefer the highest-value option.
 - Continuing work beyond the Pareto line requires the user's approval.
-- For prompt-cache work, prioritize bounded privacy-safe request-fingerprint diagnostics first, core prefix construction second, session compaction third, fresh-context subagents fourth, and tool stability fifth. Prioritize cache reuse for fresh-context subagents over forked-history subagents; forked-history behavior belongs later because it is less common and avoidable.
+- For prompt-cache work, prioritize privacy-safe request-fingerprint diagnostics with bounded individual records and memory first, core prefix construction second, session compaction third, fresh-context subagents fourth, and tool stability fifth. Prioritize cache reuse for fresh-context subagents over forked-history subagents; forked-history behavior belongs later because it is less common and avoidable.
 - Treat completed prompt-cache issue discovery and issue reads as durable research. Refresh incrementally: inspect only newly found or newly linked issues, and re-read an existing issue only when its recorded update time or state has changed or implementation work needs a specific detail that the ledger does not contain.
 - For orchestrated work, subagent terminal status must wake or continue the parent with one bounded completion event; do not require fixed-interval `wait_agent` timeouts that cause repeated model requests merely to discover completion. Prevent duplicate completion when an active wait already consumed the same status.
 - Always create subagents with fresh context. Never create them by forking existing context.
+- Preserve cache diagnostic evidence indefinitely: no disk cap, age limit, or automatic deletion. Cleanup applies to agent-created temporary/build artifacts, not diagnostic evidence.
+- For cache repair work, adapt priorities to new evidence within the agreed Pareto scope; treat GitHub proposals as clues and choose the simplest locally justified root-cause fix with regression protection. Keep a durable run ledger and small independently applicable commits.
+- Use Sol for load-bearing investigation, architecture, implementation decisions, and verification; use Terra only for basic, tightly scoped work. Delegate independent work with fresh context; the coordinator owns small corrections, integration, and cleanup.
+- Cache repair full-suite tests are authorized. The deliverable is a trustworthy installed local binary; build and install validated milestones when this does not disrupt the running harness, preserving the previous binary and recording installation time/version.
 
 # Local exec-completion customization
 
