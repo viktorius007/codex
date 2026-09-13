@@ -17,7 +17,11 @@ fn send_builds_payload_with_tags_and_histograms() -> Result<()> {
         "codex.turns",
         "Total number of Codex turns.",
         /*inc*/ 1,
-        &[("model", "gpt-5.1"), ("env", "dev")],
+        &[
+            ("model", "gpt-5.1"),
+            ("env", "dev"),
+            ("app.version", "1.2.3+local.1"),
+        ],
     )?;
     metrics.histogram(
         "codex.tool_latency",
@@ -50,6 +54,7 @@ fn send_builds_payload_with_tags_and_histograms() -> Result<()> {
     };
 
     let expected_counter_attributes = BTreeMap::from([
+        ("app.version".to_string(), "1.2.3+local.1".to_string()),
         ("service".to_string(), "codex-cli".to_string()),
         ("env".to_string(), "dev".to_string()),
         ("model".to_string(), "gpt-5.1".to_string()),
