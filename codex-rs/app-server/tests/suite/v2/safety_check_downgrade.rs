@@ -238,6 +238,10 @@ async fn model_verification_emits_typed_notification_and_warning_v2() -> Result<
 
     let mut mcp = TestAppServer::builder()
         .with_codex_home(codex_home.path())
+        .with_env_overrides(&[
+            ("HOME", codex_home.path().to_str()),
+            ("USERPROFILE", codex_home.path().to_str()),
+        ])
         .build_initialized()
         .await?;
     let ThreadStartResponse { thread, .. } = mcp
