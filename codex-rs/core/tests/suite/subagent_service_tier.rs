@@ -52,13 +52,38 @@ fn body_contains(request: &wiremock::Request, text: &str) -> bool {
 }
 
 fn assert_request_service_tier(request: &ResponseMock, expected: Option<&str>) {
+    let child_requests = request
+        .requests()
+        .into_iter()
+        .filter(|request| request.header("x-openai-subagent").as_deref() == Some("collab_spawn"))
+        .collect::<Vec<_>>();
     assert_eq!(
-        request
-            .single_request()
+        child_requests.len(),
+        1,
+        "exactly one collaboration child request should be issued"
+    );
+    assert_eq!(
+        child_requests[0]
             .body_json()
             .get("service_tier")
             .and_then(serde_json::Value::as_str),
         expected
+    );
+}
+
+fn assert_root_completion_requested(request: &ResponseMock, completion_text: Option<&str>) {
+    assert_eq!(
+        request
+            .requests()
+            .iter()
+            .filter(|request| {
+                request.header("x-openai-subagent").is_none()
+                    && request.body_contains_text("Message Type: FINAL_ANSWER")
+                    && completion_text.is_none_or(|text| request.body_contains_text(text))
+            })
+            .count(),
+        1,
+        "the terminal child should trigger exactly one matching root completion request"
     );
 }
 
@@ -128,23 +153,49 @@ async fn mount_root_collaboration_call(
     .await;
 }
 
+async fn mount_root_completion(
+    server: &wiremock::MockServer,
+    completion_text: Option<String>,
+) -> ResponseMock {
+    mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            !request.headers.contains_key("x-openai-subagent")
+                && body_contains(request, "Message Type: FINAL_ANSWER")
+                && completion_text
+                    .as_deref()
+                    .is_none_or(|text| body_contains(request, text))
+        },
+        sse(vec![
+            ev_response_created("root-child-completion"),
+            ev_assistant_message("root-child-completion-message", "completion handled"),
+            ev_completed("root-child-completion"),
+        ]),
+    )
+    .await
+}
+
 async fn mount_completed_child(
     server: &wiremock::MockServer,
     prompt: &'static str,
     root_prompt: &'static str,
-) -> ResponseMock {
-    mount_sse_once_match(
+) -> (ResponseMock, ResponseMock, String) {
+    let completion_text = format!("completed child task: {prompt}");
+    let root_completion_request =
+        mount_root_completion(server, Some(completion_text.clone())).await;
+    let child_request = mount_sse_once_match(
         server,
         move |request: &wiremock::Request| {
             body_contains(request, prompt) && !body_contains(request, root_prompt)
         },
         sse(vec![
             ev_response_created(prompt),
-            ev_assistant_message(&format!("{prompt}-message"), "worker completed"),
+            ev_assistant_message(&format!("{prompt}-message"), &completion_text),
             ev_completed(prompt),
         ]),
     )
-    .await
+    .await;
+    (child_request, root_completion_request, completion_text)
 }
 
 #[test_case(Some("priority"), None; "disabling fast mode updates active and idle child work")]
@@ -243,6 +294,8 @@ async fn root_service_tier_change_updates_existing_subagent(
         "the root routing policy must not rewrite child-owned settings"
     );
 
+    let continued_root_completion =
+        mount_root_completion(&server, Some("child continued".to_string())).await;
     child
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: "continue after the service-tier update".to_string(),
@@ -250,6 +303,8 @@ async fn root_service_tier_change_updates_existing_subagent(
         }]))
         .await?;
     wait_for_turn_complete(&child).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(&continued_root_completion, Some("child continued"));
     assert_request_service_tier(&continued_child_request, updated_request_service_tier);
 
     let child_compaction_request = mount_sse_once_match(
@@ -268,11 +323,15 @@ async fn root_service_tier_change_updates_existing_subagent(
         ]),
     )
     .await;
+    let compaction_root_completion = mount_root_completion(&server, /*completion_text*/ None).await;
     child.submit(Op::Compact).await?;
     wait_for_turn_complete(&child).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(&compaction_root_completion, /*completion_text*/ None);
     assert_request_service_tier(&child_compaction_request, updated_request_service_tier);
 
-    let future_child_request = mount_completed_child(&server, FOLLOWUP_PROMPT, ROOT_PROMPT).await;
+    let (future_child_request, future_root_completion, future_completion_text) =
+        mount_completed_child(&server, FOLLOWUP_PROMPT, ROOT_PROMPT).await;
     child
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: FOLLOWUP_PROMPT.to_string(),
@@ -280,6 +339,8 @@ async fn root_service_tier_change_updates_existing_subagent(
         }]))
         .await?;
     wait_for_turn_complete(&child).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(&future_root_completion, Some(&future_completion_text));
     assert_request_service_tier(&future_child_request, updated_request_service_tier);
 
     mount_root_collaboration_call(
@@ -294,12 +355,14 @@ async fn root_service_tier_change_updates_existing_subagent(
         }),
     )
     .await;
-    let fresh_child_request =
+    let (fresh_child_request, fresh_root_completion, fresh_completion_text) =
         mount_completed_child(&server, FRESH_CHILD_PROMPT, FRESH_ROOT_PROMPT).await;
     test.submit_text_turn(FRESH_ROOT_PROMPT).await?;
     let fresh_thread_id = created_threads.recv().await?;
     let fresh_thread = test.thread_manager.get_thread(fresh_thread_id).await?;
     wait_for_turn_complete(&fresh_thread).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(&fresh_root_completion, Some(&fresh_completion_text));
     assert_request_service_tier(&fresh_child_request, updated_request_service_tier);
     Ok(())
 }
@@ -329,11 +392,14 @@ async fn evicted_role_subagent_uses_root_service_tier_after_reload() -> Result<(
         }),
     )
     .await;
-    let original_request = mount_completed_child(&server, CHILD_PROMPT, ROOT_PROMPT).await;
+    let (original_request, original_root_completion, original_completion_text) =
+        mount_completed_child(&server, CHILD_PROMPT, ROOT_PROMPT).await;
     test.submit_text_turn(ROOT_PROMPT).await?;
     let original_thread_id = created_threads.recv().await?;
     let original_thread = test.thread_manager.get_thread(original_thread_id).await?;
     wait_for_turn_complete(&original_thread).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(&original_root_completion, Some(&original_completion_text));
     assert_request_service_tier(&original_request, Some("priority"));
     drop(original_thread);
 
@@ -348,7 +414,8 @@ async fn evicted_role_subagent_uses_root_service_tier_after_reload() -> Result<(
         }),
     )
     .await;
-    mount_completed_child(&server, FRESH_CHILD_PROMPT, FRESH_ROOT_PROMPT).await;
+    let (_, replacement_root_completion, replacement_completion_text) =
+        mount_completed_child(&server, FRESH_CHILD_PROMPT, FRESH_ROOT_PROMPT).await;
     test.submit_text_turn(FRESH_ROOT_PROMPT).await?;
     let replacement_thread_id = created_threads.recv().await?;
     let replacement_thread = test
@@ -356,6 +423,11 @@ async fn evicted_role_subagent_uses_root_service_tier_after_reload() -> Result<(
         .get_thread(replacement_thread_id)
         .await?;
     wait_for_turn_complete(&replacement_thread).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(
+        &replacement_root_completion,
+        Some(&replacement_completion_text),
+    );
     assert!(
         test.thread_manager
             .get_thread(original_thread_id)
@@ -381,7 +453,8 @@ async fn evicted_role_subagent_uses_root_service_tier_after_reload() -> Result<(
         "reload ignores the role tier and preserves the root-owned preference"
     );
 
-    let reloaded_request = mount_completed_child(&server, FOLLOWUP_PROMPT, ROOT_PROMPT).await;
+    let (reloaded_request, reloaded_root_completion, reloaded_completion_text) =
+        mount_completed_child(&server, FOLLOWUP_PROMPT, ROOT_PROMPT).await;
     reloaded_thread
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: FOLLOWUP_PROMPT.to_string(),
@@ -389,6 +462,8 @@ async fn evicted_role_subagent_uses_root_service_tier_after_reload() -> Result<(
         }]))
         .await?;
     wait_for_turn_complete(&reloaded_thread).await;
+    wait_for_turn_complete(&test.codex).await;
+    assert_root_completion_requested(&reloaded_root_completion, Some(&reloaded_completion_text));
     assert_request_service_tier(&reloaded_request, /*expected*/ None);
     reloaded_thread.shutdown_and_wait().await?;
     test.codex.shutdown_and_wait().await?;

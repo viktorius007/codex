@@ -1,3 +1,4 @@
+use anyhow::Context;
 use anyhow::Result;
 use codex_core::TurnInputRequest;
 use codex_core::config::AgentRoleConfig;
@@ -14,9 +15,11 @@ use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_function_call_with_namespace;
 use core_test_support::responses::ev_response_created;
+use core_test_support::responses::mount_response_once_match;
 use core_test_support::responses::mount_sse_once;
 use core_test_support::responses::mount_sse_once_match;
 use core_test_support::responses::sse;
+use core_test_support::responses::sse_response;
 use core_test_support::responses::start_mock_server;
 use core_test_support::test_codex::test_codex;
 use core_test_support::wait_for_event;
@@ -217,17 +220,25 @@ async fn cold_root_resume_restores_agent_identity_and_role_on_followup() -> Resu
         sse(vec![ev_completed("resp-parent-turn-assistant")]),
     )
     .await;
-    for (text, is_subagent) in [(NESTED_CALL_ID, true), (QUEUE_CALL_ID, false)] {
-        mount_sse_once_match(
-            &server,
-            move |request: &wiremock::Request| {
-                body_contains(request, text)
-                    && request_has_input_type(request, "agent_message") == is_subagent
-            },
-            sse(vec![ev_completed("resp-parent-turn-assistant")]),
-        )
-        .await;
-    }
+    mount_response_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, NESTED_CALL_ID)
+                && request_has_input_type(request, "agent_message")
+        },
+        sse_response(sse(vec![ev_completed("resp-parent-turn-assistant")]))
+            .set_delay(Duration::from_secs(1)),
+    )
+    .await;
+    mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, QUEUE_CALL_ID)
+                && !request_has_input_type(request, "agent_message")
+        },
+        sse(vec![ev_completed("resp-parent-turn-assistant")]),
+    )
+    .await;
     mount_sse_once_match(
         &server,
         |request: &wiremock::Request| {
@@ -237,6 +248,20 @@ async fn cold_root_resume_restores_agent_identity_and_role_on_followup() -> Resu
             ev_response_created("resp-spawn-2"),
             ev_assistant_message("msg-spawn-2", "worker spawned"),
             ev_completed("resp-spawn-2"),
+        ]),
+    )
+    .await;
+    mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, "Message Type: FINAL_ANSWER")
+                && body_contains(request, "Sender: /root/worker")
+                && !request_has_model(request, ROLE_MODEL)
+        },
+        sse(vec![
+            ev_response_created("resp-worker-completion-wake"),
+            ev_assistant_message("msg-worker-completion-wake", "worker completion handled"),
+            ev_completed("resp-worker-completion-wake"),
         ]),
     )
     .await;
@@ -319,6 +344,41 @@ async fn cold_root_resume_restores_agent_identity_and_role_on_followup() -> Resu
             PermissionProfile::Disabled,
         )
     );
+    worker_thread.ensure_rollout_materialized().await;
+    worker_thread.flush_rollout().await.with_context(|| {
+        format!("flush initial worker rollout {worker_thread_id} before eviction")
+    })?;
+
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let completion_wake_turn_id = loop {
+        let requests = server.received_requests().await.unwrap_or_default();
+        if let Some(turn_id) = requests.into_iter().find_map(|request| {
+            if !request.url.path().ends_with("/responses")
+                || !body_contains(&request, "Message Type: FINAL_ANSWER")
+                || !body_contains(&request, "Sender: /root/worker")
+            {
+                return None;
+            }
+            let body: Value = serde_json::from_slice(&decoded_body(&request)?).ok()?;
+            if body["client_metadata"]["thread_id"] != json!(root_thread_id) {
+                return None;
+            }
+            body["client_metadata"]["turn_id"]
+                .as_str()
+                .map(str::to_string)
+        }) {
+            break turn_id;
+        }
+        if Instant::now() >= deadline {
+            anyhow::bail!("timed out waiting for automatic worker completion wake");
+        }
+        sleep(Duration::from_millis(10)).await;
+    };
+    wait_for_event(&initial.codex, |event| match event {
+        EventMsg::TurnComplete(completed) => completed.turn_id == completion_wake_turn_id,
+        _ => false,
+    })
+    .await;
 
     let sibling_spawn_args = serde_json::to_string(&json!({
         "message": SIBLING_TASK,
@@ -348,24 +408,20 @@ async fn cold_root_resume_restores_agent_identity_and_role_on_followup() -> Resu
         ]),
     )
     .await;
-    initial.submit_turn(SIBLING_PROMPT).await?;
+    let mut created_threads = initial.thread_manager.subscribe_thread_created();
+    let (_, (sibling_thread_id, sibling_thread)) =
+        tokio::try_join!(initial.submit_turn(SIBLING_PROMPT), async {
+            let sibling_thread_id = created_threads.recv().await?;
+            let sibling_thread = initial.thread_manager.get_thread(sibling_thread_id).await?;
+            Ok::<_, anyhow::Error>((sibling_thread_id, sibling_thread))
+        })?;
 
     let grandchild = nested_mock.last_request().expect("grandchild").body_json();
-    let nested_id = &grandchild["client_metadata"]["thread_id"];
-    let sibling_thread_id = initial
-        .thread_manager
-        .list_thread_ids()
-        .await
-        .into_iter()
-        .find(|id| ![root_thread_id, worker_thread_id].contains(id) && &json!(id) != nested_id)
-        .ok_or_else(|| anyhow::anyhow!("spawned sibling should be registered"))?;
-    let sibling_thread = initial.thread_manager.get_thread(sibling_thread_id).await?;
     wait_for_event(sibling_thread.as_ref(), |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
     sibling_thread.flush_rollout().await?;
-    worker_thread.flush_rollout().await?;
     initial.codex.flush_rollout().await?;
     sibling_thread.shutdown_and_wait().await?;
     worker_thread.shutdown_and_wait().await?;
