@@ -125,6 +125,19 @@ pub(crate) struct CacheDiagnosticAttempt {
 }
 
 impl CacheDiagnosticAttempt {
+    /// Attaches the continuation decision to the pending request record.
+    pub(crate) fn record_continuation(&self, report: codex_cache_diagnostics::ContinuationReport) {
+        self.attempt.record_continuation(report);
+    }
+
+    /// Attaches tool-construction provenance to the pending request record.
+    pub(crate) fn record_tool_provenance(
+        &self,
+        provenance: codex_cache_diagnostics::ToolProvenance<'_>,
+    ) {
+        self.attempt.record_tool_provenance(provenance);
+    }
+
     pub(crate) fn completed(&self, response_id: &str, usage: Option<&ProtocolTokenUsage>) {
         let Some(usage) = usage else {
             self.attempt.completed_without_usage(Some(response_id));
