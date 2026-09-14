@@ -232,6 +232,11 @@ pub struct TurnContext {
     // so owner-provided environment settings govern the remaining sandbox decisions.
     pub(crate) windows_sandbox_level: WindowsSandboxLevel,
     pub(crate) available_models: Vec<ModelPreset>,
+    /// True when `available_models` fell back to empty because the models
+    /// manager lock was contended. The empty list changes the serialized
+    /// spawn-agent tool description and with it the cached prompt prefix, so
+    /// diagnostics must be able to attribute that change.
+    pub(crate) available_models_lock_contention_fallback: bool,
     pub(crate) unified_exec_shell_mode: UnifiedExecShellMode,
     pub(crate) final_output_json_schema: Option<Value>,
     pub(crate) dynamic_tools: Vec<DynamicToolSpec>,
@@ -536,6 +541,7 @@ impl TurnContext {
             network: self.network.clone(),
             windows_sandbox_level: self.windows_sandbox_level,
             available_models,
+            available_models_lock_contention_fallback: false,
             unified_exec_shell_mode: self.unified_exec_shell_mode.clone(),
             final_output_json_schema: self.final_output_json_schema.clone(),
             dynamic_tools: self.dynamic_tools.clone(),
@@ -730,7 +736,11 @@ impl Session {
         let model_info = &step_settings.model_info;
         let session_telemetry_for_context = step_settings.telemetry(session_telemetry);
         let session_source = session_configuration.session_source.clone();
-        let available_models = models_manager.try_list_models().unwrap_or_default();
+        let (available_models, available_models_lock_contention_fallback) =
+            match models_manager.try_list_models() {
+                Ok(models) => (models, false),
+                Err(_) => (Vec::new(), true),
+            };
         let unified_exec_shell_mode = UnifiedExecShellMode::for_session(
             per_turn_config.features.get(),
             crate::tools::tool_user_shell_type(user_shell),
@@ -808,6 +818,7 @@ impl Session {
             network,
             windows_sandbox_level: session_configuration.windows_sandbox_level,
             available_models,
+            available_models_lock_contention_fallback,
             unified_exec_shell_mode,
             final_output_json_schema: None,
             dynamic_tools: session_configuration.dynamic_tools.clone(),

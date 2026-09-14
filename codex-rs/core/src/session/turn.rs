@@ -1418,6 +1418,7 @@ pub(crate) fn build_prompt(
             &turn_context.session_source,
         ),
         cyber_access_program: turn_context.cyber_access_program,
+        tool_build_provenance: Some(step_context.tool_router.tool_build_provenance().clone()),
     }
 }
 
@@ -1898,6 +1899,7 @@ pub(super) fn realtime_text_for_event(msg: &EventMsg) -> Option<(String, Option<
         | EventMsg::TurnModerationMetadata(_)
         | EventMsg::SafetyBuffering(_)
         | EventMsg::ContextCompacted(_)
+        | EventMsg::ToolCatalogChanged(_)
         | EventMsg::ThreadRolledBack(_)
         | EventMsg::TurnStarted(_)
         | EventMsg::ThreadSettingsApplied(_)

@@ -632,7 +632,7 @@ fn spawn_tool_spec_build_deduplicates_user_defined_built_in_roles() {
         ("researcher".to_string(), AgentRoleConfig::default()),
     ]);
 
-    let spec = spawn_tool_spec::build(&user_defined_roles);
+    let spec = spawn_tool_spec::build(&user_defined_roles).text;
 
     assert!(spec.contains("researcher: no description"));
     assert!(spec.contains("explorer: {\nuser override\n}"));
@@ -651,7 +651,7 @@ fn spawn_tool_spec_lists_user_defined_roles_before_built_ins() {
         },
     )]);
 
-    let spec = spawn_tool_spec::build(&user_defined_roles);
+    let spec = spawn_tool_spec::build(&user_defined_roles).text;
     let user_index = spec.find("aaa: {\nfirst\n}").expect("find user role");
     let built_in_index = spec
         .find("default: {\nDefault agent.\n}")
@@ -678,7 +678,7 @@ fn spawn_tool_spec_marks_role_locked_model_and_reasoning_effort() {
         },
     )]);
 
-    let spec = spawn_tool_spec::build(&user_defined_roles);
+    let spec = spawn_tool_spec::build(&user_defined_roles).text;
 
     assert!(spec.contains(
             "Research carefully.\n- This role's model is set to `gpt-5` and its reasoning effort is set to `high`. These settings cannot be changed."
@@ -703,7 +703,7 @@ fn spawn_tool_spec_marks_role_locked_reasoning_effort_only() {
         },
     )]);
 
-    let spec = spawn_tool_spec::build(&user_defined_roles);
+    let spec = spawn_tool_spec::build(&user_defined_roles).text;
 
     assert!(spec.contains(
             "Review carefully.\n- This role's reasoning effort is set to `medium` and cannot be changed."
@@ -728,7 +728,7 @@ fn spawn_tool_spec_omits_role_service_tier() {
         },
     )]);
 
-    let spec = spawn_tool_spec::build(&user_defined_roles);
+    let spec = spawn_tool_spec::build(&user_defined_roles).text;
 
     assert!(spec.contains("tiered: {\nStay fast.\n}"));
 }

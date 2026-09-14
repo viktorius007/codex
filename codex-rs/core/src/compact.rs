@@ -300,6 +300,7 @@ async fn run_compact_task_inner_impl(
             output_schema: None,
             output_schema_strict: true,
             cyber_access_program: turn_context.cyber_access_program,
+            tool_build_provenance: Some(step_context.tool_router.tool_build_provenance().clone()),
         };
         let attempt_result = drain_to_completed(
             &sess,

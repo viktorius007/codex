@@ -156,6 +156,7 @@ pub(super) async fn spawn_review_thread(
         originator: parent_turn_context.originator.clone(),
         environments: parent_turn_context.environments.clone(),
         available_models,
+        available_models_lock_contention_fallback: false,
         unified_exec_shell_mode,
         current_date: parent_turn_context.current_date.clone(),
         timezone: parent_turn_context.timezone.clone(),

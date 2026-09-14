@@ -82,6 +82,7 @@ pub(super) async fn run_remote_compact_v2_attempt(
         output_schema: None,
         output_schema_strict: true,
         cyber_access_program: turn_context.cyber_access_program,
+        tool_build_provenance: None,
     };
 
     let responses_metadata = sess
