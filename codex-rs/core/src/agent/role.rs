@@ -264,8 +264,22 @@ mod role_overrides {
 pub(crate) mod spawn_tool_spec {
     use super::*;
 
+    /// Description text plus the read failures that shaped it.
+    ///
+    /// A role whose config file could not be read or parsed silently loses its
+    /// locked-settings note, which changes the serialized tool description and
+    /// with it the provider's cached prompt prefix. The failure count lets
+    /// cache diagnostics attribute such a change instead of reporting an
+    /// unexplained prefix rewrite.
+    pub(crate) struct SpawnToolSpecBuild {
+        pub(crate) text: String,
+        pub(crate) role_file_read_failures: usize,
+    }
+
     /// Builds the spawn-agent tool description text from built-in and configured roles.
-    pub(crate) fn build(user_defined_agent_roles: &BTreeMap<String, AgentRoleConfig>) -> String {
+    pub(crate) fn build(
+        user_defined_agent_roles: &BTreeMap<String, AgentRoleConfig>,
+    ) -> SpawnToolSpecBuild {
         let built_in_roles = built_in::configs();
         build_from_configs(built_in_roles, user_defined_agent_roles)
     }
@@ -274,34 +288,46 @@ pub(crate) mod spawn_tool_spec {
     fn build_from_configs(
         built_in_roles: &BTreeMap<String, AgentRoleConfig>,
         user_defined_roles: &BTreeMap<String, AgentRoleConfig>,
-    ) -> String {
+    ) -> SpawnToolSpecBuild {
         let mut seen = BTreeSet::new();
         let mut formatted_roles = Vec::new();
+        let mut role_file_read_failures = 0;
         for (name, declaration) in user_defined_roles {
             if seen.insert(name.as_str()) {
-                formatted_roles.push(format_role(name, declaration));
+                formatted_roles.push(format_role(name, declaration, &mut role_file_read_failures));
             }
         }
         for (name, declaration) in built_in_roles {
             if seen.insert(name.as_str()) {
-                formatted_roles.push(format_role(name, declaration));
+                formatted_roles.push(format_role(name, declaration, &mut role_file_read_failures));
             }
         }
 
-        format!("Available roles:\n{}", formatted_roles.join("\n"))
+        SpawnToolSpecBuild {
+            text: format!("Available roles:\n{}", formatted_roles.join("\n")),
+            role_file_read_failures,
+        }
     }
 
-    fn format_role(name: &str, declaration: &AgentRoleConfig) -> String {
+    fn format_role(
+        name: &str,
+        declaration: &AgentRoleConfig,
+        role_file_read_failures: &mut usize,
+    ) -> String {
         if let Some(description) = &declaration.description {
             let locked_settings_note = declaration
                 .config_file
                 .as_ref()
                 .and_then(|config_file| {
-                    built_in::config_file_contents(config_file)
+                    let contents = built_in::config_file_contents(config_file)
                         .map(str::to_owned)
                         .or_else(|| std::fs::read_to_string(config_file).ok())
+                        .and_then(|contents| toml::from_str::<TomlValue>(&contents).ok());
+                    if contents.is_none() {
+                        *role_file_read_failures += 1;
+                    }
+                    contents
                 })
-                .and_then(|contents| toml::from_str::<TomlValue>(&contents).ok())
                 .map(|role_toml| {
                     let model = role_toml
                         .get("model")
