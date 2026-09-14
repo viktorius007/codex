@@ -43,6 +43,47 @@ def list_manifest(label: str, items: list[str]) -> dict[str, object]:
     }
 
 
+def input_manifest_with_bytes(
+    labels_and_bytes: list[tuple[str, int]],
+) -> dict[str, object]:
+    """Build a `logical.input` manifest with explicit per-entry byte counts."""
+    labels = [label for label, _ in labels_and_bytes]
+    return {
+        "body": fingerprint(f"input-body-{'-'.join(labels)}"),
+        "count": len(labels_and_bytes),
+        "retained": [
+            fingerprint(label, byte_count=byte_count)
+            for label, byte_count in labels_and_bytes
+        ],
+        "omitted": {"count": 0, "hmac": fingerprint("empty-tail")["hmac"]},
+    }
+
+
+def tools_detail_manifest(
+    tools: list[tuple[str, int, int]],
+) -> dict[str, object]:
+    """Build a `logical.toolsDetail` manifest.
+
+    `tools` is a list of (name, description_bytes, parameters_bytes) tuples.
+    Tool `name` is plaintext; descriptor/description/parameters remain
+    fingerprints (hmac, bytes).
+    """
+    retained = [
+        {
+            "name": name,
+            "descriptor": fingerprint(f"{name}-descriptor"),
+            "description": fingerprint(f"{name}-description", byte_count=desc_bytes),
+            "parameters": fingerprint(f"{name}-parameters", byte_count=params_bytes),
+        }
+        for name, desc_bytes, params_bytes in tools
+    ]
+    return {
+        "count": len(retained),
+        "retained": retained,
+        "omitted": {"count": 0, "hmac": fingerprint("empty-tail")["hmac"]},
+    }
+
+
 def transport_identity(
     *, routing_hint: str = "routing-a", previous_response: bool = False
 ) -> dict[str, object]:
@@ -99,17 +140,21 @@ def logical_manifest(
     tool_items: tuple[str, ...] = ("tool-0",),
     model: str = "model-a",
     reasoning: str = "effort-medium",
+    input_manifest: Optional[dict[str, object]] = None,
+    tools_detail: Optional[dict[str, object]] = None,
 ) -> dict[str, object]:
-    input_manifest = list_manifest("input", list(input_items))
+    resolved_input_manifest = input_manifest or list_manifest(
+        "input", list(input_items)
+    )
     tools_manifest = list_manifest("tools", list(tool_items))
-    return {
+    manifest = {
         "body": fingerprint(
             f"body-{model}-{reasoning}-{instructions}-"
             f"{'-'.join(input_items)}-{'-'.join(tool_items)}"
         ),
         "model": fingerprint(model),
         "instructions": fingerprint(instructions),
-        "input": input_manifest,
+        "input": resolved_input_manifest,
         "tools": tools_manifest,
         "toolChoice": fingerprint("tool-choice"),
         "parallelToolCalls": fingerprint("parallel-tool-calls"),
@@ -124,6 +169,9 @@ def logical_manifest(
         "clientMetadata": missing(),
         "accessPrograms": missing(),
     }
+    if tools_detail is not None:
+        manifest["toolsDetail"] = tools_detail
+    return manifest
 
 
 def request_record(
@@ -142,6 +190,10 @@ def request_record(
     connection_reused: bool = False,
     incremental: bool = False,
     routing_hint: str = "routing-a",
+    request_kind: str = "turn",
+    schema_version: int = 1,
+    continuation: Optional[dict[str, object]] = None,
+    tool_provenance: Optional[dict[str, object]] = None,
 ) -> dict[str, object]:
     if wire is None:
         wire_manifest: dict[str, object] = missing()
@@ -156,12 +208,12 @@ def request_record(
             previous_response=previous_response,
         )
     record = {
-        "schemaVersion": 1,
+        "schemaVersion": schema_version,
         "event": "request",
         "runId": run_id,
         "sequence": sequence,
         "timestampUnixMs": timestamp_ms,
-        "requestKind": "turn",
+        "requestKind": request_kind,
         "retryOrdinal": 0,
         "lineage": {
             "threadId": fingerprint(thread),
@@ -178,6 +230,10 @@ def request_record(
     }
     if key_scope is not None:
         record["keyScope"] = fingerprint(key_scope, byte_count=0)
+    if continuation is not None:
+        record["continuation"] = continuation
+    if tool_provenance is not None:
+        record["toolProvenance"] = tool_provenance
     record["attemptId"] = attempt
     return record
 
@@ -830,6 +886,306 @@ class CacheDiagnosticsAuditTest(unittest.TestCase):
             self.assertEqual(path.read_bytes(), original)
             self.assertEqual(json.loads(output.getvalue())["stats"]["files"], 1)
 
+    def test_cross_kind_comparison_is_excluded_from_headline_drops_and_listed_separately(
+        self,
+    ) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+            first_request_kind="warmup",
+            second_request_kind="turn",
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+        text_output, _ = self.run_text(records)
+
+        self.assertEqual(report["incidents"], [])
+        self.assertEqual(report["stats"]["cache_drops"], 0)
+        self.assertEqual(report["stats"]["eligible_warm_comparisons"], 0)
+        self.assertEqual(report["stats"]["cross_kind_comparisons"], 1)
+        self.assertEqual(len(report["cross_kind_comparisons"]), 1)
+        pair = report["cross_kind_comparisons"][0]
+        self.assertEqual(pair["previous_request_kind"], "warmup")
+        self.assertEqual(pair["current_request_kind"], "turn")
+        self.assertIn("CROSS-KIND COMPARISONS", text_output)
+        self.assertIn("warmup", text_output)
+
+    def test_same_kind_comparison_is_unaffected_by_cross_kind_handling(self) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+            first_request_kind="turn",
+            second_request_kind="turn",
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertEqual(report["stats"]["cross_kind_comparisons"], 0)
+        self.assertEqual(report["stats"]["cache_drops"], 1)
+        self.assertEqual(len(report["incidents"]), 1)
+
+    def test_incident_reports_granularity_of_first_differing_retained_input(
+        self,
+    ) -> None:
+        first = logical_manifest(
+            input_manifest=input_manifest_with_bytes(
+                [("input-0", 100), ("input-1", 200), ("input-2", 300)]
+            )
+        )
+        second = logical_manifest(
+            input_manifest=input_manifest_with_bytes(
+                [("input-0", 100), ("input-1-changed", 250), ("input-2", 300)]
+            )
+        )
+        records = self.warm_drop_pair(first, second)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        incident = report["incidents"][0]
+        self.assertEqual(incident["first_differing_input_ordinal"], 1)
+        self.assertEqual(incident["first_differing_input_bytes_previous"], 200)
+        self.assertEqual(incident["first_differing_input_bytes_current"], 250)
+        self.assertEqual(incident["identical_retained_before_first_diff"], 1)
+        self.assertEqual(incident["identical_retained_after_first_diff"], 1)
+        self.assertEqual(incident["input_count_change"], 0)
+        rendered = json.dumps(report, sort_keys=True)
+        # Only ordinals/byte counts are reported, never fingerprint/hmac values.
+        self.assertNotIn("hmac", rendered)
+
+    def test_incident_reports_input_count_change_on_append(self) -> None:
+        first = logical_manifest(input_items=("input-0",))
+        second = logical_manifest(input_items=("input-0", "input-1"))
+        records = self.warm_drop_pair(first, second)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        incident = report["incidents"][0]
+        self.assertEqual(incident["input_count_change"], 1)
+
+    def test_tool_catalog_drift_candidate_boundary_is_inclusive_at_64_bytes(
+        self,
+    ) -> None:
+        first = logical_manifest(
+            input_manifest=input_manifest_with_bytes([("input-0", 100)])
+        )
+        second = logical_manifest(
+            input_manifest=input_manifest_with_bytes([("input-0", 164)])
+        )
+        records = self.warm_drop_pair(first, second)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertEqual(
+            report["incidents"][0]["classification"], "tool_catalog_drift_candidate"
+        )
+
+    def test_tool_catalog_drift_candidate_boundary_excludes_65_bytes(self) -> None:
+        first = logical_manifest(
+            input_manifest=input_manifest_with_bytes([("input-0", 100)])
+        )
+        second = logical_manifest(
+            input_manifest=input_manifest_with_bytes([("input-0", 165)])
+        )
+        records = self.warm_drop_pair(first, second)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertIsNone(report["incidents"][0]["classification"])
+
+    def test_drift_candidate_requires_the_only_difference_to_be_ordinal_zero(
+        self,
+    ) -> None:
+        first = logical_manifest(
+            input_manifest=input_manifest_with_bytes(
+                [("input-0", 100), ("input-1", 200)]
+            )
+        )
+        second = logical_manifest(
+            input_manifest=input_manifest_with_bytes(
+                [("input-0", 110), ("input-1-changed", 200)]
+            )
+        )
+        records = self.warm_drop_pair(first, second)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertIsNone(report["incidents"][0]["classification"])
+        self.assertEqual(report["incidents"][0]["first_differing_input_ordinal"], 0)
+
+    def test_continuation_field_is_reported_when_present(self) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+            second_schema_version=2,
+            second_continuation={
+                "transport": "http",
+                "decision": "full",
+                "dropReason": "inputPrefixMismatch",
+                "firstMismatchedInputIndex": 3,
+                "divergence": {
+                    "scope": "input",
+                    "byteOffset": 128,
+                    "previousBytes": 64,
+                    "currentBytes": 96,
+                },
+            },
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+        text_output, _ = self.run_text(records)
+
+        continuation = report["incidents"][0]["continuation"]
+        self.assertEqual(continuation["decision"], "full")
+        self.assertEqual(continuation["dropReason"], "inputPrefixMismatch")
+        self.assertEqual(continuation["firstMismatchedInputIndex"], 3)
+        self.assertEqual(
+            continuation["divergence"],
+            {
+                "scope": "input",
+                "byteOffset": 128,
+                "previousBytes": 64,
+                "currentBytes": 96,
+            },
+        )
+        self.assertIn("continuation:", text_output)
+        self.assertIn("decision=full", text_output)
+
+    def test_continuation_field_is_absent_when_not_present(self) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertIsNone(report["incidents"][0]["continuation"])
+
+    def test_tool_provenance_field_is_reported_when_present(self) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+            first_schema_version=2,
+            second_schema_version=2,
+            first_tool_provenance={
+                "modelCatalog": {
+                    "presetCount": 5,
+                    "lockContentionFallback": False,
+                    "identity": fingerprint("catalog-identity-a"),
+                },
+                "roleFileReadFailures": 0,
+            },
+            second_tool_provenance={
+                "modelCatalog": {
+                    "presetCount": 7,
+                    "lockContentionFallback": True,
+                    "identity": fingerprint("catalog-identity-b"),
+                },
+                "roleFileReadFailures": 2,
+            },
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+        text_output, _ = self.run_text(records)
+
+        provenance = report["incidents"][0]["tool_provenance"]
+        self.assertEqual(provenance["presetCount"], 7)
+        self.assertEqual(provenance["lockContentionFallback"], True)
+        self.assertEqual(provenance["roleFileReadFailures"], 2)
+        self.assertEqual(
+            provenance["presetCountChanged"], {"previous": 5, "current": 7}
+        )
+        self.assertIn("lockContentionFallback=True", text_output)
+        self.assertIn("WARNING: lockContentionFallback=true", text_output)
+        self.assertIn("presetCount differs", text_output)
+
+    def test_tool_provenance_field_is_absent_when_not_present(self) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertIsNone(report["incidents"][0]["tool_provenance"])
+
+    def test_tools_detail_diff_is_reported_when_present_on_both_requests(
+        self,
+    ) -> None:
+        first_logical = logical_manifest(
+            tools_detail=tools_detail_manifest(
+                [("tool_alpha", 50, 20), ("tool_beta", 30, 10)]
+            )
+        )
+        second_logical = logical_manifest(
+            tools_detail=tools_detail_manifest(
+                [("tool_alpha", 90, 20), ("tool_gamma", 15, 15)]
+            )
+        )
+        records = self.warm_drop_pair(first_logical, second_logical)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+        text_output, _ = self.run_text(records)
+
+        diff = report["incidents"][0]["tools_detail_diff"]
+        self.assertEqual(diff["added"], ["tool_gamma"])
+        self.assertEqual(diff["removed"], ["tool_beta"])
+        self.assertEqual(len(diff["changed"]), 1)
+        changed = diff["changed"][0]
+        self.assertEqual(changed["name"], "tool_alpha")
+        self.assertEqual(len(changed["parts"]), 1)
+        self.assertEqual(changed["parts"][0]["part"], "description")
+        self.assertEqual(changed["parts"][0]["previous_bytes"], 50)
+        self.assertEqual(changed["parts"][0]["current_bytes"], 90)
+        self.assertEqual(changed["parts"][0]["byte_delta"], 40)
+        # Tool names are plaintext by design and may be printed.
+        self.assertIn("tool_alpha", text_output)
+        self.assertIn("tool_gamma", text_output)
+        self.assertIn("tool_beta", text_output)
+
+    def test_tools_detail_diff_is_absent_when_missing_on_either_request(self) -> None:
+        first_logical = logical_manifest(
+            tools_detail=tools_detail_manifest([("tool_alpha", 50, 20)])
+        )
+        second_logical = logical_manifest()
+        records = self.warm_drop_pair(first_logical, second_logical)
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertIsNone(report["incidents"][0]["tools_detail_diff"])
+
+    def test_v2_schema_version_records_still_parse_through_v1_code_paths(
+        self,
+    ) -> None:
+        first = logical_manifest(instructions="instructions-a")
+        second = logical_manifest(instructions="instructions-b")
+        records = self.warm_drop_pair(
+            first, second, first_schema_version=2, second_schema_version=2
+        )
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertEqual(report["stats"]["malformed_lines"], 0)
+        self.assertEqual(len(report["incidents"]), 1)
+        self.assertEqual(
+            report["incidents"][0]["first_difference"],
+            {"scope": "component", "name": "instructions"},
+        )
+        self.assertIsNone(report["incidents"][0]["continuation"])
+        self.assertIsNone(report["incidents"][0]["tool_provenance"])
+        self.assertIsNone(report["incidents"][0]["tools_detail_diff"])
+
+    def test_malformed_v2_continuation_field_rejects_the_record(self) -> None:
+        records = self.warm_drop_pair(
+            logical_manifest(instructions="instructions-a"),
+            logical_manifest(instructions="instructions-b"),
+        )
+        records[2]["continuation"] = {"transport": "http", "decision": "bogus"}
+
+        report, _ = self.run_json({"run-a.jsonl": records})
+
+        self.assertEqual(report["incidents"], [])
+        self.assertGreaterEqual(report["stats"]["malformed_lines"], 1)
+
     @staticmethod
     def warm_drop_pair(
         first: dict[str, object],
@@ -841,6 +1197,14 @@ class CacheDiagnosticsAuditTest(unittest.TestCase):
         websocket: bool = False,
         previous_response: bool = False,
         incremental_second: bool = False,
+        first_request_kind: str = "turn",
+        second_request_kind: str = "turn",
+        first_schema_version: int = 1,
+        second_schema_version: int = 1,
+        first_continuation: Optional[dict[str, object]] = None,
+        second_continuation: Optional[dict[str, object]] = None,
+        first_tool_provenance: Optional[dict[str, object]] = None,
+        second_tool_provenance: Optional[dict[str, object]] = None,
     ) -> list[dict[str, object]]:
         return [
             request_record(
@@ -853,6 +1217,10 @@ class CacheDiagnosticsAuditTest(unittest.TestCase):
                 websocket=websocket,
                 connection_reused=False,
                 incremental=False,
+                request_kind=first_request_kind,
+                schema_version=first_schema_version,
+                continuation=first_continuation,
+                tool_provenance=first_tool_provenance,
             ),
             outcome_record(
                 "attempt-a",
@@ -872,6 +1240,10 @@ class CacheDiagnosticsAuditTest(unittest.TestCase):
                 previous_response=previous_response,
                 connection_reused=incremental_second,
                 incremental=incremental_second,
+                request_kind=second_request_kind,
+                schema_version=second_schema_version,
+                continuation=second_continuation,
+                tool_provenance=second_tool_provenance,
             ),
             outcome_record(
                 "attempt-b",
