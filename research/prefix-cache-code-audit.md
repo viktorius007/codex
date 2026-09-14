@@ -4,6 +4,8 @@ Assessed 2026-09-14 at `b2da63e68447be521bc9b68471d5faa861c09d62` on `local/cust
 
 Follow-up: [live compaction and cold-resume validation](compaction-resume-cache-validation.md) establishes provider cache reuse across ordinary and post-compaction cold resume, confirms unchanged tools/base instructions across compaction, and measures the relocation of stable contextual instructions. The static-only limitations below describe the initial audit; the follow-up contains the new executed evidence.
 
+Fix follow-up (2026-09-14, commit `0fe8243457`): the three client-side bust mechanisms this audit defined are removed. Turn construction now reads a thread-lifetime model-catalog snapshot (`SessionServices::model_catalog_snapshot`) instead of `try_list_models()`, eliminating both the mid-thread `OnlineIfUncached` refresh and the lock-contention empty-catalog fallback; the spawn-agent role description is rebuilt only when the configured role map changes (`Session::spawn_role_spec`), eliminating per-turn role-file disk reads. Deliberate trade-off: a running thread no longer sees backend catalog updates or role-file edits until a new thread starts — prefix stability over freshness. Regression tests: `model_catalog_snapshot_is_frozen_for_thread_lifetime`, `spawn_role_spec_is_stable_across_role_file_changes` in `core/src/session/tests.rs`.
+
 The prefix can lose reuse. This review establishes client-side mechanisms that change it; it does not establish the cause of a particular provider cache miss. No new unintended prefix-mutation defect was established in the inspected paths. Production source, installed binaries, and existing investigation files were not changed.
 
 ## Three different kinds of cache
