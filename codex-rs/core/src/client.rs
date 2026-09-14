@@ -316,10 +316,12 @@ struct WebsocketSession {
 // `client_metadata`, while websocket reuse compares the input separately and ignores metadata.
 // Access programs are authorized per response, including continuations, without replaying input.
 // Keep the destructuring exhaustive so new request fields require an explicit reuse decision.
-fn responses_request_properties_match(
+/// Returns the first non-input request property that differs, or `None` when
+/// every continuation-relevant property matches.
+fn first_mismatched_request_property(
     previous: &ResponsesApiRequest,
     current: &ResponsesApiRequest,
-) -> bool {
+) -> Option<&'static str> {
     let ResponsesApiRequest {
         model: previous_model,
         instructions: previous_instructions,
@@ -348,6 +350,8 @@ fn responses_request_properties_match(
         reasoning: current_reasoning,
         store: current_store,
         stream: current_stream,
+        // Stream options control delivery for this response, not the context
+        // referenced by `previous_response_id`.
         stream_options: _,
         include: current_include,
         service_tier: current_service_tier,
@@ -357,20 +361,121 @@ fn responses_request_properties_match(
         access_programs: _,
     } = current;
 
-    previous_model == current_model
-        && previous_instructions == current_instructions
-        && previous_tools == current_tools
-        && previous_tool_choice == current_tool_choice
-        && previous_parallel_tool_calls == current_parallel_tool_calls
-        && previous_reasoning == current_reasoning
-        && previous_store == current_store
-        && previous_stream == current_stream
-        // Stream options control delivery for this response, not the context
-        // referenced by `previous_response_id`.
-        && previous_include == current_include
-        && previous_service_tier == current_service_tier
-        && previous_prompt_cache_key == current_prompt_cache_key
-        && previous_text == current_text
+    if previous_model != current_model {
+        return Some("model");
+    }
+    if previous_instructions != current_instructions {
+        return Some("instructions");
+    }
+    if previous_tools != current_tools {
+        return Some("tools");
+    }
+    if previous_tool_choice != current_tool_choice {
+        return Some("tool_choice");
+    }
+    if previous_parallel_tool_calls != current_parallel_tool_calls {
+        return Some("parallel_tool_calls");
+    }
+    if previous_reasoning != current_reasoning {
+        return Some("reasoning");
+    }
+    if previous_store != current_store {
+        return Some("store");
+    }
+    if previous_stream != current_stream {
+        return Some("stream");
+    }
+    if previous_include != current_include {
+        return Some("include");
+    }
+    if previous_service_tier != current_service_tier {
+        return Some("service_tier");
+    }
+    if previous_prompt_cache_key != current_prompt_cache_key {
+        return Some("prompt_cache_key");
+    }
+    if previous_text != current_text {
+        return Some("text");
+    }
+    None
+}
+
+/// Why the previous WebSocket continuation could not carry this request, with
+/// enough localization for cache-loss attribution.
+struct ContinuationDrop {
+    reason: codex_cache_diagnostics::ContinuationDropReason,
+    first_mismatched_property: Option<&'static str>,
+    first_mismatched_input_index: Option<usize>,
+    divergence: Option<codex_cache_diagnostics::ContinuationDivergence>,
+}
+
+impl ContinuationDrop {
+    fn new(reason: codex_cache_diagnostics::ContinuationDropReason) -> Self {
+        Self {
+            reason,
+            first_mismatched_property: None,
+            first_mismatched_input_index: None,
+            divergence: None,
+        }
+    }
+
+    fn into_report(self) -> codex_cache_diagnostics::ContinuationReport {
+        codex_cache_diagnostics::ContinuationReport {
+            transport: codex_cache_diagnostics::ContinuationTransport::Websocket,
+            decision: codex_cache_diagnostics::ContinuationDecision::Full,
+            drop_reason: Some(self.reason),
+            first_mismatched_property: self.first_mismatched_property,
+            first_mismatched_input_index: self.first_mismatched_input_index,
+            divergence: self.divergence,
+        }
+    }
+}
+
+fn record_prompt_tool_provenance(attempt: &CacheDiagnosticAttempt, prompt: &Prompt) {
+    if let Some(provenance) = &prompt.tool_build_provenance {
+        attempt.record_tool_provenance(codex_cache_diagnostics::ToolProvenance {
+            model_preset_count: provenance.model_preset_count,
+            model_catalog_lock_contention_fallback: provenance
+                .model_catalog_lock_contention_fallback,
+            model_catalog_identity: provenance
+                .model_catalog_identity
+                .as_deref()
+                .map(str::as_bytes),
+            role_file_read_failures: provenance.role_file_read_failures,
+        });
+    }
+}
+
+fn incremental_continuation_report() -> codex_cache_diagnostics::ContinuationReport {
+    codex_cache_diagnostics::ContinuationReport {
+        transport: codex_cache_diagnostics::ContinuationTransport::Websocket,
+        decision: codex_cache_diagnostics::ContinuationDecision::Incremental,
+        drop_reason: None,
+        first_mismatched_property: None,
+        first_mismatched_input_index: None,
+        divergence: None,
+    }
+}
+
+/// Localizes the first differing byte between the serializations of a
+/// mismatched input-item pair. Offsets and lengths only; no content.
+fn input_item_divergence(
+    previous: &ResponseItem,
+    current: &ResponseItem,
+) -> Option<codex_cache_diagnostics::ContinuationDivergence> {
+    let previous = serde_json::to_vec(previous).ok()?;
+    let current = serde_json::to_vec(current).ok()?;
+    let byte_offset = previous
+        .iter()
+        .zip(&current)
+        .position(|(previous_byte, current_byte)| previous_byte != current_byte)
+        .unwrap_or_else(|| previous.len().min(current.len()));
+    Some(codex_cache_diagnostics::ContinuationDivergence {
+        scope: codex_cache_diagnostics::DivergenceScope::InputItem,
+        byte_offset,
+        previous_bytes: previous.len(),
+        current_bytes: current.len(),
+    })
 }
 
 fn response_items_equal_ignoring_internal_metadata(
@@ -1363,39 +1468,59 @@ impl ModelClientSession {
         request: &ResponsesApiRequest,
         last_response: Option<&LastResponse>,
         allow_empty_delta: bool,
-    ) -> Option<Vec<ResponseItem>> {
-        let previous_request = self.websocket_session.last_request.as_ref()?;
-        if !responses_request_properties_match(previous_request, request) {
+    ) -> std::result::Result<Vec<ResponseItem>, ContinuationDrop> {
+        use codex_cache_diagnostics::ContinuationDropReason;
+        let Some(previous_request) = self.websocket_session.last_request.as_ref() else {
+            return Err(ContinuationDrop::new(
+                ContinuationDropReason::NoPreviousRequest,
+            ));
+        };
+        if let Some(property) = first_mismatched_request_property(previous_request, request) {
             trace!("incremental request failed, websocket reuse properties didn't match");
-            return None;
+            let mut drop = ContinuationDrop::new(ContinuationDropReason::PropertiesMismatch);
+            drop.first_mismatched_property = Some(property);
+            return Err(drop);
         }
 
         let response_items =
             last_response.map_or(&[][..], |response| response.items_added.as_slice());
-        let previous_items_len = previous_request
+        let Some(previous_items_len) = previous_request
             .input
             .len()
-            .checked_add(response_items.len())?;
+            .checked_add(response_items.len())
+        else {
+            return Err(ContinuationDrop::new(
+                ContinuationDropReason::InputShorterThanPrevious,
+            ));
+        };
         let Some((request_items_to_compare, incremental_items)) =
             request.input.split_at_checked(previous_items_len)
         else {
             trace!("incremental request failed, incompatible request length");
-            return None;
+            return Err(ContinuationDrop::new(
+                ContinuationDropReason::InputShorterThanPrevious,
+            ));
         };
         let previous_items = previous_request.input.iter().chain(response_items);
-        if !previous_items
+        if let Some((index, (previous, current))) = previous_items
             .zip(request_items_to_compare)
-            .all(|(previous, current)| {
-                response_items_equal_ignoring_internal_metadata(previous, current)
+            .enumerate()
+            .find(|(_, (previous, current))| {
+                !response_items_equal_ignoring_internal_metadata(previous, current)
             })
         {
             trace!("incremental request failed, items didn't match");
-            return None;
+            let mut drop = ContinuationDrop::new(ContinuationDropReason::InputPrefixMismatch);
+            drop.first_mismatched_input_index = Some(index);
+            drop.divergence = input_item_divergence(previous, current);
+            return Err(drop);
         }
         if !allow_empty_delta && incremental_items.is_empty() {
-            return None;
+            return Err(ContinuationDrop::new(
+                ContinuationDropReason::InputShorterThanPrevious,
+            ));
         }
-        Some(incremental_items.to_vec())
+        Ok(incremental_items.to_vec())
     }
 
     fn get_last_response(&mut self) -> Option<LastResponse> {
@@ -1408,31 +1533,51 @@ impl ModelClientSession {
             })
     }
 
+    /// Decides between an incremental and a full WebSocket send.
+    ///
+    /// The returned report captures that decision and, on a full send, the
+    /// first cause, for the diagnostic request record.
     fn prepare_websocket_request(
         &mut self,
         request: &ResponsesApiRequest,
-    ) -> (Option<(String, Vec<ResponseItem>)>, bool) {
+    ) -> (
+        Option<(String, Vec<ResponseItem>)>,
+        bool,
+        codex_cache_diagnostics::ContinuationReport,
+    ) {
+        use codex_cache_diagnostics::ContinuationDropReason;
         let Some(last_response) = self.get_last_response() else {
-            return (None, false);
+            return (
+                None,
+                false,
+                ContinuationDrop::new(ContinuationDropReason::NoPreviousResponse).into_report(),
+            );
         };
         let previous_response_id_from_untraced_warmup =
             self.websocket_session.last_response_from_untraced_warmup;
-        let Some(incremental_items) = self.get_incremental_items(
+        let incremental_items = match self.get_incremental_items(
             request,
             Some(&last_response),
             /*allow_empty_delta*/ true,
-        ) else {
-            return (None, false);
+        ) {
+            Ok(incremental_items) => incremental_items,
+            Err(drop) => return (None, false, drop.into_report()),
         };
 
         if last_response.response_id.is_empty() {
             trace!("incremental request failed, no previous response id");
-            return (None, false);
+            return (
+                None,
+                false,
+                ContinuationDrop::new(ContinuationDropReason::EmptyPreviousResponseId)
+                    .into_report(),
+            );
         }
 
         (
             Some((last_response.response_id, incremental_items)),
             previous_response_id_from_untraced_warmup,
+            incremental_continuation_report(),
         )
     }
 
@@ -1674,12 +1819,14 @@ impl ModelClientSession {
             inference_trace_attempt.record_started(&request);
             let cache_diagnostic_attempt =
                 self.client.cache_diagnostics.as_ref().map(|diagnostics| {
-                    diagnostics.start_responses_attempt(
+                    let attempt = diagnostics.start_responses_attempt(
                         responses_metadata,
                         &request,
                         diagnostic_attempts.next(),
                         /*previous_response_id*/ None,
-                    )
+                    );
+                    record_prompt_tool_provenance(&attempt, prompt);
+                    attempt
                 });
             let mut client = ApiResponsesClient::new(
                 transport,
@@ -1877,7 +2024,7 @@ impl ModelClientSession {
                 Err(err) => return Err(provider.map_api_error(err)),
             }
 
-            let (incremental_request, previous_response_id_from_untraced_warmup) =
+            let (incremental_request, previous_response_id_from_untraced_warmup, continuation) =
                 self.prepare_websocket_request(&request);
             let inference_trace_attempt = if warmup {
                 // Prewarm sends `generate=false`; it is connection setup, not a
@@ -1930,7 +2077,7 @@ impl ModelClientSession {
             let cache_diagnostic_attempt =
                 self.client.cache_diagnostics.as_ref().map(|diagnostics| {
                     let retry_ordinal = diagnostic_attempts.next();
-                    if warmup {
+                    let attempt = if warmup {
                         diagnostics.start_warmup_attempt(
                             responses_metadata,
                             &request,
@@ -1944,7 +2091,10 @@ impl ModelClientSession {
                             retry_ordinal,
                             ws_payload.previous_response_id.as_deref(),
                         )
-                    }
+                    };
+                    attempt.record_continuation(continuation.clone());
+                    record_prompt_tool_provenance(&attempt, prompt);
+                    attempt
                 });
             let mut ws_request = ResponsesWsRequest::ResponseCreate(ws_payload);
             stamp_ws_stream_request_start_ms(&mut ws_request);
