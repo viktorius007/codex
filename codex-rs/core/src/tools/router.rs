@@ -73,15 +73,13 @@ pub(crate) fn tool_log_payload<'a>(
 /// Provenance of the dynamic inputs that shaped this router's tool specs.
 ///
 /// The serialized tool array is part of the provider's cached prompt prefix,
-/// so any input that can change between turns — the network-refreshed model
-/// catalog, its lock-contention empty fallback, role config files read from
-/// disk — must be observable for cache-loss attribution.
+/// so any input that can change between turns — the thread's model-catalog
+/// snapshot, role config files read from disk — must be observable for
+/// cache-loss attribution.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ToolBuildProvenance {
     /// Number of model presets embedded in tool descriptions.
     pub(crate) model_preset_count: usize,
-    /// Whether the preset list fell back to empty on lock contention.
-    pub(crate) model_catalog_lock_contention_fallback: bool,
     /// Serialized model-preset list used for this build.
     pub(crate) model_catalog_identity: Option<String>,
     /// Number of agent-role config files that failed to read or parse.

@@ -1674,6 +1674,8 @@ impl Session {
                 mcp_thread_init,
                 client_mcp_extensions,
                 agent_control,
+                model_catalog_snapshot: tokio::sync::OnceCell::new(),
+                spawn_role_spec_snapshot: std::sync::Mutex::new(None),
                 network_proxy: arc_swap::ArcSwapOption::from(network_proxy.map(Arc::new)),
                 network_proxy_audit_metadata,
                 managed_network_requirements_configured,

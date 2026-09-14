@@ -34,6 +34,7 @@ use codex_mcp::McpRuntime;
 use codex_models_manager::manager::SharedModelsManager;
 use codex_otel::SessionTelemetry;
 use codex_protocol::capabilities::SelectedCapabilityRoot;
+use codex_protocol::openai_models::ModelPreset;
 use codex_protocol::mcp::ClientMcpExtensions;
 use codex_rollout::state_db::StateDbHandle;
 use codex_rollout_trace::ThreadTraceContext;
@@ -99,4 +100,14 @@ pub(crate) struct SessionServices {
     pub(crate) code_mode_service: CodeModeService,
     pub(crate) tool_search_handler_cache: ToolSearchHandlerCache,
     pub(crate) turn_environments: Arc<ThreadEnvironments>,
+    /// Model presets frozen at first turn-context construction. Turns reuse
+    /// this snapshot instead of re-reading the models manager, so a mid-thread
+    /// catalog refresh cannot rewrite the serialized spawn-agent tool
+    /// description and bust the provider's cached prompt prefix.
+    pub(crate) model_catalog_snapshot: tokio::sync::OnceCell<Vec<ModelPreset>>,
+    /// Spawn-agent role description reused while the configured role map is
+    /// unchanged, so per-turn role-file disk reads cannot rewrite the
+    /// serialized tool description and bust the cached prompt prefix.
+    pub(crate) spawn_role_spec_snapshot:
+        std::sync::Mutex<Option<crate::agent::role::spawn_tool_spec::SpawnRoleSpecSnapshot>>,
 }
