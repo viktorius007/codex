@@ -3,6 +3,16 @@
 
 The scanner reads rollout JSONL locally and never prints prompts, model output,
 tool arguments, tool output, working directories, or world-state values.
+
+An EventMsg line of type `tool_catalog_changed` (payload fields
+`previous_digest`, `current_digest`, `added`, `removed`, `changed`) is
+surfaced in a drop incident's between-samples diagnostics as
+`tool_catalog_changed(added=...,removed=...,changed=...)`, using the
+plaintext tool-name lists only -- the digests themselves are never printed.
+A drop whose between-samples window contains such a line is classified
+with cause `tool_catalog_change`, ranked above the `no_visible_rollout_change`
+fallback; model/effort changes are still treated as intentional and ignored
+before classification runs.
 """
 
 import argparse
@@ -40,6 +50,8 @@ RELEVANT_LINE_MARKERS = (
     '"type": "custom_tool_call"',
     '"type":"function_call"',
     '"type": "function_call"',
+    '"type":"tool_catalog_changed"',
+    '"type": "tool_catalog_changed"',
 )
 CONTEXT_ID_FIELDS = {"turn_id", "root_turn_id"}
 INTENTIONAL_CONTEXT_FIELDS = {
@@ -216,6 +228,15 @@ class RolloutAccumulator:
             usage = (payload.get("info") or {}).get("last_token_usage") or {}
             if usage.get("input_tokens"):
                 self.add_sample(record, usage, "legacy")
+        elif event_type == "tool_catalog_changed":
+            # previous_digest/current_digest are intentionally never
+            # surfaced; only the plaintext tool-name lists are recorded.
+            added = sorted(payload.get("added") or [])
+            removed = sorted(payload.get("removed") or [])
+            changed = sorted(payload.get("changed") or [])
+            self.add_activity(
+                f"tool_catalog_changed(added={added},removed={removed},changed={changed})"
+            )
 
     def add_activity(self, event: str) -> None:
         self.direct_pending.activity[event] += 1
@@ -472,6 +493,8 @@ def classify_cause(
         return "world_state_changed"
     if startup_diff:
         return "startup_prefix_changed"
+    if any(item.startswith("tool_catalog_changed(") for item in current.activity):
+        return "tool_catalog_change"
     return "no_visible_rollout_change"
 
 
