@@ -3698,7 +3698,42 @@ impl Session {
             )
             .await?;
         self.set_last_known_step_context(&step_context).await;
+        self.record_tool_catalog_change(&step_context).await;
         Ok(step_context)
+    }
+
+    /// Persists a `ToolCatalogChanged` event when this step's model-visible
+    /// tool catalog differs from the previous step's.
+    ///
+    /// A changed catalog rewrites the serialized tools sent with every request
+    /// and invalidates the provider's cached prompt prefix; recording the
+    /// change in the rollout makes that cache loss attributable offline.
+    async fn record_tool_catalog_change(self: &Arc<Self>, step_context: &Arc<StepContext>) {
+        let digest = crate::tools::router::ToolCatalogDigest::new(
+            &step_context.tool_router.model_visible_specs(),
+        );
+        let previous = {
+            let mut state = self.state.lock().await;
+            state.last_tool_catalog_digest.replace(digest.clone())
+        };
+        let Some(previous) = previous else {
+            return;
+        };
+        if previous == digest {
+            return;
+        }
+        let (added, removed, changed) = digest.diff(&previous);
+        self.send_event(
+            &step_context.turn,
+            EventMsg::ToolCatalogChanged(codex_protocol::protocol::ToolCatalogChangedEvent {
+                previous_digest: previous.catalog,
+                current_digest: digest.catalog,
+                added,
+                removed,
+                changed,
+            }),
+        )
+        .await;
     }
 
     /// Prepares a candidate step without replacing the active turn's retained context.

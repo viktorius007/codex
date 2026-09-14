@@ -116,7 +116,8 @@ pub fn should_persist_event_msg(ev: &EventMsg, history_mode: ThreadHistoryMode) 
         | EventMsg::TurnAborted(_)
         | EventMsg::TurnStarted(_)
         | EventMsg::TurnComplete(_)
-        | EventMsg::ThreadSettingsApplied(_) => true,
+        | EventMsg::ThreadSettingsApplied(_)
+        | EventMsg::ToolCatalogChanged(_) => true,
 
         // Only persist these legacy events when the thread's history mode is Legacy.
         // New, paginated rollouts persist ItemCompleted events with TurnItems.
