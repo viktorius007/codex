@@ -35,11 +35,14 @@ fn request(canary: &str, input_count: usize, tool_count: usize) -> ResponsesApiR
             .expect("fixture response item should deserialize")
         })
         .collect();
+    // Tool names are the one deliberate plaintext field in the archive (they
+    // already appear in rollout function_call records), so the fixtures keep
+    // them canary-free while every other tool field still carries the canary.
     let tools = (0..tool_count)
         .map(|index| {
             json!({
                 "type": "function",
-                "name": format!("tool-{canary}-{index}"),
+                "name": format!("tool-name-{index}"),
                 "description": format!("description-{canary}-{index}"),
                 "parameters": {
                     "type": "object",
@@ -255,6 +258,112 @@ fn record_file_contains_no_sensitive_plaintext_and_links_outcome() {
     assert_eq!(outcome["terminal"], "completed");
     assert_eq!(outcome["usage"], serde_json::to_value(usage()).unwrap());
     assert!(outcome["responseId"]["hmac"].is_string());
+}
+
+#[test]
+fn continuation_and_tool_provenance_persist_on_the_request_record() {
+    let home = TempDir::new().unwrap();
+    let collector = Collector::open(home.path()).unwrap();
+    let logical = request(PRIVATE_CANARY, 2, 2);
+
+    let attempt = collector.start_attempt(context(PRIVATE_CANARY), &logical);
+    attempt.record_continuation(ContinuationReport {
+        transport: ContinuationTransport::Websocket,
+        decision: ContinuationDecision::Full,
+        drop_reason: Some(ContinuationDropReason::InputPrefixMismatch),
+        first_mismatched_property: None,
+        first_mismatched_input_index: Some(3),
+        divergence: Some(ContinuationDivergence {
+            scope: DivergenceScope::InputItem,
+            byte_offset: 17,
+            previous_bytes: 120,
+            current_bytes: 114,
+        }),
+    });
+    attempt.record_tool_provenance(ToolProvenance {
+        model_preset_count: 4,
+        model_catalog_lock_contention_fallback: true,
+        model_catalog_identity: Some(format!("catalog-{PRIVATE_CANARY}").as_bytes()),
+        role_file_read_failures: 1,
+    });
+    attempt.observe_wire_request(WireRequest {
+        kind: WireRequestKind::Http,
+        body: b"wire",
+    });
+    attempt.completed(CompletedOutcome {
+        response_id: Some(PRIVATE_CANARY),
+        usage: usage(),
+    });
+
+    let requests = request_records(home.path());
+    assert_eq!(requests.len(), 1);
+    let record = &requests[0];
+    assert_eq!(record["schemaVersion"], 2);
+    assert_eq!(
+        record["continuation"],
+        json!({
+            "transport": "websocket",
+            "decision": "full",
+            "dropReason": "inputPrefixMismatch",
+            "firstMismatchedInputIndex": 3,
+            "divergence": {
+                "scope": "inputItem",
+                "byteOffset": 17,
+                "previousBytes": 120,
+                "currentBytes": 114,
+            },
+        })
+    );
+    let provenance = &record["toolProvenance"];
+    assert_eq!(provenance["modelCatalog"]["presetCount"], 4);
+    assert_eq!(provenance["modelCatalog"]["lockContentionFallback"], true);
+    assert!(provenance["modelCatalog"]["identity"]["hmac"].is_string());
+    assert_eq!(provenance["roleFileReadFailures"], 1);
+    // The raw catalog identity must be fingerprinted, never stored.
+    for line in record_lines(home.path()) {
+        assert!(
+            !line
+                .windows(PRIVATE_CANARY.len())
+                .any(|window| window == PRIVATE_CANARY.as_bytes())
+        );
+    }
+
+    let detail = &record["logical"]["toolsDetail"];
+    assert_eq!(detail["count"], 2);
+    assert_eq!(detail["retained"][0]["name"], "tool-name-0");
+    assert_eq!(detail["retained"][1]["name"], "tool-name-1");
+    assert!(detail["retained"][0]["description"]["hmac"].is_string());
+    assert!(detail["retained"][0]["parameters"]["hmac"].is_string());
+    assert_ne!(
+        detail["retained"][0]["description"]["hmac"],
+        detail["retained"][1]["description"]["hmac"]
+    );
+}
+
+#[test]
+fn continuation_and_provenance_after_persistence_are_ignored() {
+    let home = TempDir::new().unwrap();
+    let collector = Collector::open(home.path()).unwrap();
+    let logical = request("late", 1, 1);
+
+    let attempt = collector.start_attempt(context("late"), &logical);
+    attempt.observe_wire_request(WireRequest {
+        kind: WireRequestKind::Http,
+        body: b"wire",
+    });
+    attempt.record_continuation(ContinuationReport {
+        transport: ContinuationTransport::Websocket,
+        decision: ContinuationDecision::Incremental,
+        drop_reason: None,
+        first_mismatched_property: None,
+        first_mismatched_input_index: None,
+        divergence: None,
+    });
+    attempt.terminal(TerminalOutcome::Failed);
+
+    let requests = request_records(home.path());
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].get("continuation").is_none());
 }
 
 #[test]

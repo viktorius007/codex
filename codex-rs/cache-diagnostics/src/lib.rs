@@ -24,7 +24,7 @@ use crate::manifest::optional_identity;
 use crate::writer::RecordWriter;
 
 const DIAGNOSTIC_DIRECTORY: &str = "cache-diagnostics";
-const SCHEMA_VERSION: u32 = 1;
+const SCHEMA_VERSION: u32 = 2;
 
 /// A local collection run with one private append-only record file.
 pub struct Collector {
@@ -80,6 +80,8 @@ impl Collector {
                     lineage: LineageManifest::new(&self.fingerprinter, context),
                     logical,
                     wire: WireManifest::missing(),
+                    continuation: None,
+                    tool_provenance: None,
                 })
         });
         let attempt_id = request.as_ref().map(|record| record.attempt_id.clone());
@@ -114,6 +116,105 @@ pub struct AttemptContext<'a> {
     pub affinity_id: Option<&'a str>,
     /// Previous provider response identity, when used.
     pub previous_response_id: Option<&'a str>,
+}
+
+/// Decision record for reusing the transport continuation of the previous request.
+///
+/// Recorded at decision time by the component that chose between an incremental
+/// and a full send, so an analyzer reads the cause of a lost continuation
+/// instead of inferring it from fingerprint diffs.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContinuationReport {
+    /// The transport whose continuation was evaluated.
+    pub transport: ContinuationTransport,
+    /// Whether the request was sent incrementally or in full.
+    pub decision: ContinuationDecision,
+    /// Why a full send was required, when it was.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub drop_reason: Option<ContinuationDropReason>,
+    /// The first non-input request property that differed, when properties mismatched.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_mismatched_property: Option<&'static str>,
+    /// The first input index that differed, when the input prefix mismatched.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_mismatched_input_index: Option<usize>,
+    /// Byte-level localization of the first difference, when one was computed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub divergence: Option<ContinuationDivergence>,
+}
+
+/// Transports that carry a reusable request continuation.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ContinuationTransport {
+    /// The Responses WebSocket connection.
+    Websocket,
+}
+
+/// Whether the previous continuation was reused.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ContinuationDecision {
+    /// Only a suffix was sent against the previous response.
+    Incremental,
+    /// The complete request was sent.
+    Full,
+}
+
+/// Bounded causes for abandoning the previous continuation.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ContinuationDropReason {
+    /// No previous response was available on the connection.
+    NoPreviousResponse,
+    /// No previous request was retained for comparison.
+    NoPreviousRequest,
+    /// A non-input request property changed.
+    PropertiesMismatch,
+    /// The new input is shorter than the previous baseline.
+    InputShorterThanPrevious,
+    /// An item inside the previously sent input changed.
+    InputPrefixMismatch,
+    /// The previous response carried no response identity.
+    EmptyPreviousResponseId,
+}
+
+/// Byte-offset localization of a first difference between two serializations.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContinuationDivergence {
+    /// Which serialized value the offsets describe.
+    pub scope: DivergenceScope,
+    /// Offset of the first differing byte.
+    pub byte_offset: usize,
+    /// Serialized length of the previous value.
+    pub previous_bytes: usize,
+    /// Serialized length of the current value.
+    pub current_bytes: usize,
+}
+
+/// Serialized values a divergence offset can describe.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DivergenceScope {
+    /// One input item's serialization.
+    InputItem,
+}
+
+/// Provenance of the inputs that produced this request's tool array.
+///
+/// Raw catalog identity bytes are accepted only long enough to fingerprint.
+#[derive(Clone, Copy)]
+pub struct ToolProvenance<'a> {
+    /// Number of model presets embedded in tool descriptions.
+    pub model_preset_count: usize,
+    /// Whether the preset list fell back to empty on lock contention.
+    pub model_catalog_lock_contention_fallback: bool,
+    /// Serialized model-catalog identity, fingerprinted before persistence.
+    pub model_catalog_identity: Option<&'a [u8]>,
+    /// Number of agent-role config files that failed to read during tool build.
+    pub role_file_read_failures: usize,
 }
 
 /// Stable, low-cardinality logical request categories.
@@ -272,6 +373,45 @@ pub struct Attempt {
 }
 
 impl Attempt {
+    /// Attaches the continuation decision to the pending request record.
+    ///
+    /// Ignored once the record has been persisted; call before the wire send.
+    pub fn record_continuation(&self, report: ContinuationReport) {
+        let mut state = self.lock_state();
+        if let Some(record) = state.request.as_mut() {
+            record.continuation = Some(report);
+        }
+    }
+
+    /// Attaches tool-construction provenance to the pending request record.
+    ///
+    /// Ignored once the record has been persisted; call before the wire send.
+    pub fn record_tool_provenance(&self, provenance: ToolProvenance<'_>) {
+        let identity = provenance.model_catalog_identity.map_or(
+            ManifestObservation::Status {
+                status: crate::manifest::ObservationStatus::Missing,
+            },
+            |identity| {
+                ManifestObservation::Observed(
+                    self.collector
+                        .fingerprinter
+                        .fingerprint_bytes("toolProvenance.modelCatalog", identity),
+                )
+            },
+        );
+        let mut state = self.lock_state();
+        if let Some(record) = state.request.as_mut() {
+            record.tool_provenance = Some(ToolProvenanceManifest {
+                model_catalog: ModelCatalogManifest {
+                    preset_count: provenance.model_preset_count,
+                    lock_contention_fallback: provenance.model_catalog_lock_contention_fallback,
+                    identity,
+                },
+                role_file_read_failures: provenance.role_file_read_failures,
+            });
+        }
+    }
+
     /// Appends the immutable request record using the exact observed bytes.
     ///
     /// Duplicate or late observations are ignored because a persisted request record is never
@@ -395,6 +535,26 @@ struct RequestRecord {
     lineage: LineageManifest,
     logical: LogicalManifest,
     wire: WireManifest,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    continuation: Option<ContinuationReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_provenance: Option<ToolProvenanceManifest>,
+}
+
+/// Persisted projection of [`ToolProvenance`] with the identity fingerprinted.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ToolProvenanceManifest {
+    model_catalog: ModelCatalogManifest,
+    role_file_read_failures: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelCatalogManifest {
+    preset_count: usize,
+    lock_contention_fallback: bool,
+    identity: ManifestObservation<Fingerprint>,
 }
 
 impl RequestRecord {
