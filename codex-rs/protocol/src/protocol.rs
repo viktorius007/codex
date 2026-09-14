@@ -1397,6 +1397,9 @@ pub enum EventMsg {
     /// Conversation history was compacted (either automatically or manually).
     ContextCompacted(ContextCompactedEvent),
 
+    /// The model-visible tool catalog changed between turns of one thread.
+    ToolCatalogChanged(ToolCatalogChangedEvent),
+
     /// Conversation history was rolled back by dropping the last N user turns.
     ThreadRolledBack(ThreadRolledBackEvent),
 
@@ -2136,6 +2139,28 @@ pub struct SafetyBufferingEvent {
 
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema, TS)]
 pub struct ContextCompactedEvent;
+
+/// The model-visible tool catalog changed between turns of one thread.
+///
+/// A changed catalog rewrites the serialized tools sent with every request and
+/// therefore invalidates the provider's cached prompt prefix from its first
+/// byte. Persisting the change and its tool names lets offline rollout
+/// analysis attribute a cache loss to a specific tool instead of reporting an
+/// invisible bust. Digests are content hashes of the serialized catalog, not
+/// keyed fingerprints; tool names already appear in rollouts via tool calls.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema, TS)]
+pub struct ToolCatalogChangedEvent {
+    /// Hex digest of the previous serialized tool catalog.
+    pub previous_digest: String,
+    /// Hex digest of the current serialized tool catalog.
+    pub current_digest: String,
+    /// Names of tools present now but not before.
+    pub added: Vec<String>,
+    /// Names of tools present before but not now.
+    pub removed: Vec<String>,
+    /// Names of tools whose serialized definition changed.
+    pub changed: Vec<String>,
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema, TS)]
 pub struct TurnCompleteEvent {

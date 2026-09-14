@@ -645,3 +645,46 @@ fn namespace_function_names(specs: &[ToolSpec], namespace_name: &str) -> Vec<Str
         })
         .unwrap_or_default()
 }
+
+fn digest_fixture_tool(name: &str, description: &str) -> ToolSpec {
+    ToolSpec::Function(codex_tools::ResponsesApiTool {
+        name: name.to_string(),
+        description: description.to_string(),
+        strict: true,
+        parameters: codex_extension_api::parse_tool_input_schema(&json!({
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false,
+        }))
+        .expect("fixture schema should parse"),
+        output_schema: None,
+        defer_loading: None,
+    })
+}
+
+#[test]
+fn tool_catalog_digest_diff_names_added_removed_and_changed_tools() {
+    let previous = super::ToolCatalogDigest::new(&[
+        digest_fixture_tool("stable", "unchanged"),
+        digest_fixture_tool("mutating", "before"),
+        digest_fixture_tool("leaving", "gone"),
+    ]);
+    let current = super::ToolCatalogDigest::new(&[
+        digest_fixture_tool("stable", "unchanged"),
+        digest_fixture_tool("mutating", "after"),
+        digest_fixture_tool("arriving", "new"),
+    ]);
+
+    assert_ne!(previous, current);
+    let (added, removed, changed) = current.diff(&previous);
+    assert_eq!(added, vec!["arriving".to_string()]);
+    assert_eq!(removed, vec!["leaving".to_string()]);
+    assert_eq!(changed, vec!["mutating".to_string()]);
+
+    let unchanged = super::ToolCatalogDigest::new(&[
+        digest_fixture_tool("stable", "unchanged"),
+        digest_fixture_tool("mutating", "after"),
+        digest_fixture_tool("arriving", "new"),
+    ]);
+    assert_eq!(current, unchanged);
+}
