@@ -17,6 +17,7 @@ use crate::WireRequest;
 
 mod tools;
 mod transport;
+use self::tools::ToolsDetailManifest;
 use self::tools::tools_manifest;
 use self::transport::TransportManifest;
 
@@ -103,6 +104,8 @@ pub(crate) struct LogicalManifest {
     instructions: Fingerprint,
     input: ListManifest,
     tools: ManifestObservation<ListManifest>,
+    #[serde(rename = "toolsDetail")]
+    tools_detail: ManifestObservation<ToolsDetailManifest>,
     #[serde(rename = "toolChoice")]
     tool_choice: Fingerprint,
     #[serde(rename = "parallelToolCalls")]
@@ -138,6 +141,8 @@ pub(crate) struct CompactionLogicalManifest {
     instructions: Fingerprint,
     input: ListManifest,
     tools: ManifestObservation<ListManifest>,
+    #[serde(rename = "toolsDetail")]
+    tools_detail: ManifestObservation<ToolsDetailManifest>,
     #[serde(rename = "parallelToolCalls")]
     parallel_tool_calls: Fingerprint,
     reasoning: ManifestObservation<Fingerprint>,
@@ -155,6 +160,7 @@ impl LogicalManifest {
         fingerprinter: &Fingerprinter,
         request: &ResponsesApiRequest,
     ) -> serde_json::Result<Self> {
+        let tool_manifests = tools_manifest(fingerprinter, request.tools.as_ref());
         Ok(Self {
             body: fingerprinter.fingerprint_json("logical.body", request)?,
             model: fingerprinter.fingerprint_json("logical.model", &request.model)?,
@@ -166,7 +172,8 @@ impl LogicalManifest {
                 "logical.input.omitted",
                 &request.input,
             )?,
-            tools: tools_manifest(fingerprinter, request.tools.as_ref()),
+            tools: tool_manifests.list,
+            tools_detail: tool_manifests.detail,
             tool_choice: fingerprinter
                 .fingerprint_json("logical.tool_choice", &request.tool_choice)?,
             parallel_tool_calls: fingerprinter
@@ -212,6 +219,7 @@ impl LogicalManifest {
         fingerprinter: &Fingerprinter,
         request: &CompactionInput<'_>,
     ) -> serde_json::Result<CompactionLogicalManifest> {
+        let tool_manifests = tools_manifest(fingerprinter, request.tools.as_ref());
         Ok(CompactionLogicalManifest {
             body: fingerprinter.fingerprint_json("logical.body", request)?,
             model: fingerprinter.fingerprint_json("logical.model", request.model)?,
@@ -223,7 +231,8 @@ impl LogicalManifest {
                 "logical.input.omitted",
                 request.input,
             )?,
-            tools: tools_manifest(fingerprinter, request.tools.as_ref()),
+            tools: tool_manifests.list,
+            tools_detail: tool_manifests.detail,
             parallel_tool_calls: fingerprinter
                 .fingerprint_json("logical.parallel_tool_calls", &request.parallel_tool_calls)?,
             reasoning: optional_json(
@@ -395,7 +404,7 @@ pub(crate) enum ManifestObservation<T> {
     Status { status: ObservationStatus },
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum ObservationStatus {
     Missing,
