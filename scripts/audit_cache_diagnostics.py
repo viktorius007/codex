@@ -1,5 +1,26 @@
 #!/usr/bin/env python3
-"""Analyze privacy-preserving prompt-cache diagnostic records offline."""
+"""Analyze privacy-preserving prompt-cache diagnostic records offline.
+
+Warm comparisons whose two requests carry different requestKind values
+(e.g. warmup vs turn) are excluded from the headline cache_drops count and
+rate; they are counted and listed separately under CROSS-KIND COMPARISONS.
+Same-requestKind pairs keep the existing semantics.
+
+Each detailed incident additionally reports, from byte sizes, ordinals, and
+counts already present in the v1 record (never fingerprint/hmac values):
+the first differing retained logical.input item, that item's byte size on
+both requests, how many retained items before and after it stayed
+identical, and the input count change. An incident is classified
+tool_catalog_drift_candidate when the only differing retained item is
+ordinal 0 with an absolute byte delta of at most 64.
+
+Optional schemaVersion-2 request fields (continuation, toolProvenance,
+logical.toolsDetail) are reported only when present on the compared
+records; their absence changes nothing. Tool names in
+logical.toolsDetail are plaintext by design and are printed; every other
+value from these fields remains a byte count, flag, or ordinal, never a
+fingerprint/hmac.
+"""
 
 import argparse
 import fnmatch
@@ -18,6 +39,22 @@ DEFAULT_MIN_LOST_TOKENS = 1024
 DEFAULT_DROP_FRACTION = 0.5
 MAX_LINE_BYTES = 256 * 1024
 SQLITE_MAX_INT = (1 << 63) - 1
+TOOL_CATALOG_DRIFT_MAX_BYTES = 64
+SCHEMA_VERSIONS = {1, 2}
+CONTINUATION_DECISIONS = {"incremental", "full"}
+CONTINUATION_DROP_REASONS = {
+    "noPreviousResponse",
+    "noPreviousRequest",
+    "propertiesMismatch",
+    "inputShorterThanPrevious",
+    "inputPrefixMismatch",
+    "emptyPreviousResponseId",
+}
+
+# Sentinel distinguishing "field absent" (no report change) from "field
+# present but malformed" (rejects the record) for optional schemaVersion-2
+# request fields.
+_MISSING = object()
 
 FIXED_COMPONENTS = (
     "instructions",
@@ -213,6 +250,151 @@ def _wire_manifest(value: Any) -> dict[str, Any] | None:
     return {"kind": kind, "body": body, "transport": transport}
 
 
+def _tool_detail_item(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    name = value.get("name")
+    descriptor = _fingerprint(value.get("descriptor"))
+    description = _observation(value.get("description"))
+    parameters = _observation(value.get("parameters"))
+    if (
+        not isinstance(name, str)
+        or descriptor is None
+        or description is None
+        or parameters is None
+    ):
+        return None
+    return {
+        "name": name,
+        "descriptor": descriptor,
+        "description": description,
+        "parameters": parameters,
+    }
+
+
+def _tools_detail_manifest(logical_raw: Any) -> Any:
+    """Parse the optional schemaVersion-2 `logical.toolsDetail` field.
+
+    Returns `_MISSING` when the field is absent (never reported, never
+    rejects the record), `None` when present but malformed (rejects the
+    record), or the parsed manifest. Tool `name` values are plaintext by
+    design and are carried through verbatim; every other value is a
+    fingerprint (hmac, bytes) never printed as hmac.
+    """
+    if not isinstance(logical_raw, dict) or "toolsDetail" not in logical_raw:
+        return _MISSING
+    value = logical_raw["toolsDetail"]
+    if not isinstance(value, dict):
+        return None
+    count = value.get("count")
+    retained = value.get("retained")
+    omitted = value.get("omitted")
+    if (
+        not isinstance(count, int)
+        or count < 0
+        or not isinstance(retained, list)
+        or not isinstance(omitted, dict)
+    ):
+        return None
+    retained_items = [_tool_detail_item(item) for item in retained]
+    if any(item is None for item in retained_items) or len(retained_items) > count:
+        return None
+    omitted_count = omitted.get("count")
+    omitted_hmac = omitted.get("hmac")
+    if (
+        not isinstance(omitted_count, int)
+        or omitted_count < 0
+        or omitted_count != count - len(retained_items)
+        or not isinstance(omitted_hmac, str)
+    ):
+        return None
+    return {
+        "count": count,
+        "retained": retained_items,
+        "omitted_count": omitted_count,
+        "omitted_hmac": omitted_hmac,
+    }
+
+
+def _continuation_manifest(value: Any) -> Any:
+    """Parse the optional schemaVersion-2 `continuation` request field."""
+    if value is _MISSING:
+        return _MISSING
+    if not isinstance(value, dict):
+        return None
+    transport = value.get("transport")
+    decision = value.get("decision")
+    if not isinstance(transport, str) or decision not in CONTINUATION_DECISIONS:
+        return None
+    manifest: dict[str, Any] = {"transport": transport, "decision": decision}
+    if "dropReason" in value:
+        drop_reason = value["dropReason"]
+        if drop_reason not in CONTINUATION_DROP_REASONS:
+            return None
+        manifest["dropReason"] = drop_reason
+    if "firstMismatchedProperty" in value:
+        property_name = value["firstMismatchedProperty"]
+        if not isinstance(property_name, str):
+            return None
+        manifest["firstMismatchedProperty"] = property_name
+    if "firstMismatchedInputIndex" in value:
+        index = value["firstMismatchedInputIndex"]
+        if not _is_sqlite_uint(index):
+            return None
+        manifest["firstMismatchedInputIndex"] = index
+    if "divergence" in value:
+        divergence = value["divergence"]
+        if not isinstance(divergence, dict):
+            return None
+        scope = divergence.get("scope")
+        byte_offset = divergence.get("byteOffset")
+        previous_bytes = divergence.get("previousBytes")
+        current_bytes = divergence.get("currentBytes")
+        if (
+            not isinstance(scope, str)
+            or not _is_sqlite_uint(byte_offset)
+            or not _is_sqlite_uint(previous_bytes)
+            or not _is_sqlite_uint(current_bytes)
+        ):
+            return None
+        manifest["divergence"] = {
+            "scope": scope,
+            "byteOffset": byte_offset,
+            "previousBytes": previous_bytes,
+            "currentBytes": current_bytes,
+        }
+    return manifest
+
+
+def _tool_provenance_manifest(value: Any) -> Any:
+    """Parse the optional schemaVersion-2 `toolProvenance` request field."""
+    if value is _MISSING:
+        return _MISSING
+    if not isinstance(value, dict):
+        return None
+    model_catalog = value.get("modelCatalog")
+    role_failures = value.get("roleFileReadFailures")
+    if not isinstance(model_catalog, dict) or not _is_sqlite_uint(role_failures):
+        return None
+    preset_count = model_catalog.get("presetCount")
+    lock_fallback = model_catalog.get("lockContentionFallback")
+    identity = _fingerprint(model_catalog.get("identity"))
+    if (
+        not _is_sqlite_uint(preset_count)
+        or not isinstance(lock_fallback, bool)
+        or identity is None
+    ):
+        return None
+    return {
+        "modelCatalog": {
+            "presetCount": preset_count,
+            "lockContentionFallback": lock_fallback,
+            "identity": identity,
+        },
+        "roleFileReadFailures": role_failures,
+    }
+
+
 def _request_fields(record: dict[str, Any]) -> tuple[Any, ...] | None:
     run_id = record.get("runId")
     attempt_id = record.get("attemptId")
@@ -220,8 +402,12 @@ def _request_fields(record: dict[str, Any]) -> tuple[Any, ...] | None:
     timestamp = record.get("timestampUnixMs")
     lineage = record.get("lineage")
     request_kind = record.get("requestKind")
-    logical = _logical_manifest(record.get("logical"), request_kind)
+    logical_raw = record.get("logical")
+    logical = _logical_manifest(logical_raw, request_kind)
     wire = _wire_manifest(record.get("wire"))
+    tools_detail = _tools_detail_manifest(logical_raw)
+    continuation = _continuation_manifest(record.get("continuation", _MISSING))
+    tool_provenance = _tool_provenance_manifest(record.get("toolProvenance", _MISSING))
     if (
         not isinstance(run_id, str)
         or not isinstance(attempt_id, str)
@@ -231,6 +417,9 @@ def _request_fields(record: dict[str, Any]) -> tuple[Any, ...] | None:
         or request_kind not in REQUEST_KINDS
         or logical is None
         or wire is None
+        or tools_detail is None
+        or continuation is None
+        or tool_provenance is None
     ):
         return None
     thread = _observation(lineage.get("threadId"))
@@ -257,6 +446,18 @@ def _request_fields(record: dict[str, Any]) -> tuple[Any, ...] | None:
         retry_ordinal,
         json.dumps(logical, separators=(",", ":")),
         json.dumps(wire, separators=(",", ":")),
+        json.dumps(
+            None if tools_detail is _MISSING else tools_detail,
+            separators=(",", ":"),
+        ),
+        json.dumps(
+            None if continuation is _MISSING else continuation,
+            separators=(",", ":"),
+        ),
+        json.dumps(
+            None if tool_provenance is _MISSING else tool_provenance,
+            separators=(",", ":"),
+        ),
     )
 
 
@@ -344,7 +545,9 @@ def _create_database(path: str) -> sqlite3.Connection:
           timestamp INTEGER, scope TEXT, request_kind TEXT NOT NULL,
           thread TEXT NOT NULL, turn TEXT NOT NULL,
           affinity TEXT NOT NULL, retry_ordinal INTEGER NOT NULL,
-          logical TEXT NOT NULL, wire TEXT NOT NULL, PRIMARY KEY (run, attempt)
+          logical TEXT NOT NULL, wire TEXT NOT NULL,
+          tools_detail TEXT, continuation TEXT, tool_provenance TEXT,
+          PRIMARY KEY (run, attempt)
         );
         CREATE TABLE outcomes (
           run TEXT NOT NULL, attempt TEXT NOT NULL, sequence INTEGER NOT NULL,
@@ -363,7 +566,8 @@ def _empty_stats() -> dict[str, int]:
         "missing_key_scope_comparisons incompatible_comparisons "
         "missing_evidence_comparisons order_ambiguous_comparisons "
         "missing_usage_outcomes untimed_records untimed_attempts "
-        "eligible_warm_comparisons cache_drops incidents_found"
+        "eligible_warm_comparisons cache_drops incidents_found "
+        "cross_kind_comparisons"
     )
     return dict.fromkeys(names.split(), 0)
 
@@ -395,7 +599,10 @@ def _ingest_file(
             except (UnicodeDecodeError, ValueError):
                 stats["malformed_lines"] += 1
                 continue
-            if not isinstance(record, dict) or record.get("schemaVersion") != 1:
+            if (
+                not isinstance(record, dict)
+                or record.get("schemaVersion") not in SCHEMA_VERSIONS
+            ):
                 stats["malformed_lines"] += 1
                 continue
             event = record.get("event")
@@ -449,7 +656,7 @@ def _materialize_attempts(
         CREATE TABLE attempts AS
           SELECT r.run, r.sequence, r.timestamp, r.scope, r.request_kind, r.thread, r.turn,
                  r.affinity, r.retry_ordinal, o.input_tokens, o.cached_input,
-                 r.logical, r.wire
+                 r.logical, r.wire, r.tools_detail, r.continuation, r.tool_provenance
           FROM requests r JOIN outcomes o USING (run, attempt)
           WHERE r.scope IS o.scope AND r.scope IS NOT NULL AND r.timestamp IS NOT NULL;
         CREATE INDEX attempts_thread_time ON attempts(thread, timestamp);
@@ -664,6 +871,167 @@ def _wire_observation(wire: dict[str, Any]) -> str:
     return "websocket_full"
 
 
+def _fingerprint_bytes(fingerprint: str) -> int | None:
+    """Recover the byte count from a stored fingerprint/observation string.
+
+    Never returns or otherwise exposes the hmac itself. Retained input and
+    tool entries (and toolsDetail `descriptor`) are encoded by
+    `_fingerprint()` as a bare `[hmac,bytes]` JSON array; toolsDetail
+    `description`/`parameters` are encoded by `_observation()` with a
+    leading "fingerprint:" prefix (or "status:..." for missing/unavailable,
+    which carries no byte count).
+    """
+    encoded = fingerprint
+    if encoded.startswith("fingerprint:"):
+        encoded = encoded[len("fingerprint:") :]
+    elif encoded.startswith("status:"):
+        return None
+    try:
+        parsed = json.loads(encoded)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(parsed, list) or len(parsed) != 2:
+        return None
+    byte_count = parsed[1]
+    return byte_count if isinstance(byte_count, int) else None
+
+
+def _incident_granularity(
+    previous_input: dict[str, Any], current_input: dict[str, Any]
+) -> dict[str, Any]:
+    """Compute retained-input-list granularity for one incident.
+
+    Uses only byte sizes, ordinal positions, and counts already present in
+    the v1 manifest -- never fingerprint/hmac values.
+    """
+    granularity: dict[str, Any] = {
+        "first_differing_input_ordinal": None,
+        "first_differing_input_bytes_previous": None,
+        "first_differing_input_bytes_current": None,
+        "identical_retained_before_first_diff": None,
+        "identical_retained_after_first_diff": None,
+        "input_count_change": None,
+        "classification": None,
+    }
+    if "status" in previous_input or "status" in current_input:
+        return granularity
+    granularity["input_count_change"] = current_input["count"] - previous_input["count"]
+    previous_retained = previous_input["retained"]
+    current_retained = current_input["retained"]
+    overlap = min(len(previous_retained), len(current_retained))
+    diff_ordinals = [
+        ordinal
+        for ordinal in range(overlap)
+        if previous_retained[ordinal] != current_retained[ordinal]
+    ]
+    if not diff_ordinals:
+        return granularity
+    first_ordinal = diff_ordinals[0]
+    granularity["first_differing_input_ordinal"] = first_ordinal
+    granularity["first_differing_input_bytes_previous"] = _fingerprint_bytes(
+        previous_retained[first_ordinal]
+    )
+    granularity["first_differing_input_bytes_current"] = _fingerprint_bytes(
+        current_retained[first_ordinal]
+    )
+    granularity["identical_retained_before_first_diff"] = first_ordinal
+    granularity["identical_retained_after_first_diff"] = sum(
+        1
+        for ordinal in range(first_ordinal + 1, overlap)
+        if previous_retained[ordinal] == current_retained[ordinal]
+    )
+    previous_bytes = granularity["first_differing_input_bytes_previous"]
+    current_bytes = granularity["first_differing_input_bytes_current"]
+    if (
+        diff_ordinals == [0]
+        and previous_bytes is not None
+        and current_bytes is not None
+        and abs(current_bytes - previous_bytes) <= TOOL_CATALOG_DRIFT_MAX_BYTES
+    ):
+        granularity["classification"] = "tool_catalog_drift_candidate"
+    return granularity
+
+
+def _continuation_note(continuation: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Report the optional schemaVersion-2 `continuation` field of the later request."""
+    if continuation is None:
+        return None
+    note = {
+        "decision": continuation["decision"],
+        "dropReason": continuation.get("dropReason"),
+    }
+    for key in ("firstMismatchedProperty", "firstMismatchedInputIndex", "divergence"):
+        if key in continuation:
+            note[key] = continuation[key]
+    return note
+
+
+def _tool_provenance_note(
+    previous_provenance: dict[str, Any] | None,
+    current_provenance: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Report the optional schemaVersion-2 `toolProvenance` field of the later request."""
+    if current_provenance is None:
+        return None
+    catalog = current_provenance["modelCatalog"]
+    note: dict[str, Any] = {
+        "presetCount": catalog["presetCount"],
+        "lockContentionFallback": catalog["lockContentionFallback"],
+        "roleFileReadFailures": current_provenance["roleFileReadFailures"],
+    }
+    if previous_provenance is not None:
+        previous_preset = previous_provenance["modelCatalog"]["presetCount"]
+        current_preset = catalog["presetCount"]
+        if previous_preset != current_preset:
+            note["presetCountChanged"] = {
+                "previous": previous_preset,
+                "current": current_preset,
+            }
+    return note
+
+
+def _tools_detail_diff(
+    previous_detail: dict[str, Any] | None, current_detail: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """Diff two `logical.toolsDetail` manifests by plaintext tool name.
+
+    Tool names are plaintext by design and are printed freely; descriptor,
+    description, and parameters are only ever compared for equality or
+    reduced to a byte-delta, never printed as fingerprint/hmac values.
+    """
+    if previous_detail is None or current_detail is None:
+        return None
+    previous_by_name = {item["name"]: item for item in previous_detail["retained"]}
+    current_by_name = {item["name"]: item for item in current_detail["retained"]}
+    added = sorted(set(current_by_name) - set(previous_by_name))
+    removed = sorted(set(previous_by_name) - set(current_by_name))
+    changed = []
+    for name in sorted(set(previous_by_name) & set(current_by_name)):
+        previous_tool = previous_by_name[name]
+        current_tool = current_by_name[name]
+        parts = []
+        for part_name in ("description", "parameters"):
+            if previous_tool[part_name] != current_tool[part_name]:
+                previous_bytes = _fingerprint_bytes(previous_tool[part_name])
+                current_bytes = _fingerprint_bytes(current_tool[part_name])
+                delta = (
+                    current_bytes - previous_bytes
+                    if previous_bytes is not None and current_bytes is not None
+                    else None
+                )
+                parts.append(
+                    {
+                        "part": part_name,
+                        "previous_bytes": previous_bytes,
+                        "current_bytes": current_bytes,
+                        "byte_delta": delta,
+                    }
+                )
+        if parts or previous_tool["descriptor"] != current_tool["descriptor"]:
+            changed.append({"name": name, "parts": parts})
+    return {"added": added, "removed": removed, "changed": changed}
+
+
 def _comparison(
     previous: sqlite3.Row, current: sqlite3.Row, kind: str
 ) -> tuple[dict[str, Any], bool]:
@@ -674,10 +1042,18 @@ def _comparison(
     input_relation, common_input = _list_relation(
         previous_logical["input"], current_logical["input"]
     )
-    if previous["request_kind"] != current["request_kind"]:
-        first_difference = {"scope": "component", "name": "requestKind"}
-    else:
-        first_difference = _first_difference(previous_logical, current_logical)
+    granularity = _incident_granularity(
+        previous_logical["input"], current_logical["input"]
+    )
+    current_continuation = json.loads(current["continuation"])
+    previous_tool_provenance = json.loads(previous["tool_provenance"])
+    current_tool_provenance = json.loads(current["tool_provenance"])
+    previous_tools_detail = json.loads(previous["tools_detail"])
+    current_tools_detail = json.loads(current["tools_detail"])
+    # `_analyze` only calls `_comparison` for same-requestKind pairs; cross-kind
+    # pairs are reported separately (see CROSS-KIND COMPARISONS) and excluded
+    # from the headline cache_drops count and rate.
+    first_difference = _first_difference(previous_logical, current_logical)
     wire_missing = "status" in previous_wire or "status" in current_wire
     if not wire_missing:
         transport_missing = (
@@ -720,6 +1096,28 @@ def _comparison(
         "common_input_prefix_count": common_input,
         "wire_observation": _wire_observation(current_wire),
         "first_difference": first_difference,
+        "first_differing_input_ordinal": granularity["first_differing_input_ordinal"],
+        "first_differing_input_bytes_previous": granularity[
+            "first_differing_input_bytes_previous"
+        ],
+        "first_differing_input_bytes_current": granularity[
+            "first_differing_input_bytes_current"
+        ],
+        "identical_retained_before_first_diff": granularity[
+            "identical_retained_before_first_diff"
+        ],
+        "identical_retained_after_first_diff": granularity[
+            "identical_retained_after_first_diff"
+        ],
+        "input_count_change": granularity["input_count_change"],
+        "classification": granularity["classification"],
+        "continuation": _continuation_note(current_continuation),
+        "tool_provenance": _tool_provenance_note(
+            previous_tool_provenance, current_tool_provenance
+        ),
+        "tools_detail_diff": _tools_detail_diff(
+            previous_tools_detail, current_tools_detail
+        ),
     }
     return incident, partial
 
@@ -746,7 +1144,7 @@ def _empty_window(name: str) -> dict[str, Any]:
 
 def _analyze(
     connection: sqlite3.Connection, args: argparse.Namespace, stats: dict[str, int]
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     names = ("all",) if args.split_at_unix_ms is None else ("before", "after")
     windows = {name: _empty_window(name) for name in names}
     for row in connection.execute("SELECT timestamp FROM attempts ORDER BY timestamp"):
@@ -755,6 +1153,7 @@ def _analyze(
             window["start_unix_ms"] = row["timestamp"]
         window["end_unix_ms"] = row["timestamp"]
     incidents: list[dict[str, Any]] = []
+    cross_kind_comparisons: list[dict[str, Any]] = []
     warm_ms = round(args.warm_minutes * 60_000)
     current_rows = connection.execute(
         "SELECT * FROM attempts ORDER BY timestamp, run, sequence"
@@ -767,6 +1166,29 @@ def _analyze(
             stats["order_ambiguous_comparisons"] += 1
             continue
         if previous is None:
+            continue
+        if previous["request_kind"] != current["request_kind"]:
+            # Cross-kind warm comparisons (e.g. warmup vs turn) are known
+            # artifacts of comparing dissimilar traffic rather than genuine
+            # same-conversation cache busts. They are excluded from the
+            # headline cache_drops count/rate and reported separately.
+            stats["cross_kind_comparisons"] += 1
+            if len(cross_kind_comparisons) < args.limit:
+                cross_kind_comparisons.append(
+                    {
+                        "timestamp_unix_ms": current["timestamp"],
+                        "sequence": current["sequence"],
+                        "previous_timestamp_unix_ms": previous["timestamp"],
+                        "previous_sequence": previous["sequence"],
+                        "elapsed_ms": current["timestamp"] - previous["timestamp"],
+                        "comparison_kind": kind or "same_thread",
+                        "previous_request_kind": previous["request_kind"],
+                        "current_request_kind": current["request_kind"],
+                        "input_tokens": current["input_tokens"],
+                        "cached_input_tokens": current["cached_input"],
+                        "previous_cached_input_tokens": previous["cached_input"],
+                    }
+                )
             continue
         previous_logical = json.loads(previous["logical"])
         current_logical = json.loads(current["logical"])
@@ -808,7 +1230,7 @@ def _analyze(
         window["cached_token_retention_rate"] = (
             window["observed_cached_tokens"] / expected if expected else None
         )
-    return incidents, list(windows.values())
+    return incidents, list(windows.values()), cross_kind_comparisons
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -872,6 +1294,20 @@ def _print_text(report: dict[str, Any]) -> None:
             f"cached_tokens={window['observed_cached_tokens']:,}/"
             f"{window['expected_cached_tokens']:,}; retention={retention_text}"
         )
+    print("CROSS-KIND COMPARISONS")
+    cross_kind = report["cross_kind_comparisons"]
+    print(
+        f"  {report['stats']['cross_kind_comparisons']:,} warm comparisons had "
+        "different requestKind values on the two compared requests; they are "
+        "excluded from the headline cache_drops count and rate above."
+    )
+    for index, pair in enumerate(cross_kind, 1):
+        print(
+            f"  {index}. {pair['previous_request_kind']}→{pair['current_request_kind']}; "
+            f"comparison_kind={pair['comparison_kind']}; "
+            f"cached_input_tokens={pair['previous_cached_input_tokens']:,}→"
+            f"{pair['cached_input_tokens']:,}"
+        )
     for index, incident in enumerate(report["incidents"], 1):
         if incident["assessment"] == "request_difference_candidate":
             finding = "observed request-difference candidate"
@@ -882,6 +1318,67 @@ def _print_text(report: dict[str, Any]) -> None:
             f"{incident['estimated_lost_cached_tokens']:,}; "
             f"evidence={incident['evidence_status']}"
         )
+        if incident["first_differing_input_ordinal"] is not None:
+            print(
+                "     first differing retained input: "
+                f"ordinal={incident['first_differing_input_ordinal']}; "
+                "bytes(previous→current)="
+                f"{incident['first_differing_input_bytes_previous']}→"
+                f"{incident['first_differing_input_bytes_current']}; "
+                f"identical_before={incident['identical_retained_before_first_diff']}; "
+                f"identical_after={incident['identical_retained_after_first_diff']}; "
+                f"input_count_change={incident['input_count_change']}"
+            )
+            if incident["classification"]:
+                print(f"     classification={incident['classification']}")
+        if incident["continuation"] is not None:
+            continuation = incident["continuation"]
+            detail = f"decision={continuation['decision']} dropReason={continuation['dropReason']}"
+            if "firstMismatchedProperty" in continuation:
+                detail += f" firstMismatchedProperty={continuation['firstMismatchedProperty']}"
+            if "firstMismatchedInputIndex" in continuation:
+                detail += f" firstMismatchedInputIndex={continuation['firstMismatchedInputIndex']}"
+            if "divergence" in continuation:
+                divergence = continuation["divergence"]
+                detail += (
+                    f" divergence(scope={divergence['scope']}, "
+                    f"byteOffset={divergence['byteOffset']}, "
+                    f"previousBytes={divergence['previousBytes']}, "
+                    f"currentBytes={divergence['currentBytes']})"
+                )
+            print(f"     continuation: {detail}")
+        if incident["tool_provenance"] is not None:
+            provenance = incident["tool_provenance"]
+            print(
+                "     toolProvenance: "
+                f"presetCount={provenance['presetCount']}; "
+                f"lockContentionFallback={provenance['lockContentionFallback']}; "
+                f"roleFileReadFailures={provenance['roleFileReadFailures']}"
+            )
+            if provenance["lockContentionFallback"] is True:
+                print("     WARNING: lockContentionFallback=true on current request")
+            if "presetCountChanged" in provenance:
+                changed = provenance["presetCountChanged"]
+                print(
+                    "     presetCount differs between compared requests: "
+                    f"{changed['previous']}→{changed['current']}"
+                )
+        if incident["tools_detail_diff"] is not None:
+            diff = incident["tools_detail_diff"]
+            print(f"     toolsDetail: added={diff['added']} removed={diff['removed']}")
+            for change in diff["changed"]:
+                parts = []
+                for part in change["parts"]:
+                    if part["byte_delta"] is not None:
+                        parts.append(
+                            f"{part['part']}:{part['previous_bytes']}→"
+                            f"{part['current_bytes']} (delta={part['byte_delta']:+d})"
+                        )
+                    else:
+                        parts.append(f"{part['part']}:changed")
+                descriptor_note = "" if parts else "descriptor changed"
+                detail = ", ".join(parts) if parts else descriptor_note
+                print(f"       changed tool={change['name']} {detail}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -896,7 +1393,9 @@ def main(argv: list[str] | None = None) -> int:
                 _ingest_file(connection, path, stats)
             connection.commit()
             _materialize_attempts(connection, stats)
-            incidents, windows = _analyze(connection, args, stats)
+            incidents, windows, cross_kind_comparisons = _analyze(
+                connection, args, stats
+            )
         finally:
             connection.close()
     report = {
@@ -910,6 +1409,7 @@ def main(argv: list[str] | None = None) -> int:
         "stats": stats,
         "windows": windows,
         "incidents": incidents,
+        "cross_kind_comparisons": cross_kind_comparisons,
     }
     if args.json:
         json.dump(report, sys.stdout, sort_keys=True, separators=(",", ":"))
