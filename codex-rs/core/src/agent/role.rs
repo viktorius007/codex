@@ -278,6 +278,18 @@ pub(crate) mod spawn_tool_spec {
         pub(crate) role_file_read_failures: usize,
     }
 
+    /// Thread-lifetime cache entry for the spawn-agent role description.
+    ///
+    /// `build` reads role config files from disk, so rebuilding per turn lets
+    /// a file edit or transient read failure rewrite the serialized tool
+    /// description mid-thread and bust the provider's cached prompt prefix.
+    /// The spec is reused while `roles` — the configured role map — is
+    /// unchanged, so only a deliberate settings change can alter the text.
+    pub(crate) struct SpawnRoleSpecSnapshot {
+        pub(crate) roles: BTreeMap<String, AgentRoleConfig>,
+        pub(crate) spec: std::sync::Arc<SpawnToolSpecBuild>,
+    }
+
     /// Builds the spawn-agent tool description text from built-in and configured roles.
     pub(crate) fn build(
         user_defined_agent_roles: &BTreeMap<String, AgentRoleConfig>,

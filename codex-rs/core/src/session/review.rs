@@ -15,14 +15,7 @@ pub(super) async fn spawn_review_thread(
         .review_model
         .clone()
         .unwrap_or_else(|| parent_turn_context.model_info().slug.clone());
-    let available_models = sess
-        .services
-        .models_manager
-        .list_models(
-            RefreshStrategy::OnlineIfUncached,
-            config.http_client_factory(),
-        )
-        .await;
+    let available_models = sess.model_catalog_snapshot().await;
     let review_model_info = sess
         .services
         .models_manager
@@ -156,7 +149,6 @@ pub(super) async fn spawn_review_thread(
         originator: parent_turn_context.originator.clone(),
         environments: parent_turn_context.environments.clone(),
         available_models,
-        available_models_lock_contention_fallback: false,
         unified_exec_shell_mode,
         current_date: parent_turn_context.current_date.clone(),
         timezone: parent_turn_context.timezone.clone(),

@@ -116,8 +116,7 @@ struct CoreToolPlanContext<'a> {
     mcp: &'a codex_mcp::McpBinding,
     tool_suggest_candidates: Option<&'a crate::tools::router::ToolSuggestCandidates>,
     wait_for_environment_tool_config: Option<&'a Arc<crate::WaitForEnvironmentToolConfig>>,
-    default_agent_type_description: &'a str,
-    role_file_read_failures: &'a std::cell::Cell<usize>,
+    agent_type_description: &'a str,
     wait_agent_timeouts: WaitAgentTimeoutOptions,
 }
 
@@ -134,10 +133,7 @@ pub(crate) fn build_tool_router(
     step_store: &ExtensionData,
     tool_suggest_candidates: Option<&crate::tools::router::ToolSuggestCandidates>,
 ) -> CodexResult<ToolRouter> {
-    let default_agent_type_spec =
-        crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
-    let role_file_read_failures =
-        std::cell::Cell::new(default_agent_type_spec.role_file_read_failures);
+    let agent_role_spec = session.spawn_role_spec(&turn_context.config.agent_roles);
     let wait_for_environment_tool_config = session
         .services
         .thread_extension_data
@@ -150,8 +146,7 @@ pub(crate) fn build_tool_router(
         mcp,
         tool_suggest_candidates,
         wait_for_environment_tool_config: wait_for_environment_tool_config.as_ref(),
-        default_agent_type_description: &default_agent_type_spec.text,
-        role_file_read_failures: &role_file_read_failures,
+        agent_type_description: &agent_role_spec.text,
         wait_agent_timeouts: wait_agent_timeout_options(turn_context),
     };
     let mut registry = ToolRegistry::default();
@@ -191,10 +186,8 @@ pub(crate) fn build_tool_router(
 
     let tool_build_provenance = crate::tools::router::ToolBuildProvenance {
         model_preset_count: turn_context.available_models.len(),
-        model_catalog_lock_contention_fallback: turn_context
-            .available_models_lock_contention_fallback,
         model_catalog_identity: serde_json::to_string(&turn_context.available_models).ok(),
-        role_file_read_failures: role_file_read_failures.get(),
+        role_file_read_failures: agent_role_spec.role_file_read_failures,
     };
     finalize_tool_router(
         turn_context,
@@ -290,10 +283,8 @@ pub(crate) fn build_core_tool_registry(
     tool_suggest_candidates: Option<&crate::tools::router::ToolSuggestCandidates>,
     wait_for_environment_tool_config: Option<&Arc<crate::WaitForEnvironmentToolConfig>>,
 ) -> ToolRegistry {
-    let default_agent_type_spec =
-        crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
-    let role_file_read_failures =
-        std::cell::Cell::new(default_agent_type_spec.role_file_read_failures);
+    let agent_role_spec =
+        crate::agent::role::spawn_tool_spec::build(&turn_context.config.agent_roles);
     let context = CoreToolPlanContext {
         turn_context,
         model_info,
@@ -302,8 +293,7 @@ pub(crate) fn build_core_tool_registry(
         mcp,
         tool_suggest_candidates,
         wait_for_environment_tool_config,
-        default_agent_type_description: &default_agent_type_spec.text,
-        role_file_read_failures: &role_file_read_failures,
+        agent_type_description: &agent_role_spec.text,
         wait_agent_timeouts: wait_agent_timeout_options(turn_context),
     };
     let mut registry = ToolRegistry::default();
@@ -762,20 +752,6 @@ fn wait_agent_timeout_options(turn_context: &TurnContext) -> WaitAgentTimeoutOpt
         default_timeout_ms: DEFAULT_WAIT_TIMEOUT_MS,
         min_timeout_ms: MIN_WAIT_TIMEOUT_MS,
         max_timeout_ms: MAX_WAIT_TIMEOUT_MS,
-    }
-}
-
-fn agent_type_description(
-    turn_context: &TurnContext,
-    default_agent_type_description: &str,
-    role_file_read_failures: &std::cell::Cell<usize>,
-) -> String {
-    let spec = crate::agent::role::spawn_tool_spec::build(&turn_context.config.agent_roles);
-    role_file_read_failures.set(role_file_read_failures.get() + spec.role_file_read_failures);
-    if spec.text.is_empty() {
-        default_agent_type_description.to_string()
-    } else {
-        spec.text
     }
 }
 
@@ -1310,11 +1286,7 @@ fn add_collaboration_tools(context: &CoreToolPlanContext<'_>, registry: &mut Too
             let tool_namespace = namespace_tools_enabled(turn_context)
                 .then_some(turn_context.config.multi_agent_v2.tool_namespace.as_deref())
                 .flatten();
-            let agent_type_description = agent_type_description(
-                turn_context,
-                context.default_agent_type_description,
-                context.role_file_read_failures,
-            );
+            let agent_type_description = context.agent_type_description.to_string();
             let hide_spawn_agent_metadata =
                 turn_context.config.multi_agent_v2.hide_spawn_agent_metadata;
             registry.register_trusted_with_exposure(
@@ -1361,11 +1333,7 @@ fn add_collaboration_tools(context: &CoreToolPlanContext<'_>, registry: &mut Too
                 exposure,
             );
         } else {
-            let agent_type_description = agent_type_description(
-                turn_context,
-                context.default_agent_type_description,
-                context.role_file_read_failures,
-            );
+            let agent_type_description = context.agent_type_description.to_string();
             let exposure = if search_tool_enabled(turn_context, context.model_info) {
                 ToolExposure::Deferred
             } else {

@@ -6574,6 +6574,8 @@ pub(crate) async fn make_session_and_context() -> (Session, TurnContext) {
         mcp_thread_init: codex_extension_api::ExtensionDataInit::default(),
         client_mcp_extensions: ClientMcpExtensions::default(),
         agent_control,
+        model_catalog_snapshot: tokio::sync::OnceCell::new(),
+        spawn_role_spec_snapshot: std::sync::Mutex::new(None),
         network_proxy: arc_swap::ArcSwapOption::from(None),
         network_proxy_audit_metadata: crate::config::NetworkProxyAuditMetadata::default(),
         managed_network_requirements_configured: false,
@@ -6685,7 +6687,9 @@ pub(crate) async fn make_session_and_context() -> (Session, TurnContext) {
             Arc::new(model_info),
             config.features.enabled(Feature::FastMode),
         )),
-        &models_manager,
+        models_manager
+            .try_list_models()
+            .expect("uncontended test models manager"),
         /*network*/ None,
         resolved_turn_environments,
         session_configuration.cwd().clone(),
@@ -8881,6 +8885,8 @@ where
         mcp_thread_init: codex_extension_api::ExtensionDataInit::default(),
         client_mcp_extensions: ClientMcpExtensions::default(),
         agent_control,
+        model_catalog_snapshot: tokio::sync::OnceCell::new(),
+        spawn_role_spec_snapshot: std::sync::Mutex::new(None),
         network_proxy: arc_swap::ArcSwapOption::from(None),
         network_proxy_audit_metadata: crate::config::NetworkProxyAuditMetadata::default(),
         managed_network_requirements_configured: false,
@@ -8992,7 +8998,9 @@ where
             Arc::new(model_info),
             config.features.enabled(Feature::FastMode),
         )),
-        &models_manager,
+        models_manager
+            .try_list_models()
+            .expect("uncontended test models manager"),
         /*network*/ None,
         resolved_turn_environments,
         session_configuration.cwd().clone(),
@@ -12710,4 +12718,80 @@ async fn session_start_hooks_require_project_trust_without_config_toml() -> std:
     }
 
     Ok(())
+}
+
+#[tokio::test]
+async fn model_catalog_snapshot_is_frozen_for_thread_lifetime() {
+    let (mut session, _turn_context) = make_session_and_context().await;
+    let first = session.model_catalog_snapshot().await;
+
+    // A swapped manager with a truncated catalog stands in for a mid-thread
+    // remote catalog refresh.
+    let mut refreshed = bundled_models_response().expect("bundled models");
+    refreshed.models.truncate(1);
+    let refreshed_manager: SharedModelsManager = Arc::new(
+        codex_models_manager::manager::StaticModelsManager::new(/*auth_manager*/ None, refreshed),
+    );
+    let refreshed_catalog = refreshed_manager
+        .try_list_models()
+        .expect("uncontended static manager");
+    assert_ne!(
+        first, refreshed_catalog,
+        "test needs the refreshed catalog to differ from the initial snapshot"
+    );
+    session.services.models_manager = refreshed_manager;
+
+    let second = session.model_catalog_snapshot().await;
+    assert_eq!(
+        first, second,
+        "thread-lifetime catalog snapshot must not follow a catalog refresh"
+    );
+}
+
+#[tokio::test]
+async fn spawn_role_spec_is_stable_across_role_file_changes() {
+    let (session, _turn_context) = make_session_and_context().await;
+    let role_dir = tempfile::tempdir().expect("create temp dir");
+    let role_file = role_dir.path().join("pinned.toml");
+    std::fs::write(&role_file, "model = \"gpt-5.4\"\n").expect("write role file");
+    let roles = std::collections::BTreeMap::from([(
+        "pinned".to_string(),
+        crate::config::AgentRoleConfig {
+            description: Some("Pinned-model role.".to_string()),
+            config_file: Some(role_file.clone()),
+            nickname_candidates: None,
+        },
+    )]);
+
+    let first = session.spawn_role_spec(&roles);
+    assert!(
+        first.text.contains("model is set to `gpt-5.4`"),
+        "expected locked-settings note in {}",
+        first.text
+    );
+
+    // A deleted role file previously dropped the locked-settings note on the
+    // next per-turn rebuild, silently rewriting the tool description.
+    std::fs::remove_file(&role_file).expect("remove role file");
+    let second = session.spawn_role_spec(&roles);
+    assert_eq!(
+        first.text, second.text,
+        "role description must not change while the configured role map is unchanged"
+    );
+
+    let mut changed_roles = roles;
+    changed_roles.insert(
+        "extra".to_string(),
+        crate::config::AgentRoleConfig {
+            description: Some("Added role.".to_string()),
+            config_file: None,
+            nickname_candidates: None,
+        },
+    );
+    let third = session.spawn_role_spec(&changed_roles);
+    assert!(
+        third.text.contains("extra"),
+        "a changed role map must rebuild the description; got {}",
+        third.text
+    );
 }

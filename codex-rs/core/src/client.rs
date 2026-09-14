@@ -435,8 +435,9 @@ fn record_prompt_tool_provenance(attempt: &CacheDiagnosticAttempt, prompt: &Prom
     if let Some(provenance) = &prompt.tool_build_provenance {
         attempt.record_tool_provenance(codex_cache_diagnostics::ToolProvenance {
             model_preset_count: provenance.model_preset_count,
-            model_catalog_lock_contention_fallback: provenance
-                .model_catalog_lock_contention_fallback,
+            // The lock-contention fallback no longer exists: turns read the
+            // session's frozen catalog snapshot instead of the manager lock.
+            model_catalog_lock_contention_fallback: false,
             model_catalog_identity: provenance
                 .model_catalog_identity
                 .as_deref()

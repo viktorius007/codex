@@ -231,12 +231,11 @@ pub struct TurnContext {
     // TODO(anp): Reconcile this parallel turn snapshot with TurnEnvironment::sandbox_context
     // so owner-provided environment settings govern the remaining sandbox decisions.
     pub(crate) windows_sandbox_level: WindowsSandboxLevel,
+    /// Model presets frozen for this thread's lifetime. Sourced from the
+    /// session-wide snapshot so the serialized spawn-agent tool description —
+    /// and with it the provider's cached prompt prefix — cannot change
+    /// mid-thread on a catalog refresh.
     pub(crate) available_models: Vec<ModelPreset>,
-    /// True when `available_models` fell back to empty because the models
-    /// manager lock was contended. The empty list changes the serialized
-    /// spawn-agent tool description and with it the cached prompt prefix, so
-    /// diagnostics must be able to attribute that change.
-    pub(crate) available_models_lock_contention_fallback: bool,
     pub(crate) unified_exec_shell_mode: UnifiedExecShellMode,
     pub(crate) final_output_json_schema: Option<Value>,
     pub(crate) dynamic_tools: Vec<DynamicToolSpec>,
@@ -492,12 +491,6 @@ impl TurnContext {
         };
         config.model_reasoning_effort = reasoning_effort.clone();
 
-        let available_models = models_manager
-            .list_models(
-                RefreshStrategy::OnlineIfUncached,
-                config.http_client_factory(),
-            )
-            .await;
         let model_info = Arc::new(model_info);
         let mut selected = self.initial_settings.selected().clone();
         selected.collaboration_mode = selected.collaboration_mode.with_updates(
@@ -540,8 +533,7 @@ impl TurnContext {
             multi_agent_version: self.multi_agent_version,
             network: self.network.clone(),
             windows_sandbox_level: self.windows_sandbox_level,
-            available_models,
-            available_models_lock_contention_fallback: false,
+            available_models: self.available_models.clone(),
             unified_exec_shell_mode: self.unified_exec_shell_mode.clone(),
             final_output_json_schema: self.final_output_json_schema.clone(),
             dynamic_tools: self.dynamic_tools.clone(),
@@ -711,6 +703,53 @@ impl Session {
         config
     }
 
+    /// Model presets frozen at first use for this thread's lifetime.
+    ///
+    /// Reads the in-memory catalog once and reuses it for every later turn, so
+    /// neither a mid-thread catalog refresh nor manager lock contention can
+    /// change the serialized spawn-agent tool description and bust the
+    /// provider's cached prompt prefix. A new thread picks up catalog changes.
+    pub(crate) async fn model_catalog_snapshot(&self) -> Vec<ModelPreset> {
+        self.services
+            .model_catalog_snapshot
+            .get_or_init(|| async {
+                let models_manager = &self.services.models_manager;
+                let remote_models = models_manager.get_remote_models().await;
+                models_manager.build_available_models(remote_models)
+            })
+            .await
+            .clone()
+    }
+
+    /// Spawn-agent role description reused while `roles` is unchanged.
+    ///
+    /// Rebuilds only when the configured role map itself changes, so per-turn
+    /// role-file disk reads cannot rewrite the serialized tool description
+    /// mid-thread and bust the provider's cached prompt prefix.
+    pub(crate) fn spawn_role_spec(
+        &self,
+        roles: &std::collections::BTreeMap<String, crate::config::AgentRoleConfig>,
+    ) -> Arc<crate::agent::role::spawn_tool_spec::SpawnToolSpecBuild> {
+        let mut snapshot = self
+            .services
+            .spawn_role_spec_snapshot
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(existing) = snapshot.as_ref()
+            && existing.roles == *roles
+        {
+            return Arc::clone(&existing.spec);
+        }
+        let spec = Arc::new(crate::agent::role::spawn_tool_spec::build(roles));
+        *snapshot = Some(
+            crate::agent::role::spawn_tool_spec::SpawnRoleSpecSnapshot {
+                roles: roles.clone(),
+                spec: Arc::clone(&spec),
+            },
+        );
+        spec
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[instrument(name = "turn_context.make", level = "trace", skip_all)]
     pub(crate) fn make_turn_context(
@@ -726,7 +765,7 @@ impl Session {
         main_execve_wrapper_exe: Option<&PathBuf>,
         per_turn_config: Config,
         step_settings: Arc<ResolvedStepSettings>,
-        models_manager: &SharedModelsManager,
+        available_models: Vec<ModelPreset>,
         network: Option<NetworkProxy>,
         environments: TurnEnvironmentSnapshot,
         cwd: AbsolutePathBuf,
@@ -736,11 +775,6 @@ impl Session {
         let model_info = &step_settings.model_info;
         let session_telemetry_for_context = step_settings.telemetry(session_telemetry);
         let session_source = session_configuration.session_source.clone();
-        let (available_models, available_models_lock_contention_fallback) =
-            match models_manager.try_list_models() {
-                Ok(models) => (models, false),
-                Err(_) => (Vec::new(), true),
-            };
         let unified_exec_shell_mode = UnifiedExecShellMode::for_session(
             per_turn_config.features.get(),
             crate::tools::tool_user_shell_type(user_shell),
@@ -818,7 +852,6 @@ impl Session {
             network,
             windows_sandbox_level: session_configuration.windows_sandbox_level,
             available_models,
-            available_models_lock_contention_fallback,
             unified_exec_shell_mode,
             final_output_json_schema: None,
             dynamic_tools: session_configuration.dynamic_tools.clone(),
@@ -1013,6 +1046,7 @@ impl Session {
             Arc::new(model_info),
             self.features.enabled(Feature::FastMode),
         ));
+        let available_models = self.model_catalog_snapshot().await;
         let mut turn_context: TurnContext = Self::make_turn_context(
             self.thread_id(),
             self.session_id(),
@@ -1026,7 +1060,7 @@ impl Session {
             self.services.main_execve_wrapper_exe.as_ref(),
             per_turn_config,
             step_settings,
-            &self.services.models_manager,
+            available_models,
             self.services
                 .network_proxy
                 .load_full()
