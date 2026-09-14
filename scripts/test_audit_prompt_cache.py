@@ -84,6 +84,153 @@ class PromptCacheAuditTest(unittest.TestCase):
             "forked",
         )
 
+    def test_tool_catalog_changed_is_classified_and_surfaced_without_digests(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            rollout = Path(temp_dir) / "rollout-fixture.jsonl"
+            previous_digest = "PRIVATE-PREVIOUS-DIGEST"
+            current_digest = "PRIVATE-CURRENT-DIGEST"
+            records = [
+                {
+                    "timestamp": "2026-09-13T00:00:00Z",
+                    "type": "session_meta",
+                    "payload": {
+                        "id": "thread-1",
+                        "session_id": "session-1",
+                        "source": "cli",
+                        "base_instructions": "base",
+                    },
+                },
+                {
+                    "timestamp": "2026-09-13T00:00:01Z",
+                    "type": "turn_context",
+                    "payload": {"model": "gpt-test", "effort": "medium"},
+                },
+                self.usage("2026-09-13T00:00:10Z", "response-1", 20_000, 16_384),
+                {
+                    "timestamp": "2026-09-13T00:00:30Z",
+                    "type": "event_msg",
+                    "payload": {
+                        "type": "tool_catalog_changed",
+                        "previous_digest": previous_digest,
+                        "current_digest": current_digest,
+                        "added": ["new_tool"],
+                        "removed": ["old_tool"],
+                        "changed": ["shared_tool"],
+                    },
+                },
+                self.usage("2026-09-13T00:01:00Z", "response-2", 22_000, 0),
+            ]
+            rollout.write_text(
+                "".join(
+                    json.dumps(record, separators=(",", ":")) + "\n"
+                    for record in records
+                ),
+                encoding="utf-8",
+            )
+            args = audit_prompt_cache.build_parser().parse_args([temp_dir])
+            incidents, stats = audit_prompt_cache.scan(args)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                audit_prompt_cache.print_text(incidents, stats, args)
+            rendered = output.getvalue()
+
+            self.assertEqual(len(incidents), 1)
+            self.assertEqual(incidents[0].cause, "tool_catalog_change")
+            self.assertNotIn(previous_digest, rendered)
+            self.assertNotIn(current_digest, rendered)
+            self.assertIn("tool_catalog_changed(", rendered)
+            self.assertIn("new_tool", rendered)
+            self.assertIn("old_tool", rendered)
+            self.assertIn("shared_tool", rendered)
+
+    def test_tool_catalog_change_is_ranked_above_no_visible_rollout_change(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            rollout = Path(temp_dir) / "rollout-fixture.jsonl"
+            records = [
+                {
+                    "timestamp": "2026-09-13T00:00:00Z",
+                    "type": "session_meta",
+                    "payload": {
+                        "id": "thread-1",
+                        "session_id": "session-1",
+                        "source": "cli",
+                        "base_instructions": "base",
+                    },
+                },
+                self.usage("2026-09-13T00:00:10Z", "response-1", 20_000, 16_384),
+                self.usage("2026-09-13T00:01:00Z", "response-2", 22_000, 0),
+            ]
+            rollout.write_text(
+                "".join(
+                    json.dumps(record, separators=(",", ":")) + "\n"
+                    for record in records
+                ),
+                encoding="utf-8",
+            )
+            args = audit_prompt_cache.build_parser().parse_args([temp_dir])
+            incidents, _ = audit_prompt_cache.scan(args)
+
+            self.assertEqual(len(incidents), 1)
+            self.assertEqual(incidents[0].cause, "no_visible_rollout_change")
+
+    def test_model_change_stays_intentional_even_with_tool_catalog_change(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            rollout = Path(temp_dir) / "rollout-fixture.jsonl"
+            records = [
+                {
+                    "timestamp": "2026-09-13T00:00:00Z",
+                    "type": "session_meta",
+                    "payload": {
+                        "id": "thread-1",
+                        "session_id": "session-1",
+                        "source": "cli",
+                        "base_instructions": "base",
+                    },
+                },
+                {
+                    "timestamp": "2026-09-13T00:00:01Z",
+                    "type": "turn_context",
+                    "payload": {"model": "gpt-test-a", "effort": "medium"},
+                },
+                self.usage("2026-09-13T00:00:10Z", "response-1", 20_000, 16_384),
+                {
+                    "timestamp": "2026-09-13T00:00:20Z",
+                    "type": "turn_context",
+                    "payload": {"model": "gpt-test-b", "effort": "medium"},
+                },
+                {
+                    "timestamp": "2026-09-13T00:00:30Z",
+                    "type": "event_msg",
+                    "payload": {
+                        "type": "tool_catalog_changed",
+                        "previous_digest": "digest-a",
+                        "current_digest": "digest-b",
+                        "added": ["new_tool"],
+                        "removed": [],
+                        "changed": [],
+                    },
+                },
+                self.usage("2026-09-13T00:01:00Z", "response-2", 22_000, 0),
+            ]
+            rollout.write_text(
+                "".join(
+                    json.dumps(record, separators=(",", ":")) + "\n"
+                    for record in records
+                ),
+                encoding="utf-8",
+            )
+            args = audit_prompt_cache.build_parser().parse_args([temp_dir])
+            incidents, stats = audit_prompt_cache.scan(args)
+
+            self.assertEqual(incidents, [])
+            self.assertEqual(stats.ignored_intentional_changes, 1)
+
     @staticmethod
     def usage(timestamp: str, response_id: str, input_tokens: int, cached_tokens: int):
         return {
