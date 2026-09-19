@@ -3,6 +3,12 @@
 # this Mac's open-file limit; 64 jobs failed before compilation could start.
 jobs = 32
 
+[env]
+# The sandbox-enabled V8 artifacts for this local checkout are described in the
+# root AGENTS.md. Explicit shell environment variables can override these paths.
+RUSTY_V8_ARCHIVE = "/Users/viktor/.cache/rusty-v8-codex/librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz"
+RUSTY_V8_SRC_BINDING_PATH = "/Users/viktor/.cache/rusty-v8-codex/src_binding_ptrcomp_sandbox_release_aarch64-apple-darwin.rs"
+
 [target.'cfg(all(windows, target_env = "msvc"))']
 rustflags = ["-C", "link-arg=/STACK:8388608", "-C", "target-feature=+crt-static"]
 
