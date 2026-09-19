@@ -364,6 +364,18 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
+- [wait-agent-disablement-evidence.md](research/wait-agent-disablement-evidence.md) — Records the polling measurements, runtime flag behavior, source paths, live Luna probes, workflow effects, and public issue/PR evidence for disabling MultiAgentV2 `wait_agent`.
+- [wait-agent-evidence/README.md](research/wait-agent-evidence/README.md) — Defines the immutable inputs, reproduction commands, schemas, assertions, and files for the self-verifying `wait_agent` evidence bundle.
+- [wait-agent-evidence/polling-records.jsonl](research/wait-agent-evidence/polling-records.jsonl) — Stores every sanitized polling call with exact rollout, line, turn, call, outcome, timestamp, and token attribution.
+- [wait-agent-evidence/polling-summary.json](research/wait-agent-evidence/polling-summary.json) — Stores machine-checkable per-mechanism counts, outcomes, sessions, turns, and token totals.
+- [wait-agent-evidence/exec-completion-notifications.jsonl](research/wait-agent-evidence/exec-completion-notifications.jsonl) — Stores all 76 sanitized completion-envelope records proving the incident runtime emitted exec completion events.
+- [wait-agent-evidence/source-manifest.json](research/wait-agent-evidence/source-manifest.json) — Binds all rollout inputs and live probes to absolute paths, SHA-256 hashes, sizes, timestamps, metadata, and tool counts.
+- [wait-agent-evidence/original-audit-command-log.jsonl](research/wait-agent-evidence/original-audit-command-log.jsonl) — Preserves the original audit commands and terminal outputs from the investigation rollout.
+- [wait-agent-evidence/source-snapshot.json](research/wait-agent-evidence/source-snapshot.json) — Preserves source excerpts, file and blob hashes, commit metadata, and patch-ancestry results.
+- [wait-agent-evidence/config-snapshot.json](research/wait-agent-evidence/config-snapshot.json) — Preserves the relevant runtime configuration subsection and binds it to the full settings file by hash.
+- [wait-agent-evidence/runtime-snapshot.json](research/wait-agent-evidence/runtime-snapshot.json) — Preserves installed-binary hashes, versions, active tool inventory, and live-probe outcomes.
+- [wait-agent-evidence/github-snapshot.json](research/wait-agent-evidence/github-snapshot.json) — Preserves the public GitHub issue and PR material used by the investigation.
+- [wait-agent-evidence/SHA256SUMS](research/wait-agent-evidence/SHA256SUMS) — Provides integrity hashes for every generated evidence data file.
 - [goal-continuation-usage-incident.md](research/goal-continuation-usage-incident.md) — Confirms the 19 September Goal usage incident and maps public reports, fixes, source paths, and root-cause tests.
 - [cache-diagnostics-guide.md](research/cache-diagnostics-guide.md) — Explains how to collect and interpret private cache diagnostics.
 - [cache-repair-run.md](research/cache-repair-run.md) — Records the cache repair work, decisions, validation, and delivery milestones.

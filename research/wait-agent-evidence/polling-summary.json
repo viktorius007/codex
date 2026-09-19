@@ -1,0 +1,94 @@
+{
+  "code_wait": {
+    "cached_input_tokens": 3617024,
+    "fresh_tokens": 186001,
+    "input_tokens": 3799392,
+    "outcomes": {
+      "other": 1,
+      "script_completed": 41,
+      "script_running": 1
+    },
+    "output_tokens": 3633,
+    "records": 43,
+    "sessions": {
+      "01a0b77c-8c00-76c1-be80-26d140fc209c": 42,
+      "01a0b786-a3f3-7120-b40d-33196c23e7ea": 1
+    },
+    "total_tokens": 3803025,
+    "turns": 8
+  },
+  "empty_write_stdin": {
+    "cached_input_tokens": 15990016,
+    "fresh_tokens": 378550,
+    "input_tokens": 16355416,
+    "outcomes": {
+      "other": 2,
+      "script_completed": 88,
+      "script_running": 37
+    },
+    "output_tokens": 13150,
+    "records": 127,
+    "sessions": {
+      "01a0b77c-8c00-76c1-be80-26d140fc209c": 126,
+      "01a0b786-a3f3-7120-b40d-33196c23e7ea": 1
+    },
+    "total_tokens": 16368566,
+    "turns": 36
+  },
+  "wait_agent_all": {
+    "cached_input_tokens": 27025920,
+    "fresh_tokens": 283274,
+    "input_tokens": 27288238,
+    "outcomes": {
+      "activity": 43,
+      "interrupted": 25,
+      "timed_out": 148
+    },
+    "output_tokens": 20956,
+    "records": 216,
+    "sessions": {
+      "01a0b77c-8c00-76c1-be80-26d140fc209c": 35,
+      "01a0b786-a3f3-7120-b40d-33196c23e7ea": 162,
+      "01a0b974-fc5f-7c01-8999-b2dd73c0a686": 19
+    },
+    "total_tokens": 27309194,
+    "turns": 51
+  },
+  "wait_agent_timed_out": {
+    "cached_input_tokens": 18254208,
+    "fresh_tokens": 217702,
+    "input_tokens": 18457641,
+    "outcomes": {
+      "timed_out": 148
+    },
+    "output_tokens": 14269,
+    "records": 148,
+    "sessions": {
+      "01a0b77c-8c00-76c1-be80-26d140fc209c": 8,
+      "01a0b786-a3f3-7120-b40d-33196c23e7ea": 124,
+      "01a0b974-fc5f-7c01-8999-b2dd73c0a686": 16
+    },
+    "total_tokens": 18471910,
+    "turns": 38
+  },
+  "wasted_total": {
+    "cached_input_tokens": 37861248,
+    "fresh_tokens": 782253,
+    "input_tokens": 38612449,
+    "outcomes": {
+      "other": 3,
+      "script_completed": 129,
+      "script_running": 38,
+      "timed_out": 148
+    },
+    "output_tokens": 31052,
+    "records": 318,
+    "sessions": {
+      "01a0b77c-8c00-76c1-be80-26d140fc209c": 176,
+      "01a0b786-a3f3-7120-b40d-33196c23e7ea": 126,
+      "01a0b974-fc5f-7c01-8999-b2dd73c0a686": 16
+    },
+    "total_tokens": 38643501,
+    "turns": 74
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "audit_rollout": "/Users/viktor/.codex/sessions/2026/09/20/rollout-2026-09-20T07-43-46-01a0bba0-1713-7e03-8cc4-82c99c9dddbe.jsonl",
+  "captured_at": "2026-09-19T23:04:10.506549+00:00",
+  "live_probe_rollouts": [
+    {
+      "cli_version": "0.155.1+local.4",
+      "custom_tool_calls": {
+        "exec": 1
+      },
+      "cwd": "/Users/viktor/Projects/github/codex",
+      "first_record_timestamp": "2026-09-19T22:38:44.725Z",
+      "function_calls": {},
+      "last_record_timestamp": "2026-09-19T22:38:54.049Z",
+      "mtime_ns": 1789857534050006954,
+      "path": "/Users/viktor/.codex/sessions/2026/09/20/rollout-2026-09-20T08-38-44-01a0bbd2-6b78-70b2-bd6a-bb57be40955b.jsonl",
+      "session_id": "01a0bba0-1713-7e03-8cc4-82c99c9dddbe",
+      "session_started_at": "2026-09-19T22:38:44.615Z",
+      "sha256": "23ab9aba023dde979786d9f8e9800b716c0d7b6f37b82078ac37414528348790",
+      "size_bytes": 221008,
+      "thread_id": "01a0bbd2-6b78-70b2-bd6a-bb57be40955b",
+      "thread_source": "subagent"
+    },
+    {
+      "cli_version": "0.155.1+local.4",
+      "custom_tool_calls": {
+        "exec": 32
+      },
+      "cwd": "/Users/viktor/Projects/github/codex",
+      "first_record_timestamp": "2026-09-19T22:38:48.962Z",
+      "function_calls": {},
+      "last_record_timestamp": "2026-09-19T22:41:32.568Z",
+      "mtime_ns": 1789857692568639345,
+      "path": "/Users/viktor/.codex/sessions/2026/09/20/rollout-2026-09-20T08-38-48-01a0bbd2-7c09-7161-bc1b-533139333f24.jsonl",
+      "session_id": "01a0bba0-1713-7e03-8cc4-82c99c9dddbe",
+      "session_started_at": "2026-09-19T22:38:48.856Z",
+      "sha256": "843bbe97c4fdede180d71f5ced3ebf12cb8a08f11c916026ad357bf5412458b5",
+      "size_bytes": 1613654,
+      "thread_id": "01a0bbd2-7c09-7161-bc1b-533139333f24",
+      "thread_source": "subagent"
+    }
+  ],
+  "polling_rollouts": [
+    "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T12-26-27-01a0b77c-8c00-76c1-be80-26d140fc209c.jsonl",
+    "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T12-37-29-01a0b786-a3f3-7120-b40d-33196c23e7ea.jsonl",
+    "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T21-37-26-01a0b974-fc5f-7c01-8999-b2dd73c0a686.jsonl"
+  ],
+  "user_rollouts": [
+    {
+      "cli_version": "0.154.0+local.3",
+      "custom_tool_calls": {
+        "exec": 38
+      },
+      "cwd": "/Users/viktor/Projects/github/codebase-memory-mcp",
+      "first_record_timestamp": "2026-09-19T01:58:42.886Z",
+      "function_calls": {},
+      "last_record_timestamp": "2026-09-19T02:07:51.375Z",
+      "mtime_ns": 1789783671375125486,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T11-53-16-01a0b75e-2a0d-7ca0-bddb-f59049ce1530.jsonl",
+      "session_id": "01a0b75e-2a0d-7ca0-bddb-f59049ce1530",
+      "session_started_at": "2026-09-19T01:53:16.823Z",
+      "sha256": "0db32d7622b28c68ce5da5645ad40e2ec55f68af65de7ae3329b2bfc6577b5be",
+      "size_bytes": 1470233,
+      "thread_id": "01a0b75e-2a0d-7ca0-bddb-f59049ce1530",
+      "thread_source": "user"
+    },
+    {
+      "cli_version": "0.154.0+local.3",
+      "custom_tool_calls": {
+        "exec": 16
+      },
+      "cwd": "/Users/viktor/Projects/github/codebase-memory-mcp",
+      "first_record_timestamp": "2026-09-19T02:12:58.257Z",
+      "function_calls": {},
+      "last_record_timestamp": "2026-09-19T02:25:02.429Z",
+      "mtime_ns": 1789784702429909427,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T12-12-20-01a0b76f-9e55-7060-a4a5-74c923840d81.jsonl",
+      "session_id": "01a0b76f-9e55-7060-a4a5-74c923840d81",
+      "session_started_at": "2026-09-19T02:12:20.703Z",
+      "sha256": "d0a2b31f2fe68feb6b3a548fbc943ff3dae01cdf7f6e30818bb2161251f1fafa",
+      "size_bytes": 929291,
+      "thread_id": "01a0b76f-9e55-7060-a4a5-74c923840d81",
+      "thread_source": "user"
+    },
+    {
+      "cli_version": "0.154.0+local.3",
+      "custom_tool_calls": {
+        "exec": 825
+      },
+      "cwd": "/Users/viktor/Projects/github/codebase-memory-mcp",
+      "first_record_timestamp": "2026-09-19T02:36:34.425Z",
+      "function_calls": {
+        "followup_task": 70,
+        "interrupt_agent": 7,
+        "list_agents": 12,
+        "send_message": 45,
+        "spawn_agent": 67,
+        "wait": 42,
+        "wait_agent": 68
+      },
+      "last_record_timestamp": "2026-09-19T18:26:37.450Z",
+      "mtime_ns": 1789842397450549040,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T12-26-27-01a0b77c-8c00-76c1-be80-26d140fc209c.jsonl",
+      "session_id": "01a0b77c-8c00-76c1-be80-26d140fc209c",
+      "session_started_at": "2026-09-19T02:26:27.984Z",
+      "sha256": "669baa558ddeac20b313bb7507c1d754e9506fbba3c2237105e0d44420e68ac9",
+      "size_bytes": 26717566,
+      "thread_id": "01a0b77c-8c00-76c1-be80-26d140fc209c",
+      "thread_source": "user"
+    },
+    {
+      "cli_version": "0.154.0+local.3",
+      "custom_tool_calls": {
+        "exec": 480
+      },
+      "cwd": "/Users/viktor/Projects/project-management",
+      "first_record_timestamp": "2026-09-19T02:40:52.836Z",
+      "function_calls": {
+        "followup_task": 19,
+        "interrupt_agent": 2,
+        "list_agents": 23,
+        "request_user_input_async": 4,
+        "send_message": 39,
+        "spawn_agent": 26,
+        "wait": 1,
+        "wait_agent": 162
+      },
+      "last_record_timestamp": "2026-09-19T14:42:31.614Z",
+      "mtime_ns": 1789828951615058310,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T12-37-29-01a0b786-a3f3-7120-b40d-33196c23e7ea.jsonl",
+      "session_id": "01a0b786-a3f3-7120-b40d-33196c23e7ea",
+      "session_started_at": "2026-09-19T02:37:29.472Z",
+      "sha256": "500f1d9d79121470aa015f920ed40ed2f656ae1669ff5ed2772a665c60be4d61",
+      "size_bytes": 36011422,
+      "thread_id": "01a0b786-a3f3-7120-b40d-33196c23e7ea",
+      "thread_source": "user"
+    },
+    {
+      "cli_version": "0.154.0+local.3",
+      "custom_tool_calls": {
+        "exec": 53
+      },
+      "cwd": "/Users/viktor/Projects/github/codex",
+      "first_record_timestamp": "2026-09-19T11:38:27.080Z",
+      "function_calls": {
+        "interrupt_agent": 1,
+        "list_agents": 10,
+        "send_message": 2,
+        "spawn_agent": 1,
+        "wait_agent": 19
+      },
+      "last_record_timestamp": "2026-09-19T12:56:04.553Z",
+      "mtime_ns": 1789822564554042720,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T21-37-26-01a0b974-fc5f-7c01-8999-b2dd73c0a686.jsonl",
+      "session_id": "01a0b974-fc5f-7c01-8999-b2dd73c0a686",
+      "session_started_at": "2026-09-19T11:37:26.893Z",
+      "sha256": "86a3934b0e2a64e305ba62e44888beb1cb97043749d82c503bf5cd6cdec8515b",
+      "size_bytes": 2261604,
+      "thread_id": "01a0b974-fc5f-7c01-8999-b2dd73c0a686",
+      "thread_source": "user"
+    },
+    {
+      "cli_version": "0.155.1+local.4",
+      "custom_tool_calls": {},
+      "cwd": "/Users/viktor/Projects/github/codex",
+      "first_record_timestamp": "2026-09-19T12:56:37.930Z",
+      "function_calls": {},
+      "last_record_timestamp": "2026-09-19T12:56:44.258Z",
+      "mtime_ns": 1789822604258701999,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T22-56-20-01a0b9bd-35e4-7f32-a73e-5acbe0a1f658.jsonl",
+      "session_id": "01a0b9bd-35e4-7f32-a73e-5acbe0a1f658",
+      "session_started_at": "2026-09-19T12:56:20.211Z",
+      "sha256": "7e34419daf76e3f2c42a5870b619f2ddb5a95c0065077c040c5a0bcdadf5b5f9",
+      "size_bytes": 212347,
+      "thread_id": "01a0b9bd-35e4-7f32-a73e-5acbe0a1f658",
+      "thread_source": "user"
+    },
+    {
+      "cli_version": "0.155.1+local.4",
+      "custom_tool_calls": {
+        "exec": 67
+      },
+      "cwd": "/Users/viktor/Projects/github/codex",
+      "first_record_timestamp": "2026-09-19T12:59:27.894Z",
+      "function_calls": {},
+      "last_record_timestamp": "2026-09-19T13:16:03.932Z",
+      "mtime_ns": 1789823763932922537,
+      "path": "/Users/viktor/.codex/sessions/2026/09/19/rollout-2026-09-19T22-59-12-01a0b9bf-d50c-7bd2-a600-0960d73b43ec.jsonl",
+      "session_id": "01a0b9bf-d50c-7bd2-a600-0960d73b43ec",
+      "session_started_at": "2026-09-19T12:59:12.030Z",
+      "sha256": "3edc1dd48139c7a78c497911852cd75c611b3d3ead7089761d9b9337d23ebfce",
+      "size_bytes": 2485131,
+      "thread_id": "01a0b9bf-d50c-7bd2-a600-0960d73b43ec",
+      "thread_source": "user"
+    }
+  ],
+  "window": {
+    "end_utc_exclusive": "2026-09-19T14:00:00Z",
+    "start_utc_inclusive": "2026-09-18T14:00:00Z"
+  }
+}
