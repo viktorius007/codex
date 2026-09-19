@@ -185,7 +185,6 @@ impl LogicalManifest {
             )?,
         })
     }
-
 }
 
 #[derive(Serialize)]

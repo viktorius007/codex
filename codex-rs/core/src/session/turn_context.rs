@@ -950,12 +950,10 @@ impl Session {
             return Arc::clone(&existing.spec);
         }
         let spec = Arc::new(crate::agent::role::spawn_tool_spec::build(roles));
-        *snapshot = Some(
-            crate::agent::role::spawn_tool_spec::SpawnRoleSpecSnapshot {
-                roles: roles.clone(),
-                spec: Arc::clone(&spec),
-            },
-        );
+        *snapshot = Some(crate::agent::role::spawn_tool_spec::SpawnRoleSpecSnapshot {
+            roles: roles.clone(),
+            spec: Arc::clone(&spec),
+        });
         spec
     }
 

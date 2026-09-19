@@ -94,7 +94,6 @@ impl Collector {
             }),
         })
     }
-
 }
 
 /// Raw request context accepted only long enough to create keyed fingerprints.
