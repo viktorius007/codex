@@ -364,6 +364,7 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
+- [goal-continuation-usage-incident.md](research/goal-continuation-usage-incident.md) — Confirms the 19 September Goal usage incident and maps public reports, fixes, source paths, and root-cause tests.
 - [cache-diagnostics-guide.md](research/cache-diagnostics-guide.md) — Explains how to collect and interpret private cache diagnostics.
 - [cache-repair-run.md](research/cache-repair-run.md) — Records the cache repair work, decisions, validation, and delivery milestones.
 - [cache-repair-recovery.md](research/cache-repair-recovery.md) — Preserves historical recovery checkpoints from the interrupted repair run.
