@@ -111,7 +111,6 @@ impl CacheDiagnostics {
         );
         Arc::new(CacheDiagnosticAttempt { attempt })
     }
-
 }
 
 impl fmt::Debug for CacheDiagnostics {
@@ -159,10 +158,6 @@ impl CacheDiagnosticAttempt {
     pub(crate) fn failed(&self) {
         self.attempt.terminal(TerminalOutcome::Failed);
     }
-
-    pub(crate) fn completed_without_usage(&self) {
-        self.attempt.completed_without_usage(None);
-    }
 }
 
 impl Drop for CacheDiagnosticAttempt {
@@ -197,7 +192,6 @@ impl ResponsesRequestObserver for CacheDiagnosticAttempt {
             },
         });
     }
-
 }
 
 fn request_kind(kind: Option<CodexResponsesRequestKind>) -> RequestKind {

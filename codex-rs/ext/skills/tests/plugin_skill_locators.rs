@@ -19,6 +19,8 @@ use codex_extension_api::ToolCallSource;
 use codex_extension_api::ToolPayload;
 use codex_extension_api::TurnInputContext;
 use codex_extension_api::WorldStateContributionInput;
+use codex_models_manager::model_info::model_info_from_slug;
+use codex_protocol::openai_models::ModelInfo;
 use codex_protocol::protocol::SessionSource;
 use codex_protocol::protocol::TruncationPolicy;
 use codex_protocol::user_input::UserInput;
@@ -174,10 +176,17 @@ async fn render_host_catalog(
 ) -> TestResult<(ExtensionData, String)> {
     let turn_store = ExtensionData::new(turn_id);
     turn_store.insert(snapshot);
+    let model_info = ModelInfo {
+        context_window: None,
+        max_context_window: None,
+        include_skills_usage_instructions: false,
+        ..model_info_from_slug("test-model")
+    };
     let sections = registry.context_contributors()[0]
         .contribute_world_state(WorldStateContributionInput {
             thread_id: codex_protocol::ThreadId::new(),
             turn_id,
+            model_info: &model_info,
             environments: &[],
             ready_selected_capability_roots: &[],
             executor_capability_discovery: None,

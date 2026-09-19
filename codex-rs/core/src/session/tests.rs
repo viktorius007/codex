@@ -61,6 +61,7 @@ use codex_login::auth::AgentIdentityAuthPolicy;
 use codex_model_provider::create_model_provider;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::built_in_model_providers;
+use codex_models_manager::bundled_models_response;
 use codex_models_manager::model_info;
 use codex_models_manager::test_support::construct_model_info_offline_for_tests;
 use codex_models_manager::test_support::get_model_offline_for_tests;
@@ -12480,9 +12481,10 @@ async fn model_catalog_snapshot_is_frozen_for_thread_lifetime() {
     // remote catalog refresh.
     let mut refreshed = bundled_models_response().expect("bundled models");
     refreshed.models.truncate(1);
-    let refreshed_manager: SharedModelsManager = Arc::new(
-        codex_models_manager::manager::StaticModelsManager::new(/*auth_manager*/ None, refreshed),
-    );
+    let refreshed_manager: SharedModelsManager =
+        Arc::new(codex_models_manager::manager::StaticModelsManager::new(
+            /*auth_manager*/ None, refreshed,
+        ));
     let refreshed_catalog = refreshed_manager
         .try_list_models()
         .expect("uncontended static manager");

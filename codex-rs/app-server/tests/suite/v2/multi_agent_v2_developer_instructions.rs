@@ -394,7 +394,8 @@ async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
     write_models_cache_with_models(
         codex_home.path(),
         vec![compacting_model, normal_context_model],
-    )?;
+    )
+    .await?;
 
     let mut app_server = TestAppServer::builder()
         .with_codex_home(codex_home.path())
