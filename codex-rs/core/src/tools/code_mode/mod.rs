@@ -208,6 +208,10 @@ impl CodeModeService {
         self.dispatch_broker.close_cell(cell_id);
     }
 
+    pub(crate) fn has_pending_cell_dispatch(&self, cell_id: &CellId) -> bool {
+        self.dispatch_broker.has_pending_dispatch(cell_id)
+    }
+
     pub(crate) fn start_turn_worker(
         &self,
         session: &Arc<Session>,

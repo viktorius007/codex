@@ -39,11 +39,11 @@ const EXEC_DESCRIPTION_TEMPLATE: &str = r#"Run JavaScript code to orchestrate/co
 - `yield_control()`: yields the accumulated output to the model immediately while the script keeps running."#;
 const WAIT_DESCRIPTION_TEMPLATE: &str = r#"- Use `wait` only after `exec` returns `Script running with cell ID ...`.
 - `cell_id` identifies the running `exec` cell to resume.
-- `yield_time_ms` controls how long to wait for more output before yielding again. Defaults to 10000 ms.
+- `yield_time_ms` is the requested upper bound for each internal output observation. Defaults to 10000 ms; the runtime may use shorter slices to remain responsive to new input.
 - `max_tokens` limits how much new output this wait call returns. Defaults to 10000 tokens.
 - `terminate: true` stops the running cell; false or omitted waits for output.
-- `wait` returns only the new output since the last yield, or the final completion or termination result for that cell.
-- If the cell is still running, `wait` may yield again with the same `cell_id`.
+- `wait` stays open across empty timed yields and returns only when there is new output, final completion or termination, new user input, an error, or cancellation.
+- If the cell is still running, useful partial output includes the same `cell_id` for a later wait.
 - If the cell has already finished, `wait` returns the completed result and closes the cell."#;
 // Based off of https://modelcontextprotocol.io/specification/draft/schema#calltoolresult
 const MCP_TYPESCRIPT_PREAMBLE: &str = r#"type Role = "user" | "assistant";

@@ -20,6 +20,8 @@ use super::telemetry::CodeModeToolCallGuard;
 use super::telemetry::trace_id;
 use super::wait_spec::create_wait_tool;
 
+const MAX_INTERNAL_WAIT_SLICE_MS: u64 = 1_000;
+
 pub struct CodeModeWaitHandler;
 
 #[derive(Debug, Deserialize)]
@@ -114,21 +116,86 @@ impl CodeModeWaitHandler {
                 let started_at = std::time::Instant::now();
                 telemetry.cell_id = Some(args.cell_id.clone());
                 let cell_id = codex_code_mode::CellId::new(args.cell_id);
-                let wait_response = if args.terminate {
+                let turn_state = exec
+                    .session
+                    .input_queue
+                    .turn_state_for_sub_id(&exec.session.active_turn, &exec.turn.sub_id)
+                    .await;
+                let (mut activity_rx, mut pending_activity) = exec
+                    .session
+                    .input_queue
+                    .subscribe_activity(turn_state.as_deref())
+                    .await;
+                let (wait_response, host_duration) = if args.terminate {
                     exec.session
                         .services
                         .code_mode_service
                         .terminate(cell_id)
                         .await
-                } else {
-                    exec.session
-                        .services
-                        .code_mode_service
-                        .wait(codex_code_mode::WaitRequest {
-                            cell_id,
-                            yield_time_ms: args.yield_time_ms,
+                        .map(|response| {
+                            let host_duration = response.code_mode_host_duration();
+                            (response, host_duration)
                         })
-                        .await
+                } else {
+                    let requested_yield_time_ms = if args.yield_time_ms != 0 { args.yield_time_ms } else { DEFAULT_WAIT_YIELD_TIME_MS };
+                    let yield_time_ms = requested_yield_time_ms.min(MAX_INTERNAL_WAIT_SLICE_MS);
+                    let mut host_duration = Some(std::time::Duration::ZERO);
+                    loop {
+                        let response = exec
+                            .session
+                            .services
+                            .code_mode_service
+                            .wait(codex_code_mode::WaitRequest {
+                                cell_id: cell_id.clone(),
+                                yield_time_ms,
+                            })
+                            .await;
+                        let response = match response {
+                            Ok(response) => response,
+                            Err(error) => break Err(error),
+                        };
+                        host_duration = host_duration.zip(response.code_mode_host_duration()).map(
+                            |(total, observation)| total.saturating_add(observation),
+                        );
+                        let input_activity = pending_activity.take().is_some()
+                            || activity_rx.has_changed().unwrap_or(false);
+                        if input_activity {
+                            let _ = activity_rx.borrow_and_update();
+                        }
+                        let has_pending_dispatch = exec
+                            .session
+                            .services
+                            .code_mode_service
+                            .has_pending_cell_dispatch(&cell_id);
+                        let should_return = match &response {
+                            codex_code_mode::WaitOutcome::MissingCell(_) => true,
+                            codex_code_mode::WaitOutcome::LiveCell(
+                                codex_code_mode::RuntimeResponse::Yielded {
+                                    content_items, ..
+                                },
+                            ) => {
+                                has_pending_dispatch
+                                    || content_items.iter().any(|item| match item {
+                                        codex_code_mode::FunctionCallOutputContentItem::InputText {
+                                            text,
+                                        } => !text.is_empty(),
+                                        codex_code_mode::FunctionCallOutputContentItem::InputImage {
+                                            ..
+                                        }
+                                        | codex_code_mode::FunctionCallOutputContentItem::InputAudio {
+                                            ..
+                                        } => true,
+                                    })
+                            }
+                            codex_code_mode::WaitOutcome::LiveCell(
+                                codex_code_mode::RuntimeResponse::Terminated { .. }
+                                | codex_code_mode::RuntimeResponse::Result { .. },
+                            ) => true,
+                        };
+                        if input_activity || should_return {
+                            break Ok((response, host_duration));
+                        }
+                    }
                 }
                 .map_err(|error| {
                     telemetry.finish(/*success*/ false);
@@ -171,13 +238,11 @@ impl CodeModeWaitHandler {
                             );
                     }
                 }
-                if let Some(code_mode_host_duration) = wait_response.code_mode_host_duration() {
+                if let Some(code_mode_host_duration) = host_duration {
                     telemetry.record_code_mode_host_duration(code_mode_host_duration);
                 }
                 exec.session.services.elicitations.wait_until_clear().await;
-                let wall_time = wait_response
-                    .code_mode_host_duration()
-                    .unwrap_or_else(|| started_at.elapsed());
+                let wall_time = host_duration.unwrap_or_else(|| started_at.elapsed());
                 Ok(boxed_tool_output(handle_runtime_response(
                     &step_context.settings.model_info,
                     wait_response.into(),
@@ -218,3 +283,7 @@ impl CoreToolRuntime for CodeModeWaitHandler {
         None
     }
 }
+
+#[cfg(test)]
+#[path = "wait_handler_tests.rs"]
+mod tests;

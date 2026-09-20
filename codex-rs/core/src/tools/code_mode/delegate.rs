@@ -38,6 +38,7 @@ pub(super) struct CodeModeDispatchBroker {
     dispatch_tx: async_channel::Sender<DispatchMessage>,
     dispatch_rx: async_channel::Receiver<DispatchMessage>,
     dispatch_gates: Arc<Mutex<HashMap<CellId, CellDispatchGate>>>,
+    pending_dispatches: Arc<Mutex<HashMap<CellId, usize>>>,
     executed_tool_calls: ExecutedToolCalls,
 }
 
@@ -63,6 +64,7 @@ impl CodeModeDispatchBroker {
             dispatch_tx,
             dispatch_rx,
             dispatch_gates: Arc::new(Mutex::new(HashMap::new())),
+            pending_dispatches: Arc::new(Mutex::new(HashMap::new())),
             executed_tool_calls,
         }
     }
@@ -113,6 +115,13 @@ impl CodeModeDispatchBroker {
             .keys()
             .cloned()
             .collect()
+    }
+
+    pub(super) fn has_pending_dispatch(&self, cell_id: &CellId) -> bool {
+        self.pending_dispatches
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .contains_key(cell_id)
     }
 
     pub(super) fn start_turn_worker(
@@ -168,6 +177,7 @@ impl CodeModeDispatchBroker {
                         mut dispatch_trace,
                         cancellation_token,
                         response_tx,
+                        pending_dispatch,
                     } => {
                         let cell_id = invocation.cell_id.clone();
                         if !wait_until_cell_ready_for_dispatch(
@@ -186,6 +196,7 @@ impl CodeModeDispatchBroker {
                             remove_dispatch_gate(&dispatch_gates, &cell_id);
                             continue;
                         }
+                        drop(pending_dispatch);
                         let Some(step_context) = step_context
                             .upgrade()
                             .filter(|_| !cancellation_token.is_cancelled())
@@ -337,15 +348,19 @@ impl CodeModeSessionDelegate for CodeModeCellDelegate {
                 return Err("code mode nested tool call cancelled".to_string());
             }
             let (response_tx, response_rx) = oneshot::channel();
+            let pending_dispatch = PendingDispatchGuard::new(
+                Arc::clone(&self.broker.pending_dispatches),
+                invocation.cell_id.clone(),
+            );
             // Only the worker can tell whether dispatch beats cancellation once the call is queued.
-            self.broker
-                .dispatch_tx
+            self.broker.dispatch_tx
                 .send(DispatchMessage::InvokeTool {
                     invocation,
                     step_context: Arc::downgrade(&self.step_context),
                     dispatch_trace,
                     cancellation_token: cancellation_token.clone(),
                     response_tx,
+                    pending_dispatch,
                 })
                 .await
                 .map_err(|_| "code mode nested tool dispatcher is unavailable".to_string())?;
@@ -405,6 +420,41 @@ impl CodeModeSessionDelegate for CodeModeCellDelegate {
     }
 }
 
+struct PendingDispatchGuard {
+    pending_dispatches: Arc<Mutex<HashMap<CellId, usize>>>,
+    cell_id: CellId,
+}
+
+impl PendingDispatchGuard {
+    fn new(pending_dispatches: Arc<Mutex<HashMap<CellId, usize>>>, cell_id: CellId) -> Self {
+        let mut counts = pending_dispatches
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *counts.entry(cell_id.clone()).or_default() += 1;
+        drop(counts);
+        Self {
+            pending_dispatches,
+            cell_id,
+        }
+    }
+}
+
+impl Drop for PendingDispatchGuard {
+    fn drop(&mut self) {
+        let mut pending_dispatches = self
+            .pending_dispatches
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let Some(count) = pending_dispatches.get_mut(&self.cell_id) else {
+            return;
+        };
+        *count -= 1;
+        if *count == 0 {
+            pending_dispatches.remove(&self.cell_id);
+        }
+    }
+}
+
 enum DispatchMessage {
     InvokeTool {
         invocation: CodeModeNestedToolCall,
@@ -413,6 +463,7 @@ enum DispatchMessage {
         dispatch_trace: Box<NestedToolDispatchTrace>,
         cancellation_token: CancellationToken,
         response_tx: oneshot::Sender<Result<JsonValue, String>>,
+        pending_dispatch: PendingDispatchGuard,
     },
     Notify {
         call_id: String,
