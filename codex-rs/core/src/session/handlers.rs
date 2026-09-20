@@ -82,10 +82,31 @@ pub async fn inter_agent_communication(
     start_options: codex_protocol::turn_input::TurnStartOptions,
 ) {
     let trigger_turn = communication.trigger_turn;
+    let async_result_origin = if trigger_turn
+        && let Some(parent_turn_id) = start_options.parent_turn_id.as_deref()
+        && let Some(pending) = sess
+            .services
+            .thread_extension_data
+            .get::<crate::agent::control::PendingParentAsyncResultOrigins>()
+        && let Some(origin) = pending.0.remove(parent_turn_id)
+    {
+        Some(origin)
+    } else {
+        None
+    };
     sess.input_queue
-        .enqueue_mailbox_communication(communication, start_options)
+        .enqueue_mailbox_communication_with_origin(
+            communication,
+            start_options,
+            async_result_origin,
+        )
         .await;
     crate::agent_communication::emit_agent_communication_receive(&sub_id);
+    if trigger_turn && sess.is_interrupted() {
+        // A new delegated task authorizes execution after a prior interruption.
+        sess.agent_status
+            .send_replace(codex_protocol::protocol::AgentStatus::Running);
+    }
     if trigger_turn || sess.has_outstanding_durable_sleep() {
         sess.maybe_start_turn_for_pending_work_with_sub_id(sub_id)
             .await;

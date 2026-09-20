@@ -27,6 +27,7 @@ use crate::thread_rollout_truncation::truncate_rollout_to_last_n_fork_turns;
 use crate::turn_timing::now_unix_timestamp_ms;
 use arc_swap::ArcSwapOption;
 use codex_extension_api::ThreadInstructionsProvider;
+use codex_extension_api::ExtensionData;
 use codex_history::InitialHistory;
 use codex_history::ResumedHistory;
 use codex_history::RolloutItem;
@@ -86,6 +87,44 @@ mod user_authorization;
 const MAX_ENVIRONMENT_SUBAGENTS: usize = 8;
 const MAX_ENVIRONMENT_SUBAGENT_BYTES: usize = 1_024;
 
+#[derive(Default)]
+pub(crate) struct ParentAsyncResultOrigins(std::sync::Mutex<Vec<(String, Arc<ExtensionData>)>>);
+
+#[derive(Default)]
+pub(crate) struct PendingParentAsyncResultOrigins(pub(crate) ParentAsyncResultOrigins);
+
+impl ParentAsyncResultOrigins {
+    pub(crate) fn insert(&self, parent_turn_id: String, origin: Arc<ExtensionData>) {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push((parent_turn_id, origin));
+    }
+
+    pub(crate) fn remove(&self, parent_turn_id: &str) -> Option<Arc<ExtensionData>> {
+        let mut origins = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let index = origins.iter().position(|(id, _)| id == parent_turn_id)?;
+        Some(origins.remove(index).1)
+    }
+
+    pub(crate) fn drain(&self) -> Vec<Arc<ExtensionData>> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .drain(..)
+            .map(|(_, origin)| origin)
+            .collect()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct ParentAsyncResultOrigin {
+    pub(crate) parent_turn_id: String,
+    pub(crate) origin: Arc<ExtensionData>,
+}
 /// Control-plane handle for multi-agent operations.
 /// `LocalAgentControl` is held by each session (via `SessionServices`). It provides capability to
 /// spawn new agents and the inter-agent communication layer.
@@ -279,6 +318,55 @@ impl LocalAgentControl {
                     msg: legacy,
                 })
                 .await;
+        }
+        Ok(())
+    }
+
+    pub(crate) async fn deliver_async_result(
+        &self,
+        agent_id: ThreadId,
+        input: crate::session::TurnInput,
+        origin: Arc<ExtensionData>,
+        sub_id: String,
+    ) -> CodexResult<()> {
+        let state = self.upgrade()?;
+        let thread = state.get_thread(agent_id).await?;
+        Box::pin(thread.session.enqueue_async_result(input, origin, sub_id)).await;
+        Ok(())
+    }
+
+    pub(crate) async fn set_parent_async_result_origin(
+        &self,
+        agent_id: ThreadId,
+        origin: ParentAsyncResultOrigin,
+    ) -> CodexResult<()> {
+        let state = self.upgrade()?;
+        let thread = state.get_thread(agent_id).await?;
+        let origins = thread
+            .session
+            .services
+            .thread_extension_data
+            .get_or_init::<PendingParentAsyncResultOrigins>(
+                PendingParentAsyncResultOrigins::default,
+            );
+        origins.0.insert(origin.parent_turn_id, origin.origin);
+        Ok(())
+    }
+
+    pub(crate) async fn clear_parent_async_result_origin(
+        &self,
+        agent_id: ThreadId,
+        parent_turn_id: &str,
+    ) -> CodexResult<()> {
+        let state = self.upgrade()?;
+        let thread = state.get_thread(agent_id).await?;
+        if let Some(origins) = thread
+            .session
+            .services
+            .thread_extension_data
+            .get::<PendingParentAsyncResultOrigins>()
+        {
+            origins.0.remove(parent_turn_id);
         }
         Ok(())
     }

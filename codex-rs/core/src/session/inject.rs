@@ -6,6 +6,7 @@ use super::turn_context::TurnContext;
 use codex_analytics::ImagePreparationMetadata;
 use crate::state::ActiveTurn;
 use crate::tasks::RegularTask;
+use codex_extension_api::ExtensionData;
 use codex_features::Feature;
 use codex_history::CodexHarnessMetadata;
 use codex_history::ResponseItemEnvelope;
@@ -13,37 +14,34 @@ use codex_protocol::models::ResponseItem;
 use codex_protocol::openai_models::ModelInfo;
 
 impl Session {
+    pub(crate) async fn enqueue_async_result(
+        self: &Arc<Self>,
+        input: PendingTurnInput,
+        origin_turn_store: Arc<ExtensionData>,
+        sub_id: String,
+    ) {
+        self.input_queue
+            .enqueue_async_result(vec![input], origin_turn_store)
+            .await;
+        self.maybe_start_turn_for_pending_work_with_sub_id(sub_id)
+            .await;
+    }
+
     /// Injects model input into the active turn or starts a turn when the session is idle.
-    #[expect(
-        clippy::await_holding_invalid_type,
-        reason = "active turn reservation and input delivery must remain atomic"
-    )]
-    pub(crate) async fn inject_or_start(self: &Arc<Self>, input: Vec<ResponseItem>) {
+    pub(crate) async fn inject_or_start(
+        self: &Arc<Self>,
+        input: Vec<ResponseItem>,
+        origin_turn_store: Arc<ExtensionData>,
+    ) {
         let input = input
             .into_iter()
             .map(ResponseItemEnvelope::new)
             .map(PendingTurnInput::ResponseItem)
             .collect::<Vec<_>>();
-        let mut active = self.active_turn.lock().await;
-        if let Some(active_turn) = active.as_mut() {
-            self.input_queue
-                .extend_pending_input_and_accept_mailbox_delivery_for_turn_state(
-                    active_turn.turn_state.as_ref(),
-                    input,
-                )
-                .await;
-            return;
-        }
-        *active = Some(ActiveTurn::default());
-        drop(active);
-
-        let turn_context = self
-            .new_turn_with_default_settings(uuid::Uuid::new_v4().to_string(), Default::default())
+        self.input_queue
+            .enqueue_async_result(input, origin_turn_store)
             .await;
-        self.maybe_emit_model_warnings_for_turn(turn_context.as_ref())
-            .await;
-        self.start_task(turn_context, input, RegularTask::new())
-            .await;
+        self.maybe_start_turn_for_pending_work().await;
     }
 
     /// Returns the input if there is no active turn to inject into.

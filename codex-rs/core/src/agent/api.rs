@@ -19,6 +19,8 @@ use codex_protocol::SessionId;
 use codex_protocol::ThreadId;
 use codex_protocol::error::Result;
 use codex_protocol::protocol::AgentStatus;
+use codex_extension_api::ExtensionData;
+use std::sync::Arc;
 use codex_protocol::protocol::MultiAgentVersion;
 use codex_protocol::protocol::SessionSource;
 use codex_protocol::protocol::TokenUsage;
@@ -256,6 +258,7 @@ pub struct AgentTurnOutcome {
     pub parent_turn_id: Option<String>,
     pub initiating_agent_path: Option<AgentPath>,
     pub status: AgentStatus,
+    pub async_result_origin: Arc<ExtensionData>,
 }
 
 /// Settings shared by the tree. A service tier of `None` restores the default tier.

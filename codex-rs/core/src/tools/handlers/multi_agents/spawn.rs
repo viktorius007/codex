@@ -126,6 +126,7 @@ async fn handle_spawn_agent(
             environments: Some(step_context.environments.to_selections()),
             multi_agent_v2_usage_hints: None,
             cyber_access_program: turn.cyber_access_program,
+            parent_async_result_origin: None,
         },
     ))
     .await

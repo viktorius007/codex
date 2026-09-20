@@ -36,6 +36,7 @@ pub struct SpawnAgentOptions {
     pub environments: Option<Vec<TurnEnvironmentSelection>>,
     pub multi_agent_v2_usage_hints: Option<ResolvedMultiAgentV2UsageHints>,
     pub cyber_access_program: Option<CyberAccessProgram>,
+    pub(crate) parent_async_result_origin: Option<crate::agent::control::ParentAsyncResultOrigin>,
 }
 
 /// Identity and status observed from a loaded agent, without a handle to its runtime.

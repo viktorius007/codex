@@ -181,6 +181,7 @@ pub(crate) fn spawn_exit_watcher(
 ) {
     let session_ref = Arc::clone(&context.session);
     let turn_ref = Arc::clone(&context.step_context.turn);
+    let origin_turn_store = Arc::new(turn_ref.extension_data.snapshot());
     let model_info = Arc::clone(&context.step_context.settings.model_info);
     let model_context = context.step_context.model_context();
     let call_id = context.call_id.clone();
@@ -263,7 +264,9 @@ pub(crate) fn spawn_exit_watcher(
         }
 
         if let Some(completion) = completion {
-            session_ref.inject_or_start(vec![completion]).await;
+            session_ref
+                .inject_or_start(vec![completion], origin_turn_store)
+                .await;
         }
     });
 }

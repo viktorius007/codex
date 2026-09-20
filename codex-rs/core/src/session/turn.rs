@@ -426,10 +426,19 @@ pub(crate) async fn run_turn(
         // submitted through the UI while the model was running. Though the UI
         // may support this, the model might not.
         let pending_input = if can_drain_pending_input {
-            sess.input_queue
-                .get_pending_input(&sess.active_turn)
-                .await
-                .0
+            let (pending_input, _, child_result_origins) =
+                sess.input_queue.get_pending_input(&sess.active_turn).await;
+            if !child_result_origins.is_empty() {
+                let origins = turn_context
+                    .extension_data
+                    .get_or_init::<crate::agent::control::ParentAsyncResultOrigins>(
+                    Default::default,
+                );
+                for origin in child_result_origins.into_iter().flatten() {
+                    origins.insert(turn_context.sub_id.clone(), origin);
+                }
+            }
+            pending_input
         } else {
             Vec::new()
         };

@@ -4,10 +4,8 @@
 //! Delivery remains best effort, with tracing recorded only after the parent accepts it.
 
 use super::LocalAgentControl;
-use crate::TurnStartOptions;
+use crate::session::TurnInput;
 use crate::agent::api::AgentTurnOutcome;
-use crate::agent_communication::AgentCommunicationContext;
-use crate::agent_communication::AgentCommunicationKind;
 use crate::session_prefix::format_inter_agent_completion_message;
 use codex_protocol::AgentPath;
 use codex_protocol::items::SubAgentActivityItem;
@@ -102,14 +100,12 @@ impl LocalAgentControl {
             message,
             /*trigger_turn*/ true,
         );
-        let context =
-            AgentCommunicationContext::new(AgentCommunicationKind::Result, outcome.thread_id);
         if let Err(err) = self
-            .send_inter_agent_communication(
+            .deliver_async_result(
                 parent_thread_id,
-                communication,
-                context,
-                TurnStartOptions::default(),
+                TurnInput::InterAgentCommunication(communication),
+                outcome.async_result_origin,
+                uuid::Uuid::new_v4().to_string(),
             )
             .await
         {

@@ -280,7 +280,7 @@ impl Session {
 
     #[expect(
         clippy::await_holding_invalid_type,
-        reason = "record the started turn atomically with its active reservation"
+        reason = "record the started turn atomically with its active reservation and input delivery"
     )]
     pub(crate) async fn start_task<T: SessionTask>(
         self: &Arc<Self>,
@@ -310,14 +310,37 @@ impl Session {
         let cancellation_token = CancellationToken::new();
         let done = Arc::new(Notify::new());
 
-        let (pending_items, _) = self.input_queue.drain_mailbox_input_items().await;
-        let turn_state = {
-            let mut active = self.active_turn.lock().await;
-            self.record_started_turn(&turn_context.sub_id).await;
-            let turn = active.get_or_insert_with(ActiveTurn::default);
-            debug_assert!(turn.task.is_none());
-            Arc::clone(&turn.turn_state)
-        };
+        codex_guardian_reviewer::ReviewDenials::clear_turn(
+            &self.services.thread_extension_data,
+            &turn_context.sub_id,
+        )
+        .await;
+
+        let mut active = self.active_turn.lock().await;
+        if active
+            .as_ref()
+            .is_some_and(|turn| turn.cancelled_before_start)
+        {
+            return;
+        }
+        self.record_started_turn(&turn_context.sub_id).await;
+        let (pending_items, _, child_result_origins) = self
+            .input_queue
+            .drain_mailbox_input_items_with_origins()
+            .await;
+        if !child_result_origins.is_empty() {
+            let origins = turn_context
+                .extension_data
+                .get_or_init::<crate::agent::control::ParentAsyncResultOrigins>(
+                Default::default,
+            );
+            for origin in child_result_origins.into_iter().flatten() {
+                origins.insert(turn_context.sub_id.clone(), origin);
+            }
+        }
+        let turn = active.get_or_insert_with(ActiveTurn::default);
+        debug_assert!(turn.task.is_none());
+        let turn_state = Arc::clone(&turn.turn_state);
         turn_state.lock().await.token_usage_at_turn_start = token_usage_at_turn_start.clone();
         self.input_queue
             .extend_pending_input_for_turn_state(turn_state.as_ref(), pending_items)
@@ -329,7 +352,6 @@ impl Session {
         )
         .await;
 
-        let mut active = self.active_turn.lock().await;
         let turn = active.get_or_insert_with(ActiveTurn::default);
         debug_assert!(turn.task.is_none());
         let agent_execution_guard = self.services.agent_control.execution_guard(
@@ -447,43 +469,86 @@ impl Session {
     ///
     /// The turn is created only when the session is idle and mailbox mail either requests a turn
     /// or can wake an outstanding durable sleep.
-    pub(crate) async fn maybe_start_turn_for_pending_work_with_sub_id(
+    pub(crate) fn maybe_start_turn_for_pending_work_with_sub_id(
         self: &Arc<Self>,
         sub_id: String,
-    ) {
-        if !self.input_queue.has_pending_mailbox_items().await
-            || (!self.input_queue.has_trigger_turn_mailbox_items().await
-                && !self.has_outstanding_durable_sleep())
-        {
-            return;
-        }
-
-        let turn_state = {
-            let mut active_turn = self.active_turn.lock().await;
-            if active_turn.is_some() {
+    ) -> BoxFuture<'_, ()> {
+        Box::pin(async move {
+            if self.is_interrupted() {
                 return;
             }
-            let active_turn = active_turn.get_or_insert_with(ActiveTurn::default);
-            Arc::clone(&active_turn.turn_state)
-        };
 
-        self.services
-            .models_manager
-            .refresh_after_auth_change(self.get_config().await.http_client_factory())
-            .await;
-        // A completion-triggered wakeup can be interrupted while discovery waits.
-        if self
-            .active_turn
-            .lock()
-            .await
-            .as_ref()
-            .is_none_or(|turn| !Arc::ptr_eq(&turn.turn_state, &turn_state))
-        {
-            return;
-        }
-        let (input, mut start_options) =
-            self.input_queue.get_pending_input(&self.active_turn).await;
-        if !input.iter().any(
+            let async_result_origins = self.input_queue.pending_async_result_origins().await;
+            let candidates = async_result_origins
+                .iter()
+                .map(
+                    |(id, origin_turn_store)| codex_extension_api::AsyncResultAdmissionCandidate {
+                        id: *id,
+                        origin_turn_store,
+                    },
+                )
+                .collect::<Vec<_>>();
+            let (admitted_async_result_ids, async_result_admission_permits) = self
+                .services
+                .extensions
+                .admit_async_results(codex_extension_api::AsyncResultAdmissionInput {
+                    candidates: &candidates,
+                    thread_store: &self.services.thread_extension_data,
+                })
+                .await;
+            let has_waking_mail = self.input_queue.has_trigger_turn_mailbox_items().await
+                || (self.input_queue.has_pending_mailbox_items().await
+                    && self.has_outstanding_durable_sleep());
+            if admitted_async_result_ids.is_empty() && !has_waking_mail {
+                return;
+            }
+
+            let _admission = if has_waking_mail {
+                None
+            } else {
+                let Some(admission) = self.services.extensions.admit_turn_start() else {
+                    return;
+                };
+                Some(admission)
+            };
+
+            let turn_state = {
+                let mut active_turn = self.active_turn.lock().await;
+                if active_turn.is_some() || self.is_interrupted() {
+                    return;
+                }
+                let active_turn = active_turn.get_or_insert_with(ActiveTurn::default);
+                Arc::clone(&active_turn.turn_state)
+            };
+
+            self.services
+                .models_manager
+                .refresh_after_auth_change(self.get_config().await.http_client_factory())
+                .await;
+            // A completion-triggered wakeup can be interrupted while discovery waits.
+            if self
+                .active_turn
+                .lock()
+                .await
+                .as_ref()
+                .is_none_or(|turn| !Arc::ptr_eq(&turn.turn_state, &turn_state))
+            {
+                return;
+            }
+
+            let claimed_async_results = self
+                .input_queue
+                .claim_async_results(&admitted_async_result_ids)
+                .await;
+            let async_input = claimed_async_results
+                .iter()
+                .flat_map(|result| result.input().iter().cloned())
+                .collect::<Vec<_>>();
+            let (mut input, mut start_options, child_result_origins) =
+                self.input_queue.get_pending_input(&self.active_turn).await;
+            let rollback_child_result_origins = child_result_origins.clone();
+            input.splice(0..0, async_input);
+            if !input.iter().any(
             |item| matches!(item, TurnInput::InterAgentCommunication(mail) if mail.trigger_turn),
         ) {
             // Queue-only mail wakes durable sleep without selecting a new task's settings.
@@ -492,44 +557,88 @@ impl Session {
                 .await
                 .and_then(|context| context.cyber_access_program);
         }
-        let turn_context = self
-            .new_turn_with_default_settings(
-                sub_id,
-                NewTurnContextOptions {
-                    final_output_json_schema: start_options.final_output_json_schema,
-                    cyber_access_program: start_options.cyber_access_program,
-                },
-            )
-            .await;
-        if let Some(trigger) = start_options.turn_trigger {
-            turn_context.turn_metadata_state.set_turn_trigger(trigger);
-        }
-        if let Some(id) = start_options.parent_turn_id {
-            if let Some(initiating_agent_path) = input.iter().find_map(|item| {
-                let TurnInput::InterAgentCommunication(communication) = item else {
-                    return None;
-                };
-                communication
-                    .trigger_turn
-                    .then(|| communication.author.clone())
-            }) {
-                turn_context
-                    .turn_metadata_state
-                    .set_initiating_agent_path(initiating_agent_path);
+            let rollback_start_options = start_options.clone();
+            let turn_context = self
+                .new_turn_with_default_settings(
+                    sub_id,
+                    NewTurnContextOptions {
+                        final_output_json_schema: start_options.final_output_json_schema,
+                        cyber_access_program: start_options.cyber_access_program,
+                    },
+                )
+                .await;
+            if !child_result_origins.is_empty() {
+                let origins = turn_context
+                    .extension_data
+                    .get_or_init::<crate::agent::control::ParentAsyncResultOrigins>(
+                    Default::default,
+                );
+                for origin in child_result_origins.into_iter().flatten() {
+                    origins.insert(turn_context.sub_id.clone(), origin);
+                }
             }
-            turn_context.turn_metadata_state.set_parent_turn_id(id);
-        }
-        if let Some(id) = start_options.root_turn_id {
-            turn_context.turn_metadata_state.set_root_turn_id(id);
-        }
-        self.maybe_emit_model_warnings_for_turn(turn_context.as_ref())
-            .await;
-        // Task completion must still save this mail if pre-turn compaction fails.
-        self.input_queue
-            .extend_pending_input_for_turn_state(turn_state.as_ref(), input)
-            .await;
-        self.start_task(turn_context, Vec::new(), RegularTask::new())
-            .await;
+            if let Some(trigger) = start_options.turn_trigger {
+                turn_context.turn_metadata_state.set_turn_trigger(trigger);
+            }
+            if let Some(id) = start_options.parent_turn_id {
+                if let Some(initiating_agent_path) = input.iter().find_map(|item| {
+                    let TurnInput::InterAgentCommunication(communication) = item else {
+                        return None;
+                    };
+                    communication
+                        .trigger_turn
+                        .then(|| communication.author.clone())
+                }) {
+                    turn_context
+                        .turn_metadata_state
+                        .set_initiating_agent_path(initiating_agent_path);
+                }
+                turn_context.turn_metadata_state.set_parent_turn_id(id);
+            }
+            if let Some(id) = start_options.root_turn_id {
+                turn_context.turn_metadata_state.set_root_turn_id(id);
+            }
+            self.maybe_emit_model_warnings_for_turn(turn_context.as_ref())
+                .await;
+            // Task completion must still save this mail if pre-turn compaction fails.
+            self.input_queue
+                .extend_pending_input_for_turn_state(turn_state.as_ref(), input)
+                .await;
+            Box::pin(self.start_task(turn_context, Vec::new(), RegularTask::new())).await;
+            let start_was_cancelled = self
+                .active_turn
+                .lock()
+                .await
+                .as_ref()
+                .is_some_and(|turn| turn.task.is_none());
+            if start_was_cancelled {
+                let cancelled_input = self
+                    .input_queue
+                    .take_pending_input_for_turn_state(turn_state.as_ref())
+                    .await;
+                let async_item_count = claimed_async_results
+                    .iter()
+                    .map(|result| result.input().len())
+                    .sum::<usize>();
+                let mut child_result_origins = rollback_child_result_origins.into_iter();
+                for item in cancelled_input.into_iter().skip(async_item_count) {
+                    if let TurnInput::InterAgentCommunication(communication) = item {
+                        self.input_queue
+                            .enqueue_mailbox_communication_with_origin(
+                                communication,
+                                rollback_start_options.clone(),
+                                child_result_origins.next().flatten(),
+                            )
+                            .await;
+                    }
+                }
+                self.input_queue
+                    .restore_async_results(claimed_async_results)
+                    .await;
+                self.clear_reserved_idle_turn(&turn_state).await;
+            }
+            drop(async_result_admission_permits);
+        })
     }
 
     pub async fn abort_all_tasks(self: &Arc<Self>, reason: TurnAbortReason) {
@@ -879,6 +988,17 @@ impl Session {
             .is_some_and(|active_turn| active_turn.task.is_some())
         {
             self.mark_interrupted();
+        }
+        if matches!(
+            reason,
+            TurnAbortReason::Interrupted | TurnAbortReason::BudgetLimited
+        ) && let Some(active_turn) = active
+            .as_mut()
+            .filter(|active_turn| active_turn.task.is_none())
+        {
+            self.mark_interrupted();
+            active_turn.cancelled_before_start = true;
+            return None;
         }
         active.take()
     }

@@ -1141,6 +1141,11 @@ impl LocalAgentControl {
         }
         let mut thread_extension_init = ExtensionDataInit::new();
         thread_extension_init.insert(selected_capability_roots);
+        if let Some(origin) = options.parent_async_result_origin.clone() {
+            let origins = ParentAsyncResultOrigins::default();
+            origins.insert(origin.parent_turn_id, origin.origin);
+            thread_extension_init.insert(origins);
+        }
 
         state
             .fork_thread_with_source(
