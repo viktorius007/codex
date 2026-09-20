@@ -1223,8 +1223,17 @@ async fn background_exec_completion_starts_a_follow_up_turn_without_polling() ->
     let mut builder = test_codex();
     let test = builder.build_with_auto_env(&server).await?;
     let call_id = "uexec-completion-wakeup";
+    let temp_dir = tempfile::tempdir()?;
+    let release_fifo = temp_dir.path().join("release");
+    let mkfifo = std::process::Command::new("mkfifo")
+        .arg(&release_fifo)
+        .status()?;
+    anyhow::ensure!(mkfifo.success(), "mkfifo failed with {mkfifo}");
     let args = json!({
-        "cmd": "sleep 0.5; printf 'WAKEUP-COMPLETE'",
+        "cmd": format!(
+            "printf 'READY\\n'; read release < '{}'; printf 'WAKEUP-COMPLETE'",
+            release_fifo.display()
+        ),
         "yield_time_ms": 50,
     });
     let request_log = mount_sse_sequence(
@@ -1255,16 +1264,19 @@ async fn background_exec_completion_starts_a_follow_up_turn_without_polling() ->
         PermissionProfile::Disabled,
     )
     .await?;
-
-    let mut completed_turns = 0;
-    while completed_turns < 2 {
-        if matches!(
-            wait_for_event(&test.codex, |_| true).await,
-            EventMsg::TurnComplete(_)
-        ) {
-            completed_turns += 1;
-        }
-    }
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    tokio::time::timeout(
+        Duration::from_secs(10),
+        tokio::fs::write(&release_fifo, "release\n"),
+    )
+    .await??;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
 
     let requests = request_log.requests();
     assert_eq!(requests.len(), 3, "expected an automatic follow-up request");

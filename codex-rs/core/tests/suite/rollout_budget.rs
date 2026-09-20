@@ -13,11 +13,14 @@ use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_completed_with_tokens;
 use core_test_support::responses::ev_function_call_with_namespace;
 use core_test_support::responses::ev_response_created;
+use core_test_support::responses::mount_response_once_match;
 use core_test_support::responses::mount_sse_once_match;
 use core_test_support::responses::mount_sse_sequence;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
 use core_test_support::skip_if_no_network;
+use core_test_support::streaming_sse::StreamingSseChunk;
+use core_test_support::streaming_sse::start_streaming_sse_server;
 use core_test_support::test_codex::test_codex;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
@@ -202,12 +205,34 @@ async fn subagent_usage_draws_from_the_shared_budget() -> Result<()> {
         ]),
     )
     .await;
-    mount_sse_once_match(
-        &server,
-        |request: &wiremock::Request| wire_request_contains(request, "\"type\":\"agent_message\""),
-        sse(vec![
+    let (release_child, child_gate) = tokio::sync::oneshot::channel();
+    let (child_server, _) = start_streaming_sse_server(vec![vec![StreamingSseChunk {
+        gate: Some(child_gate),
+        body: sse(vec![
             ev_response_created("child-1"),
             ev_completed_with_tokens("child-1", /*total_tokens*/ 30),
+        ]),
+    }]])
+    .await;
+    mount_response_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            wire_request_contains(request, "\"type\":\"agent_message\"")
+                && wire_request_contains(request, CHILD_PROMPT)
+        },
+        wiremock::ResponseTemplate::new(307)
+            .insert_header("location", format!("{}/v1/responses", child_server.uri())),
+    )
+    .await;
+    let completion = mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            wire_request_contains(request, "Message Type: FINAL_ANSWER")
+                && wire_request_contains(request, "/root/budget_worker")
+        },
+        sse(vec![
+            ev_response_created("root-completion"),
+            ev_completed("root-completion"),
         ]),
     )
     .await;
@@ -247,12 +272,27 @@ async fn subagent_usage_draws_from_the_shared_budget() -> Result<()> {
 
     let mut created_threads = test.thread_manager.subscribe_thread_created();
     test.submit_turn(ROOT_PROMPT).await?;
+    release_child
+        .send(())
+        .expect("child stream should remain open");
     let child_thread_id = timeout(Duration::from_secs(10), created_threads.recv()).await??;
     let child_thread = test.thread_manager.get_thread(child_thread_id).await?;
     wait_for_event(child_thread.as_ref(), |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    assert_eq!(
+        completion
+            .requests()
+            .iter()
+            .filter(|request| request.body_contains_text("Message Type: FINAL_ANSWER"))
+            .count(),
+        1
+    );
     test.submit_turn(FOLLOW_UP_PROMPT).await?;
 
     let requests = follow_up
@@ -273,6 +313,7 @@ async fn subagent_usage_draws_from_the_shared_budget() -> Result<()> {
         Some(&rollout_budget_message(/*remaining_tokens*/ 50))
     );
 
+    child_server.shutdown().await;
     Ok(())
 }
 
