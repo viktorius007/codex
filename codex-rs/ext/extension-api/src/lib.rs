@@ -1,3 +1,4 @@
+mod async_result_admission;
 mod capabilities;
 mod contributors;
 mod registry;
@@ -10,6 +11,13 @@ mod user_instructions;
 pub use session_isolation::SessionIsolation;
 pub use tool_policy::ToolPolicy;
 
+pub use async_result_admission::AsyncResultAdmissionCandidate;
+pub use async_result_admission::AsyncResultAdmissionContributor;
+pub use async_result_admission::AsyncResultAdmissionDecision;
+pub use async_result_admission::AsyncResultAdmissionInput;
+
+pub use capabilities::AgentSpawnFuture;
+pub use capabilities::AgentSpawner;
 pub use capabilities::ConversationHistorySnapshot;
 pub use capabilities::ExtensionEventSink;
 pub use capabilities::ExtensionMetrics;

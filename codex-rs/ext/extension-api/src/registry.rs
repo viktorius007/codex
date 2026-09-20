@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use crate::ApprovalReviewContributor;
+use crate::AsyncResultAdmissionContributor;
+use crate::AsyncResultAdmissionInput;
 use crate::ConfigContributor;
 use crate::ContextContributor;
 use crate::ExtensionEventSink;
@@ -33,6 +35,7 @@ impl<C: Sync> Default for ExtensionRegistryBuilder<C> {
                 token_usage_contributors: Vec::new(),
                 skill_invocation_contributors: Vec::new(),
                 approval_review_contributors: Vec::new(),
+                async_result_admission_contributors: Vec::new(),
                 context_contributors: Vec::new(),
                 mcp_server_contributors: Vec::new(),
                 turn_input_contributors: Vec::new(),
@@ -70,6 +73,16 @@ impl<C: Sync> ExtensionRegistryBuilder<C> {
     /// Registers one approval-review contributor.
     pub fn approval_review_contributor(&mut self, contributor: Arc<dyn ApprovalReviewContributor>) {
         self.registry.approval_review_contributors.push(contributor);
+    }
+
+    /// Registers one asynchronous-result admission contributor.
+    pub fn async_result_admission_contributor(
+        &mut self,
+        contributor: Arc<dyn AsyncResultAdmissionContributor>,
+    ) {
+        self.registry
+            .async_result_admission_contributors
+            .push(contributor);
     }
 
     /// Registers one thread-lifecycle contributor.
@@ -159,6 +172,7 @@ pub struct ExtensionRegistry<C: Sync> {
     tool_lifecycle_contributors: Vec<Arc<dyn ToolLifecycleContributor>>,
     turn_item_contributors: Vec<Arc<dyn TurnItemContributor>>,
     approval_review_contributors: Vec<Arc<dyn ApprovalReviewContributor>>,
+    async_result_admission_contributors: Vec<Arc<dyn AsyncResultAdmissionContributor>>,
 }
 
 impl<C: Sync> ExtensionRegistry<C> {
@@ -180,8 +194,37 @@ impl<C: Sync> ExtensionRegistry<C> {
                 tool_lifecycle_contributors: self.tool_lifecycle_contributors.clone(),
                 turn_item_contributors: self.turn_item_contributors.clone(),
                 approval_review_contributors: self.approval_review_contributors.clone(),
+                async_result_admission_contributors: self
+                    .async_result_admission_contributors
+                    .clone(),
             },
         }
+    }
+
+    /// Returns admitted queue identities and permits held through turn reservation.
+    pub async fn admit_async_results(
+        &self,
+        input: AsyncResultAdmissionInput<'_>,
+    ) -> (Vec<u64>, Vec<Box<dyn Send>>) {
+        let mut admitted_ids = input
+            .candidates
+            .iter()
+            .map(|candidate| candidate.id)
+            .collect::<Vec<_>>();
+        let mut permits = Vec::new();
+        for contributor in &self.async_result_admission_contributors {
+            let decision = contributor
+                .decide(AsyncResultAdmissionInput {
+                    candidates: input.candidates,
+                    thread_store: input.thread_store,
+                })
+                .await;
+            admitted_ids.retain(|id| !decision.denied_ids.contains(id));
+            if let Some(permit) = decision.permit {
+                permits.push(permit);
+            }
+        }
+        (admitted_ids, permits)
     }
 
     /// Acquires the host's turn-start permit, or an empty permit for ungated hosts.
