@@ -414,3 +414,4 @@ Codex supports running connected app-server and exec-server on different operati
 - [usage-verifier.md](research/cache-repair-reports/usage-verifier.md) — Records independent verification of restored usage and active-context estimates.
 - [README.md](docs/experiments/README.md) — Provides the entry point for local engineering experiments.
 - [local-build-pipeline.md](docs/experiments/local-build-pipeline.md) — Records measured local build settings and compiler-cache experiments.
+- [Goal/async local.5 installation record](/Users/viktor/.local/lib/codex-local/0.155.1+local.5-9d738e79eeb1-84c1f583e9dd/provenance.json) — Records the installed CLI and code-mode host, source commit, checksums, installation time, build log, and rollback directory.
