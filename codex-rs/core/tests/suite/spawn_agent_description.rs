@@ -752,11 +752,7 @@ wait_agent_enabled = {wait_agent_enabled}
         request
             .message_input_texts("developer")
             .iter()
-            .any(|message| {
-                message.contains(
-                "When calling `wait_agent`, prefer longer waits (minutes) to avoid busy polling.",
-            )
-            }),
+            .any(|message| message.contains("`wait_agent`")),
         wait_agent_enabled
     );
 

@@ -4,7 +4,9 @@ use codex_utils_output_truncation::truncate_text;
 
 use super::ContextualUserFragment;
 
-const EXEC_OUTPUT_TOKENS: usize = 1_000;
+const EXEC_COMPLETION_TOKENS: usize = 1_000;
+// The truncation marker is added outside the requested content budget.
+const TRUNCATION_MARKER_TOKEN_RESERVE: usize = 32;
 
 /// Model-visible completion of a unified exec process that previously yielded.
 pub(crate) struct ExecCompletion {
@@ -20,10 +22,12 @@ impl ExecCompletion {
         output: &str,
     ) -> Self {
         let command = command.join(" ");
-        let output = truncate_text(output, TruncationPolicy::Tokens(EXEC_OUTPUT_TOKENS));
         Self {
-            body: format!(
-                "<exec-command-completed call-id=\"{call_id}\" process-id=\"{process_id}\" exit-code=\"{exit_code}\">\n<command>{command}</command>\n<output>\n{output}\n</output>\n</exec-command-completed>"
+            body: truncate_text(
+                &format!(
+                    "<exec-command-completed call-id=\"{call_id}\" process-id=\"{process_id}\" exit-code=\"{exit_code}\">\n<command>{command}</command>\n<output>\n{output}\n</output>\n</exec-command-completed>"
+                ),
+                TruncationPolicy::Tokens(EXEC_COMPLETION_TOKENS - TRUNCATION_MARKER_TOKEN_RESERVE),
             ),
         }
     }
@@ -50,3 +54,7 @@ impl ContextualUserFragment for ExecCompletion {
         ("", "")
     }
 }
+
+#[cfg(test)]
+#[path = "exec_completion_tests.rs"]
+mod tests;
