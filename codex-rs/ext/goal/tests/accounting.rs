@@ -10,8 +10,8 @@ use codex_extension_api::ToolName;
 use codex_protocol::config_types::ModeKind;
 use codex_protocol::items::AgentMessageContent;
 use codex_protocol::items::AgentMessageItem;
+use codex_protocol::items::ReasoningItem;
 use codex_protocol::items::TurnItem;
-use codex_protocol::models::MessagePhase;
 use codex_protocol::protocol::TokenUsage;
 use codex_state::ThreadGoalStatus;
 use pretty_assertions::assert_eq;
@@ -60,11 +60,11 @@ fn goal_accounting_ignores_plan_mode_turns() {
 }
 
 #[test]
-fn empty_continuations_require_three_turns_without_activity_or_goal_changes() {
+fn empty_continuations_require_three_turns_without_model_output_or_goal_changes() {
     let empty_final = TurnItem::AgentMessage(AgentMessageItem {
         id: "empty".into(),
         content: vec![AgentMessageContent::Text { text: " \n".into() }],
-        phase: Some(MessagePhase::FinalAnswer),
+        phase: Some(codex_protocol::models::MessagePhase::FinalAnswer),
         memory_citation: None,
         delivery: None,
         questions: None,
@@ -72,10 +72,9 @@ fn empty_continuations_require_three_turns_without_activity_or_goal_changes() {
     for (interruption, blocking_turn) in [
         ("none", 3),
         ("user", 6),
-        ("tool", 6),
         ("goal", 5),
         ("reset", 6),
-        ("missing final", 6),
+        ("missing final", 3),
     ] {
         let state = GoalAccountingState::default();
         for turn in 1..=blocking_turn {
@@ -94,13 +93,6 @@ fn empty_continuations_require_three_turns_without_activity_or_goal_changes() {
             if !(turn == 3 && interruption == "user") {
                 state.mark_goal_continuation(id.clone());
             }
-            if turn == 3 && interruption == "tool" {
-                state.record_tool_outcome(
-                    &id,
-                    &ToolName::plain("shell"),
-                    ToolCallOutcome::Completed { success: false },
-                );
-            }
             if turn == 3 && interruption == "reset" {
                 state.reset_empty_responses();
             }
@@ -111,6 +103,78 @@ fn empty_continuations_require_three_turns_without_activity_or_goal_changes() {
             );
             state.finish_turn(&id);
         }
+    }
+}
+
+#[test]
+fn tool_only_continuations_do_not_count_as_model_output() {
+    let state = GoalAccountingState::default();
+    for turn in 1..=3 {
+        let turn_id = turn.to_string();
+        state.start_turn(&turn_id, ModeKind::Default, &TokenUsage::default());
+        state.mark_turn_goal_active(&turn_id, "goal");
+        state.mark_goal_continuation(turn_id.clone());
+        state.record_tool_outcome(
+            &turn_id,
+            &ToolName::plain("shell"),
+            ToolCallOutcome::Completed { success: true },
+        );
+
+        assert_eq!(
+            (turn == 3).then(|| "goal".to_string()),
+            state.empty_response_goal(&turn_id),
+        );
+        state.finish_turn(&turn_id);
+    }
+}
+
+#[test]
+fn nonempty_polling_output_resets_the_empty_continuation_streak() {
+    let state = GoalAccountingState::default();
+    let polling_final = TurnItem::AgentMessage(AgentMessageItem {
+        id: "polling".into(),
+        content: vec![AgentMessageContent::Text {
+            text: "Still waiting for the process.".into(),
+        }],
+        phase: Some(codex_protocol::models::MessagePhase::FinalAnswer),
+        memory_citation: None,
+        delivery: None,
+        questions: None,
+    });
+    for turn in 1..=3 {
+        let turn_id = turn.to_string();
+        state.start_turn(&turn_id, ModeKind::Default, &TokenUsage::default());
+        state.mark_turn_goal_active(&turn_id, "goal");
+        state.mark_goal_continuation(turn_id.clone());
+        state.record_item(&turn_id, &polling_final);
+
+        assert_eq!(None, state.empty_response_goal(&turn_id));
+        state.finish_turn(&turn_id);
+    }
+}
+
+#[test]
+fn nonempty_raw_reasoning_resets_the_empty_continuation_streak() {
+    let state = GoalAccountingState::default();
+    let raw_reasoning = TurnItem::Reasoning(ReasoningItem {
+        id: "reasoning".into(),
+        summary_text: Vec::new(),
+        raw_content: vec!["Inspect the pending result.".into()],
+    });
+    for turn in 1..=6 {
+        let turn_id = turn.to_string();
+        state.start_turn(&turn_id, ModeKind::Default, &TokenUsage::default());
+        state.mark_turn_goal_active(&turn_id, "goal");
+        state.mark_goal_continuation(turn_id.clone());
+        if turn == 3 {
+            state.record_item(&turn_id, &raw_reasoning);
+        }
+
+        assert_eq!(
+            (turn == 6).then(|| "goal".to_string()),
+            state.empty_response_goal(&turn_id),
+        );
+        state.finish_turn(&turn_id);
     }
 }
 

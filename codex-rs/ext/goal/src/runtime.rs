@@ -299,6 +299,7 @@ impl GoalRuntimeHandle {
             return Ok(());
         }
 
+        let emit_empty_response_warning = matches!(&reason, ActiveGoalStopReason::EmptyResponse);
         let (event_name, status, expected_goal_id) = match reason {
             ActiveGoalStopReason::TurnError => {
                 ("turn-error", codex_state::ThreadGoalStatus::Blocked, None)
@@ -395,6 +396,13 @@ impl GoalRuntimeHandle {
             Some(turn_id.to_string()),
             goal,
         );
+        if emit_empty_response_warning {
+            self.inner.event_emitter.warning(
+                self.thread_id().to_string(),
+                turn_id,
+                "Goal blocked after three automatic continuation turns produced no model output. The goal was preserved; set its status to active to resume it.",
+            );
+        }
         Ok(())
     }
 
