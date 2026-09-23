@@ -395,7 +395,7 @@ Codex supports running connected app-server and exec-server on different operati
 - [validation-diagnosis.md](research/custom-patch-audit/validation-diagnosis.md) — Separates load-sensitive core test failures from three reproducible fixture/policy mismatches.
 - [validation-evidence.tar.gz](research/custom-patch-audit/validation-evidence.tar.gz) — Preserves raw audit reports, red replays, validation logs, baseline comparison, and build-cleanup records.
 - [validation-manifest.json](research/custom-patch-audit/validation-manifest.json) — Lists SHA-256 hashes for every archived audit and validation evidence file.
-- [candidate-provenance.json](research/custom-patch-audit/candidate-provenance.json) — Records local.7 candidate binaries, source tree, checksums, validation results, and delivery status.
+- [installation-local7.json](research/custom-patch-audit/installation-local7.json) — Records the user-approved scoped installation of local.7, binary checksums, validation limits, installation time, and local.6 rollback release.
 - [catalog-red-replay.log](research/custom-patch-audit/catalog-red-replay.log) — Preserves the coordinator's independent failing replay of the disabled-plugin regression.
 - [async-red-replay.log](research/custom-patch-audit/async-red-replay.log) — Preserves the coordinator's independent failing replay of all three terminal-completion regression cases.
 - [goal-async-workflow-analysis.md](research/goal-async-workflow-analysis.md) — Assesses Goal continuation and asynchronous result delivery, explains the empty-turn breaker, and ranks compatible repair layers with their evidence and verification limits.

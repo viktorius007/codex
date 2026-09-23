@@ -58,8 +58,12 @@ The complete workspace attempt used four test threads, but linking test executab
 
 ## Delivery and cleanup
 
-The checked pair is staged at `/Users/viktor/.local/lib/codex-local/0.156.1+local.7-1329fc249e83-57ce616cb9f2`, with provenance and the build log. The installed release remains local.6 pending the user's choice between scoped delivery, retaining the candidate, or an additional workspace build. This choice was requested under the user's explicit Pareto rule after the full-suite build hit disk exhaustion.
+The user explicitly selected scoped verification and installation of local.7 with rollback. The CLI and host were atomically activated at **2026-09-23 22:15:38 Australia/Sydney** from `/Users/viktor/.local/lib/codex-local/0.156.1+local.7-1329fc249e83-57ce616cb9f2`. Installed version, both help commands, resolved executable paths, and SHA-256 checks all passed. The installed source tree matches commit `1329fc249e`; subsequent commits record evidence only. [Installation provenance](custom-patch-audit/installation-local7.json) retains the complete validation limits and explicit delivery approval.
+
+Rollback release `/Users/viktor/.local/lib/codex-local/0.156.1+local.6-2a63855bea2a-320f2b1dd788` remains intact; both previous binary hashes were checked against its provenance before activation. Restoring the `current` symlink to that directory restores the previous CLI and host together. New launches use local.7; this operation did not restart the running harness.
 
 Run-created isolated targets and compiler artifacts were removed using recorded creation-time boundaries, preserving pre-existing files, the installed release, and all audit evidence. Free disk recovered to approximately 73 GiB. Raw validation logs, baseline failure proof, reports, and exact cleanup manifests are preserved in the hash-verified validation archive.
 
 All nine delegated agents completed. All four task worktrees and their branches were removed after checking source integration and evidence preservation. The temporary task directory was removed after verifying the archive and staged candidate hashes; the root checkout is the only remaining worktree. The pre-existing root build directory was retained except for files created by this run.
+
+Final installation cleanup check: no staging symlink or temporary provenance file remains; approximately 76 GiB free. Source fixes, version metadata, audit evidence, and installation provenance are committed on `local/customizations`.

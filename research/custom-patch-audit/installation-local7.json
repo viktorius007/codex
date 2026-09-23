@@ -1,5 +1,5 @@
 {
-  "status": "candidate-awaiting-delivery-choice",
+  "status": "installed",
   "version": "0.156.1+local.7",
   "source_commit": "1329fc249e83e83baf97b02c261b665c328871ca",
   "source_codex_rs_tree": "cc79bb5293e0b2cce986e49fda8a4ebc470f33e9",
@@ -32,6 +32,10 @@
     "scoped_lint": "passed with compiler cache bypassed",
     "cli_version": "codex-cli 0.156.1+local.7",
     "cli_and_host_help": "passed",
-    "live_provider_cache_measurement": "not run"
-  }
+    "live_provider_cache_measurement": "not run",
+    "installed_checks": "CLI version, both help commands, resolved paths and SHA-256 hashes passed; previous release hashes verified and retained."
+  },
+  "installed_at_utc": "2026-09-23T12:15:38.670936+00:00",
+  "installed_at_local": "2026-09-23T22:15:38.671175+10:00",
+  "delivery_approval": "User explicitly approved scoped verification and installation of local.7 with rollback."
 }
