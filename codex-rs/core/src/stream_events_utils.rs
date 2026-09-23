@@ -389,11 +389,23 @@ pub(crate) async fn handle_output_item_done(
                 .services
                 .executed_tool_calls
                 .observe_non_dispatched_call(&item);
-            let response = ResponseInputItem::FunctionCallOutput {
-                call_id: String::new(),
-                output: FunctionCallOutputPayload {
-                    body: FunctionCallOutputBody::Text(message),
-                    ..Default::default()
+            let response = match &item {
+                ResponseItem::ToolSearchCall {
+                    call_id: Some(call_id),
+                    execution,
+                    ..
+                } if execution == "client" => ResponseInputItem::ToolSearchOutput {
+                    call_id: call_id.clone(),
+                    status: "completed".to_string(),
+                    execution: execution.clone(),
+                    tools: Vec::new(),
+                },
+                _ => ResponseInputItem::FunctionCallOutput {
+                    call_id: String::new(),
+                    output: FunctionCallOutputPayload {
+                        body: FunctionCallOutputBody::Text(message),
+                        ..Default::default()
+                    },
                 },
             };
             record_completed_response_item(ctx.sess.as_ref(), ctx.step_context.as_ref(), &item)
