@@ -27,6 +27,8 @@
 - Use Sol for load-bearing investigation, architecture, implementation decisions, and verification; use Terra only for basic, tightly scoped work. Delegate independent work with fresh context; the coordinator owns small corrections, integration, and cleanup.
 - Use only Luna for live testing because it is the cheapest model. This overrides other model-selection guidance for live tests.
 - Assert the mechanism, not the clock: regression tests should observe exact causal events and outcomes; use timeouts only as hung-test guards, not as substitutes for synchronization or correctness assertions.
+- For Goal and asynchronous-tool workflow assessments, map the complete control flow before ranking fixes. Judge behavior from the consuming agent's perspective: timely useful results, no empty polling turns, no unwanted interruption, and no lost or duplicate completions. Prefer the smallest correct local patches with minimal internal API changes so upstream rebases remain simple; keep investigation outputs bounded.
+- For Goal and asynchronous-tool implementation, keep edits within the agreed fixes and hold incidental findings for the final response.
 - Cache repair full-suite tests are authorized. The deliverable is a trustworthy installed local binary; build and install validated milestones when this does not disrupt the running harness, preserving the previous binary and recording installation time/version.
 - Cache repair verification must cover ordinary and post-compaction cold resumes within the provider cache lifetime, checking preserved input prefixes and unchanged effective model, instructions, settings, and ordered tools separately from provider-reported cache reuse.
 
@@ -364,6 +366,7 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
+- [goal-async-workflow-analysis.md](research/goal-async-workflow-analysis.md) — Assesses Goal continuation and asynchronous result delivery, explains the empty-turn breaker, and ranks compatible repair layers with their evidence and verification limits.
 - [wait-agent-disablement-evidence.md](research/wait-agent-disablement-evidence.md) — Records the polling measurements, runtime flag behavior, source paths, live Luna probes, workflow effects, and public issue/PR evidence for disabling MultiAgentV2 `wait_agent`.
 - [wait-agent-evidence/README.md](research/wait-agent-evidence/README.md) — Defines the immutable inputs, reproduction commands, schemas, assertions, and files for the self-verifying `wait_agent` evidence bundle.
 - [wait-agent-evidence/polling-records.jsonl](research/wait-agent-evidence/polling-records.jsonl) — Stores every sanitized polling call with exact rollout, line, turn, call, outcome, timestamp, and token attribution.
