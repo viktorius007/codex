@@ -418,3 +418,4 @@ Codex supports running connected app-server and exec-server on different operati
 - [README.md](docs/experiments/README.md) — Provides the entry point for local engineering experiments.
 - [local-build-pipeline.md](docs/experiments/local-build-pipeline.md) — Records measured local build settings and compiler-cache experiments.
 - [Goal/async local.5 installation record](/Users/viktor/.local/lib/codex-local/0.155.1+local.5-9d738e79eeb1-84c1f583e9dd/provenance.json) — Records the installed CLI and code-mode host, source commit, checksums, installation time, build log, and rollback directory.
+- [Stable 0.156.1 local.6 installation record](/Users/viktor/.local/lib/codex-local/0.156.1+local.6-2a63855bea2a-320f2b1dd788/provenance.json) — Records the installed CLI and code-mode host, source commit, checksums, tests, installation time, and rollback release.
