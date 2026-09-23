@@ -797,8 +797,8 @@ async fn memories_startup_phase1_uses_live_thread_service_tier_and_detached_meta
             })
             .collect::<Vec<_>>(),
         vec![
-            (Some(1), Some(1), Some("request")),
-            (Some(1), Some(2), Some("outcome")),
+            (Some(2), Some(1), Some("request")),
+            (Some(2), Some(2), Some("outcome")),
         ]
     );
     assert_eq!(diagnostic_request["runId"], diagnostic_outcome["runId"]);

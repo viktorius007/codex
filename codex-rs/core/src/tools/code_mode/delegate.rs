@@ -353,7 +353,8 @@ impl CodeModeSessionDelegate for CodeModeCellDelegate {
                 invocation.cell_id.clone(),
             );
             // Only the worker can tell whether dispatch beats cancellation once the call is queued.
-            self.broker.dispatch_tx
+            self.broker
+                .dispatch_tx
                 .send(DispatchMessage::InvokeTool {
                     invocation,
                     step_context: Arc::downgrade(&self.step_context),

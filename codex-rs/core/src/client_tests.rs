@@ -646,7 +646,7 @@ fn websocket_incremental_reuse_tracks_raw_result_metadata() -> anyhow::Result<()
             })
             .unwrap();
         session.websocket_session.last_response_rx = Some(receiver);
-        let continuation = session.prepare_websocket_request(&current);
+        let (continuation, _continuation_report) = session.prepare_websocket_request(&current);
         assert_eq!(
             continuation.map(|continuation| (
                 continuation.response_id,

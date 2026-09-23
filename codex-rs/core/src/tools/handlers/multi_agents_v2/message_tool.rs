@@ -63,7 +63,11 @@ pub(super) async fn handle_message_string_tool(
         session
             .services
             .agent_control
-            .ensure_v2_agent_loaded(resume_config.clone(), receiver_thread_id, /*parent*/ None)
+            .ensure_v2_agent_loaded(
+                resume_config.clone(),
+                receiver_thread_id,
+                /*parent*/ None,
+            )
             .await
             .map_err(|err| collab_v2_agent_error(receiver_thread_id, err))?;
         session
@@ -79,7 +83,10 @@ pub(super) async fn handle_message_string_tool(
             .await
             .map_err(|err| collab_v2_agent_error(receiver_thread_id, err))?;
     }
-    let result = session.services.agent_control.send(SendRequest {
+    let result = session
+        .services
+        .agent_control
+        .send(SendRequest {
             caller: session.thread_id,
             target: AgentTarget::Id(receiver_thread_id),
             resume_config,
@@ -95,7 +102,8 @@ pub(super) async fn handle_message_string_tool(
                 cyber_access_program: turn.cyber_access_program,
                 ..Default::default()
             },
-        }).await;
+        })
+        .await;
     if result.is_err() && mode == MessageDeliveryMode::TriggerTurn {
         let _ = session
             .services

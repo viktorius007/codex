@@ -14,13 +14,12 @@ use crate::codex_thread::GuardianRootSnapshot;
 use crate::codex_thread::ThreadConfigSnapshot;
 use crate::config::Config;
 use crate::rollout_budget::RolloutBudgetReminder;
+use codex_extension_api::ExtensionData;
 use codex_protocol::AgentPath;
 use codex_protocol::SessionId;
 use codex_protocol::ThreadId;
 use codex_protocol::error::Result;
 use codex_protocol::protocol::AgentStatus;
-use codex_extension_api::ExtensionData;
-use std::sync::Arc;
 use codex_protocol::protocol::MultiAgentVersion;
 use codex_protocol::protocol::SessionSource;
 use codex_protocol::protocol::TokenUsage;
@@ -29,6 +28,7 @@ use codex_protocol::user_input::UserInput;
 use futures::future::BoxFuture;
 use futures::stream::BoxStream;
 use std::num::NonZeroU32;
+use std::sync::Arc;
 
 /// Initial observation followed by changes, with no gap between the two. Observation failures
 /// are errors, not terminal agent states. Backends own reconnection and reconciliation.

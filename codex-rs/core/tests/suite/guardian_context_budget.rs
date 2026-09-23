@@ -209,10 +209,10 @@ enum ReviewerResponse {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[test_case(1, ReviewerResponse::Decision; "required_context_fails_closed")]
-#[test_case(4_500, ReviewerResponse::ToolContinuation; "oversized_tool_continuation_compacts")]
-#[test_case(4_500, ReviewerResponse::FileImageContinuation; "uploaded_original_image_history_compacts")]
-#[test_case(4_500, ReviewerResponse::UncompactableContinuation; "ineffective_compaction_fails_closed")]
-#[test_case(4_500, ReviewerResponse::CompactionError; "compaction_service_error_does_not_request_user_approval")]
+#[test_case(6_000, ReviewerResponse::ToolContinuation; "oversized_tool_continuation_compacts")]
+#[test_case(6_000, ReviewerResponse::FileImageContinuation; "uploaded_original_image_history_compacts")]
+#[test_case(6_000, ReviewerResponse::UncompactableContinuation; "ineffective_compaction_fails_closed")]
+#[test_case(6_000, ReviewerResponse::CompactionError; "compaction_service_error_does_not_request_user_approval")]
 #[test_case(6_000, ReviewerResponse::NextReview; "incoming_review_compacts_existing_history")]
 async fn review_respects_complete_context_budget(
     window: i64,
@@ -333,7 +333,7 @@ async fn review_respects_complete_context_budget(
                     | ReviewerResponse::CompactionError => ev_custom_tool_call(
                         "reviewer-inspect",
                         "exec",
-                        "text('inspection-output'.repeat(600));",
+                        "text('inspection-output'.repeat(2000));",
                     ),
                     // A tiny inline image fits before upload. Its opaque original-detail file
                     // reference must reserve 10k tokens in reviewer history and force compaction.
@@ -368,11 +368,23 @@ async fn review_respects_complete_context_budget(
             | ReviewerResponse::NextReview
             | ReviewerResponse::CompactionError
     ) {
+        events.push(sse(vec![
+            ev_function_call("retry-command", "exec_command", &command),
+            ev_completed("retry-action"),
+        ]));
+        if matches!(
+            reviewer_response,
+            ReviewerResponse::UncompactableContinuation | ReviewerResponse::CompactionError
+        ) {
+            events.push(sse(vec![
+                json!({
+                    "type": "response.output_item.done",
+                    "item": {"type": "compaction", "encrypted_content": "Previous review evidence and inspection results."},
+                }),
+                ev_completed("retry-review-compaction"),
+            ]));
+        }
         events.extend([
-            sse(vec![
-                ev_function_call("retry-command", "exec_command", &command),
-                ev_completed("retry-action"),
-            ]),
             sse(vec![
                 ev_assistant_message(
                     "retry-decision",
@@ -452,7 +464,8 @@ async fn review_respects_complete_context_budget(
             reviewer_response,
             ReviewerResponse::ToolContinuation | ReviewerResponse::FileImageContinuation
         );
-        assert_eq!(requests.len(), if recovered { 4 } else { 3 });
+        let expected_requests = if recovered { 4 } else { 3 };
+        assert_eq!(requests.len(), expected_requests);
         assert_eq!(guardian_requests.len(), if recovered { 2 } else { 1 });
         if recovered {
             assert_eq!(compact_requests.len(), 1);
@@ -555,9 +568,20 @@ async fn review_respects_complete_context_budget(
                 requests
                     .last()
                     .expect("parent resumes after the retry")
-                    .function_call_output("retry-command")
+                    .function_call_output_text("retry-command")
+                    .unwrap_or_default()
             );
-            assert_eq!(compact_requests.len(), 1);
+            assert_eq!(
+                compact_requests.len(),
+                if matches!(
+                    reviewer_response,
+                    ReviewerResponse::CompactionError | ReviewerResponse::UncompactableContinuation
+                ) {
+                    2
+                } else {
+                    1
+                }
+            );
             if matches!(reviewer_response, ReviewerResponse::NextReview) {
                 let compact = &compact_requests[0];
                 assert!(

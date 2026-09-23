@@ -313,6 +313,7 @@ async fn cold_root_resume_restores_agent_identity_and_role_on_followup() -> Resu
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    worker_thread.flush_rollout().await?;
     assert!(initial_child_request.requests().iter().any(|request| {
         request.body_contains_text(INITIAL_TASK)
             && request.body_contains_text(ROLE_DEVELOPER_INSTRUCTIONS)
@@ -369,27 +370,29 @@ async fn cold_root_resume_restores_agent_identity_and_role_on_followup() -> Resu
         ]),
     )
     .await;
-    initial.submit_turn(SIBLING_PROMPT).await?;
-
     let grandchild = nested_mock.last_request().expect("grandchild").body_json();
     let nested_id = &grandchild["client_metadata"]["thread_id"];
-    let sibling_thread_id = initial
-        .thread_manager
-        .list_thread_ids()
-        .await
-        .into_iter()
-        .find(|id| ![root_thread_id, worker_thread_id].contains(id) && &json!(id) != nested_id)
-        .ok_or_else(|| anyhow::anyhow!("spawned sibling should be registered"))?;
+    let mut created_threads = initial.thread_manager.subscribe_thread_created();
+    initial.submit_turn(SIBLING_PROMPT).await?;
+    let sibling_thread_id = created_threads.recv().await?;
+    assert!(![root_thread_id, worker_thread_id].contains(&sibling_thread_id));
+    assert_ne!(&json!(sibling_thread_id), nested_id);
     let sibling_thread = initial.thread_manager.get_thread(sibling_thread_id).await?;
     wait_for_event(sibling_thread.as_ref(), |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
     sibling_thread.flush_rollout().await?;
-    worker_thread.flush_rollout().await?;
     initial.codex.flush_rollout().await?;
     sibling_thread.shutdown_and_wait().await?;
-    worker_thread.shutdown_and_wait().await?;
+    if initial
+        .thread_manager
+        .list_thread_ids()
+        .await
+        .contains(&worker_thread_id)
+    {
+        worker_thread.shutdown_and_wait().await?;
+    }
     drop(sibling_thread);
     drop(worker_thread);
     drop(worker_completion);

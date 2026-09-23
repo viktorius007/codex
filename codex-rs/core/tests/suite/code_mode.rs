@@ -2306,7 +2306,8 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
         original_output["internal_chat_message_metadata_passthrough"]["tool_calls_complete"],
         true
     );
-    // The next call uses an extension-owned binding, but the held call keeps its host proof.
+    // The held call keeps its host proof. A later call from the sampled cell must not switch
+    // to the replacement server merely because the runtime was refreshed underneath it.
     *control.server.lock().unwrap() = McpServerContribution::Set {
         name: CODEX_APPS_MCP_SERVER_NAME.to_string(),
         config: Box::new(codex_apps_mcp_server_config(
@@ -2330,7 +2331,7 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
     test.submit_turn("Wait for the accepted app result").await?;
     let request = wait.completion.single_request();
     assert_eq!(recorded_apps_tool_calls(&server).await.len(), 1);
-    assert_eq!(recorded_apps_tool_calls(&refreshed_server).await.len(), 1);
+    assert_eq!(recorded_apps_tool_calls(&refreshed_server).await.len(), 0);
     assert!(
         !request
             .body_json()

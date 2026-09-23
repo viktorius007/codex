@@ -2105,8 +2105,7 @@ impl ModelClientSession {
             if let Some(turn_state) = self.turn_state.get() {
                 client_metadata.insert(X_CODEX_TURN_STATE_HEADER.to_string(), turn_state.clone());
             }
-            let (continuation, continuation_report) =
-                self.prepare_websocket_request(&request);
+            let (continuation, continuation_report) = self.prepare_websocket_request(&request);
             let (mode, reason) = if continuation.is_some() {
                 ("incremental", "incremental")
             } else {

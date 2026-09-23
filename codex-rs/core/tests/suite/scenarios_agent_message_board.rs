@@ -227,6 +227,7 @@ async fn board_is_shared_with_children_survives_resume_and_skips_idle_notices() 
             ),
             done(),
             done(),
+            done(),
         ],
     )
     .await;
@@ -241,6 +242,12 @@ async fn board_is_shared_with_children_survives_resume_and_skips_idle_notices() 
         .expect("child runtime");
     let child = root.thread_manager.get_thread(child_id).await?;
     wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    // Finishing the worker starts a root completion turn. Let that turn consume
+    // its response before mounting the child's next response sequence.
+    wait_for_event(&root.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
     let child_post = responses::mount_sse_sequence(
         &server,
         vec![

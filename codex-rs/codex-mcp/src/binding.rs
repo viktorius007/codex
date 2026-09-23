@@ -226,7 +226,7 @@ impl PreparedMcpCall {
             && self.tool_info.tool.name == current.tool_info.tool.name
             && Arc::ptr_eq(&self.client.client, &current.client.client)
             && Arc::ptr_eq(&self.client.tool_catalog, &current.client.tool_catalog)
-            && self.catalog_revision == current.catalog_revision
+            && self.catalog_snapshot.revision == current.catalog_snapshot.revision
             && self.config.as_ref() == current.config.as_ref()
     }
 

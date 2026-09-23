@@ -1766,13 +1766,11 @@ impl Session {
                 .history
                 .set_token_info_and_accepted_usage(token_info, accepted_token_usage);
             state.latest_token_usage_record = latest_token_usage_record;
-            state
-                .history
-                .restore_review_context(
-                    Some(&retained_context),
-                    guardian_history.as_ref(),
-                    reviewer_compaction_hash.as_deref(),
-                );
+            state.history.restore_review_context(
+                Some(&retained_context),
+                guardian_history.as_ref(),
+                reviewer_compaction_hash.as_deref(),
+            );
             if let Some(world_state) = world_state_baseline {
                 state.history.set_world_state_baseline(world_state);
             }

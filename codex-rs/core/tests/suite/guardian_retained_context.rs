@@ -238,7 +238,13 @@ async fn compact_and_assert_answers(
     // Inspect live state by persisting a real compaction checkpoint, not a private getter.
     // Repeating this after legacy rollback replay also catches checkpoint resurrection.
     thread.submit(Op::Compact).await?;
-    wait_for_event(thread, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    loop {
+        match thread.next_event().await?.msg {
+            EventMsg::TurnComplete(_) => break,
+            EventMsg::Error(error) => anyhow::bail!("compaction failed: {error:?}"),
+            _ => {}
+        }
+    }
     thread.flush_rollout().await?;
     let history = load_context(test, thread).await?;
     let checkpoint = history
@@ -1010,6 +1016,20 @@ async fn standalone_fork_retains_inherited_user_instructions(
             sse(vec![ev_completed("worker-complete")]),
         ],
     ).await;
+    let root_id = test.codex.startup_metadata().thread_id.to_string();
+    mount_sse_once_match(
+        &server,
+        move |request: &wiremock::Request| {
+            request
+                .headers
+                .get("thread-id")
+                .and_then(|value| value.to_str().ok())
+                == Some(root_id.as_str())
+                && String::from_utf8_lossy(&request.body).contains("Sender: /root/worker")
+        },
+        sse(vec![ev_completed("root-completion-wake")]),
+    )
+    .await;
     test.codex
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: instruction.clone(),
@@ -1033,7 +1053,20 @@ async fn standalone_fork_retains_inherited_user_instructions(
     } else {
         "Ask me before publishing.".to_owned()
     };
-    mount_sse_sequence(&server, vec![sse(vec![ev_completed("local-instruction")])]).await;
+    let worker_id = worker.startup_metadata().thread_id.to_string();
+    mount_sse_once_match(
+        &server,
+        move |request: &wiremock::Request| {
+            request
+                .headers
+                .get("thread-id")
+                .and_then(|value| value.to_str().ok())
+                == Some(worker_id.as_str())
+                && String::from_utf8_lossy(&request.body).contains("Ask me before publishing.")
+        },
+        sse(vec![ev_completed("local-instruction")]),
+    )
+    .await;
     worker
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: local_instruction.clone(),
@@ -1043,12 +1076,20 @@ async fn standalone_fork_retains_inherited_user_instructions(
     wait_for_event(&worker, |event| matches!(event, EventMsg::TurnComplete(_))).await;
     if compacted {
         // Local compaction keeps the inherited source message in replacement history.
-        mount_sse_sequence(
+        let worker_id = worker.startup_metadata().thread_id.to_string();
+        mount_sse_once_match(
             &server,
-            vec![sse(vec![
+            move |request: &wiremock::Request| {
+                request
+                    .headers
+                    .get("thread-id")
+                    .and_then(|value| value.to_str().ok())
+                    == Some(worker_id.as_str())
+            },
+            sse(vec![
                 ev_assistant_message("worker-summary", "Inspected the project."),
                 ev_completed("worker-compacted"),
-            ])],
+            ]),
         )
         .await;
         compact_and_assert_answers(&test, &worker, &[]).await?;

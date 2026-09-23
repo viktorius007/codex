@@ -2097,7 +2097,7 @@ dependencies = [
 
 [[package]]
 name = "codex-agent-message-board-extension"
-version = "0.0.0"
+version = "0.156.1+local.6"
 dependencies = [
  "base64 0.22.1",
  "caseless",
@@ -2589,6 +2589,23 @@ dependencies = [
  "cc",
  "libc",
  "pkg-config",
+]
+
+[[package]]
+name = "codex-cache-diagnostics"
+version = "0.156.1+local.6"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "codex-api",
+ "codex-protocol",
+ "hmac 0.12.1",
+ "pretty_assertions",
+ "rand 0.9.3",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
 ]
 
 [[package]]
@@ -3611,7 +3628,7 @@ dependencies = [
 
 [[package]]
 name = "codex-guardian-reviewer"
-version = "0.0.0"
+version = "0.156.1+local.6"
 dependencies = [
  "anyhow",
  "codex-analytics",
@@ -4052,7 +4069,7 @@ dependencies = [
 
 [[package]]
 name = "codex-mermaid"
-version = "0.0.0"
+version = "0.156.1+local.6"
 dependencies = [
  "insta",
  "pretty_assertions",
@@ -4700,7 +4717,7 @@ dependencies = [
 
 [[package]]
 name = "codex-tcp-tunnel"
-version = "0.0.0"
+version = "0.156.1+local.6"
 dependencies = [
  "anyhow",
  "bytes",
@@ -4943,7 +4960,7 @@ dependencies = [
 
 [[package]]
 name = "codex-user-verification"
-version = "0.0.0"
+version = "0.156.1+local.6"
 dependencies = [
  "base64 0.22.1",
  "core-foundation 0.10.1",

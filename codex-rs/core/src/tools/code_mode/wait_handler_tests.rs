@@ -34,10 +34,7 @@ struct SequencedSessionProvider {
 }
 
 impl CodeModeSessionProvider for SequencedSessionProvider {
-    fn create_session<'a>(
-        &'a self,
-        _delegate: Arc<dyn CodeModeSessionDelegate>,
-    ) -> CodeModeSessionProviderFuture<'a> {
+    fn create_session(&self) -> CodeModeSessionProviderFuture<'_> {
         let session: Arc<dyn CodeModeSession> = self.session.clone();
         Box::pin(async move { Ok(session) })
     }
@@ -53,6 +50,7 @@ impl CodeModeSession for SequencedSession {
     fn execute<'a>(
         &'a self,
         _request: ExecuteRequest,
+        _delegate: Arc<dyn CodeModeSessionDelegate>,
     ) -> CodeModeSessionResultFuture<'a, StartedCell> {
         Box::pin(async { Err("test session cannot execute cells".to_string()) })
     }
@@ -98,6 +96,7 @@ async fn empty_timed_yields_stay_inside_one_wait_until_useful_output() -> anyhow
     });
     let (mut session, turn) = make_session_and_context().await;
     session.services.code_mode_service = CodeModeService::new(
+        session.thread_id,
         Arc::new(SequencedSessionProvider {
             session: Arc::clone(&runtime),
         }),

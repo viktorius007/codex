@@ -4,8 +4,6 @@ use super::TurnInput as PendingTurnInput;
 use super::session::Session;
 use super::turn_context::TurnContext;
 use codex_analytics::ImagePreparationMetadata;
-use crate::state::ActiveTurn;
-use crate::tasks::RegularTask;
 use codex_extension_api::ExtensionData;
 use codex_features::Feature;
 use codex_history::CodexHarnessMetadata;

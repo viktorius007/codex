@@ -342,7 +342,7 @@ pub(crate) async fn run_turn(
         sess.services
             .thread_extension_data
             .insert(crate::guardian::ExhaustedReviewBudget::Compacting);
-        run_auto_compact(
+        if let Err(err) = run_auto_compact(
             &sess,
             Arc::clone(&first_step_context),
             /*fallback_step_context*/ None,
@@ -351,7 +351,15 @@ pub(crate) async fn run_turn(
             CompactionReason::ContextLimit,
             CompactionPhase::PreTurn,
         )
-        .await?;
+        .await
+        {
+            // The compaction request can clear the marker before its service call fails.
+            // Keep the failed reviewer out of the reusable session pool.
+            sess.services
+                .thread_extension_data
+                .insert(crate::guardian::ExhaustedReviewBudget::Compacting);
+            return Err(err);
+        }
         world_state = sess
             .record_context_updates_and_set_reference_context_item(first_step_context.as_ref())
             .await?;
@@ -639,11 +647,20 @@ pub(crate) async fn run_turn(
                         if matches!(err.details(), CodexErrorDetails::TurnAborted) {
                             return Err(err);
                         }
+                        if crate::guardian::is_basic_session_source(&turn_context.session_source) {
+                            // A remote compaction error cannot leave this reviewer reusable.
+                            sess.services
+                                .thread_extension_data
+                                .insert(crate::guardian::ExhaustedReviewBudget::Compacting);
+                        }
                         let error = err.to_codex_protocol_error();
                         sess.emit_turn_error_lifecycle(turn_context.as_ref(), error.clone())
                             .await;
                         return Ok(None);
                     }
+                    // This model step has already compacted. If the summary still exceeds a
+                    // Guardian review budget, fail closed instead of retrying compaction.
+                    guardian_budget_compacted = true;
                     if run_pending_session_start_hooks(&sess, &turn_context).await {
                         return Ok(None);
                     }
@@ -765,7 +782,7 @@ pub(crate) async fn run_turn(
                 sess.services
                     .thread_extension_data
                     .insert(crate::guardian::ExhaustedReviewBudget::Compacting);
-                run_auto_compact(
+                if let Err(err) = run_auto_compact(
                     &sess,
                     Arc::clone(&step_context),
                     /*fallback_step_context*/ None,
@@ -777,7 +794,14 @@ pub(crate) async fn run_turn(
                     CompactionReason::ContextLimit,
                     CompactionPhase::MidTurn,
                 )
-                .await?;
+                .await
+                {
+                    // The compaction request can clear the marker before its service call fails.
+                    sess.services
+                        .thread_extension_data
+                        .insert(crate::guardian::ExhaustedReviewBudget::Compacting);
+                    return Err(err);
+                }
                 can_drain_pending_input = false;
                 continue;
             }

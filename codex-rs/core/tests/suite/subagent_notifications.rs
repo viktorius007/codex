@@ -3034,6 +3034,10 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn() -> R
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
 
     let requester_spawn_args = serde_json::to_string(&json!({
         "message": REQUESTER_TASK,

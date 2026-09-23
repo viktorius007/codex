@@ -21,6 +21,18 @@ path = "junit.xml"
 [profile.local]
 inherits = "default"
 
+[[profile.local.overrides]]
+# These cases exercise a large MCP visibility matrix or several shell snapshot
+# subprocesses. On this machine they can exceed the default one-minute limit.
+filter = 'package(codex-core) & (test(code_mode_excludes_mcp_servers_using_their_configured_identity) | test(mcp_code_mode_exclusion_does_not_change_direct_mode_tool_exposure) | test(snapshot_discovers_and_restores_inherited_credential_aliases))'
+slow-timeout = { period = "1m", terminate-after = 5 }
+
+[[profile.local.overrides]]
+# This integration test clones the upstream official plugin marketplace; the
+# network fetch took 57 seconds in the first full run on this machine.
+filter = 'package(codex-external-agent-migration) & test(import_plugins_infers_external_official_marketplace_when_missing_from_settings)'
+slow-timeout = { period = "1m", terminate-after = 5 }
+
 [test-groups.app_server_protocol_codegen]
 max-threads = 1
 

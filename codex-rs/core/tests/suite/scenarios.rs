@@ -422,7 +422,9 @@ async fn astra_kickoff_with_skills_plugins_and_remote_compaction() -> Result<()>
         context_snapshot::format_request_history_snapshot(
             "Astra plans a kickoff with local and plugin skills, remotely compacts, and checks an image brief.",
             &requests,
-            &ContextSnapshotOptions::default().include_request_settings(),
+            &ContextSnapshotOptions::default()
+                .rewrite_known_segments()
+                .include_request_settings(),
         )
     );
     Ok(())
@@ -884,7 +886,9 @@ async fn astra_refreshes_plugin_tools_and_skills_in_an_existing_thread() -> Resu
         context_snapshot::format_request_history_snapshot(
             "Astra checks for Notes, refreshes its installed plugin without restarting, and uses the new skill and Code Mode MCP tool across turns.",
             &mock.requests(),
-            &ContextSnapshotOptions::default().include_request_settings(),
+            &ContextSnapshotOptions::default()
+                .rewrite_known_segments()
+                .include_request_settings(),
         )
     );
     Ok(())

@@ -239,6 +239,7 @@ async fn child_turn_start_preserves_root_attribution() -> Result<()> {
     )
     .await;
     let worker = mount_completed_worker(&server, FIRST_TASK, "first-call").await;
+    mount_parent_completion_wake(&server, "first", "first-call").await;
     let test = test_codex()
         .with_model("gpt-5.6-sol")
         .with_config(|config| {
@@ -248,6 +249,10 @@ async fn child_turn_start_preserves_root_attribution() -> Result<()> {
         .build_with_auto_env(&server)
         .await?;
     test.submit_turn(FIRST_PROMPT).await?;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
     let thread_ids = test.thread_manager.list_thread_ids().await;
     assert_eq!(thread_ids.len(), 2);
     let mut starts = Vec::new();
@@ -265,18 +270,36 @@ async fn child_turn_start_preserves_root_attribution() -> Result<()> {
         }
     }
     worker.single_request();
-    assert_eq!(starts.len(), 2);
-    assert_ne!(starts[0].1.turn_id, starts[1].1.turn_id);
-    let root_turn_id = &starts
-        .iter()
-        .find(|(id, _)| *id == test.session_configured.thread_id)
-        .expect("root turn")
-        .1
-        .turn_id;
-    assert!(
+    assert_eq!(starts.len(), 3);
+    assert_eq!(
         starts
             .iter()
-            .all(|(_, event)| { event.root_turn_id.as_ref() == Some(root_turn_id) })
+            .filter(|(id, _)| *id == test.session_configured.thread_id)
+            .count(),
+        2
+    );
+    let root_starts = starts
+        .iter()
+        .filter(|(id, _)| *id == test.session_configured.thread_id)
+        .map(|(_, event)| event)
+        .collect::<Vec<_>>();
+    assert_ne!(root_starts[0].turn_id, root_starts[1].turn_id);
+    let child_start = starts
+        .iter()
+        .find(|(id, _)| *id != test.session_configured.thread_id)
+        .map(|(_, event)| event)
+        .expect("child turn");
+    assert_eq!(
+        child_start.root_turn_id.as_ref(),
+        Some(&root_starts[0].turn_id)
+    );
+    assert_eq!(
+        root_starts[0].root_turn_id.as_ref(),
+        Some(&root_starts[0].turn_id)
+    );
+    assert_eq!(
+        root_starts[1].root_turn_id.as_ref(),
+        Some(&root_starts[1].turn_id)
     );
     Ok(())
 }

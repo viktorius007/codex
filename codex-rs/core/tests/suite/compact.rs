@@ -4763,7 +4763,7 @@ async fn auto_compact_body_after_prefix_counts_growth_after_compaction() {
     test.submit_turn("WINDOW_PREFIX")
         .await
         .expect("submit first turn");
-    test.submit_turn("GROWTH_AFTER_COMPACT")
+    test.submit_turn(&"GROWTH_AFTER_COMPACT ".repeat(16))
         .await
         .expect("submit second turn");
 
@@ -4785,7 +4785,7 @@ async fn auto_compact_body_after_prefix_counts_growth_after_compaction() {
         "the first server-observed input in the new window should become the prefill baseline"
     );
 
-    test.submit_turn("AFTER_GROWTH_TRIGGER")
+    test.submit_turn(&"AFTER_GROWTH_TRIGGER ".repeat(16))
         .await
         .expect("submit fourth turn");
 

@@ -16,8 +16,6 @@ pub use async_result_admission::AsyncResultAdmissionContributor;
 pub use async_result_admission::AsyncResultAdmissionDecision;
 pub use async_result_admission::AsyncResultAdmissionInput;
 
-pub use capabilities::AgentSpawnFuture;
-pub use capabilities::AgentSpawner;
 pub use capabilities::ConversationHistorySnapshot;
 pub use capabilities::ExtensionEventSink;
 pub use capabilities::ExtensionMetrics;

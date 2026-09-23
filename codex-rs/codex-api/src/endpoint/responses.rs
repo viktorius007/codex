@@ -96,6 +96,12 @@ impl<T: HttpTransport> ResponsesClient<T> {
         self
     }
 
+    /// Selects the Responses-compatible route used for this client.
+    pub fn with_endpoint(mut self, endpoint: ResponsesEndpoint) -> Self {
+        self.endpoint = endpoint;
+        self
+    }
+
     #[instrument(
         name = "responses.stream_request",
         level = "info",

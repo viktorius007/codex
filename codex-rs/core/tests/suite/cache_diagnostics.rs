@@ -160,7 +160,7 @@ fn assert_two_linked_attempts(
         .expect("diagnostic record should carry a run id");
     assert!(!run_id.is_empty());
     for record in records {
-        assert_eq!(record["schemaVersion"], 1);
+        assert_eq!(record["schemaVersion"], 2);
         assert_eq!(record["runId"], run_id);
         assert!(
             record["attemptId"]

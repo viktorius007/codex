@@ -420,6 +420,7 @@ async fn guardian_subagent_review_preserves_late_root_user_authorization(
             is_root_request(request, root_thread_id)
                 && contains_text(request, "Sender: /root/worker")
                 && contains_text(request, "Waiting for user authorization.")
+                && !contains_text(request, USER_APPROVAL)
         },
         sse(vec![ev_completed("response-root-completion-wake")]),
     )
@@ -479,11 +480,13 @@ async fn guardian_subagent_review_preserves_late_root_user_authorization(
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
-    wait_for_event(&test.codex, |event| {
-        matches!(event, EventMsg::TurnComplete(_))
-    })
-    .await;
-    // Finish the automatic parent wake before injecting the retained-history fixture.
+    if !cancel_call {
+        wait_for_event(&test.codex, |event| {
+            matches!(event, EventMsg::TurnComplete(_))
+        })
+        .await;
+    }
+    // Finish the automatic parent wake when the root turn was not interrupted.
     // Exceed both the retained-record storage cap and the reviewer text budget.
     let oversized_instruction = "Root instruction 0. ".repeat(1_000);
     // Streaming commentary could be preempted by the worker's completion notice
@@ -586,7 +589,7 @@ async fn guardian_subagent_review_preserves_late_root_user_authorization(
         ]),
     )
     .await;
-    mount_completion(&server, root_thread_id, FOLLOWUP_CALL_ID).await;
+    let followup_completion = mount_completion(&server, root_thread_id, FOLLOWUP_CALL_ID).await;
     let worker_review_request = mount_sse_once_match(
         &server,
         move |request: &wiremock::Request| {
@@ -691,7 +694,7 @@ async fn guardian_subagent_review_preserves_late_root_user_authorization(
         })
         .await?;
     wait_for_event(&test.codex, |event| {
-        matches!(event, EventMsg::TurnComplete(_))
+        matches!(event, EventMsg::TurnComplete(_)) && !followup_completion.requests().is_empty()
     })
     .await;
     wait_for_event(worker_thread.as_ref(), |event| {
