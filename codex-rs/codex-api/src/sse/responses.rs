@@ -671,6 +671,7 @@ async fn process_sse_with_treatment(
             return;
         }
 
+        let is_failed = event.kind() == "response.failed";
         match process_responses_event(event) {
             Ok(Some(event)) => {
                 let is_completed = matches!(event, ResponseEvent::Completed { .. });
@@ -683,7 +684,12 @@ async fn process_sse_with_treatment(
             }
             Ok(None) => {}
             Err(error) => {
-                response_error = Some(error.into_api_error());
+                let error = error.into_api_error();
+                if is_failed {
+                    let _ = tx_event.send(Err(error)).await;
+                    return;
+                }
+                response_error = Some(error);
             }
         };
     }
@@ -1171,6 +1177,37 @@ mod tests {
                 _ => panic!("unexpected events for {code}: {events:?}"),
             }
         }
+    }
+
+    #[tokio::test]
+    async fn failed_response_keeps_terminal_classification_when_transport_fails_afterward() {
+        let failed = json!({
+            "type": "response.failed",
+            "response": {
+                "id": "resp-quota",
+                "status": "failed",
+                "error": { "code": "insufficient_quota", "message": "Quota exceeded." }
+            }
+        });
+        let body = format!("event: response.failed\ndata: {failed}\n\n");
+        let stream = stream::iter([
+            Ok(bytes::Bytes::from(body)),
+            Err(TransportError::Network(
+                "transport failed after terminal response".to_string(),
+            )),
+        ]);
+        let (tx, mut rx) = mpsc::channel(2);
+
+        process_sse(
+            Box::pin(stream),
+            tx,
+            idle_timeout(),
+            /*telemetry*/ None,
+        )
+        .await;
+
+        assert_matches!(rx.recv().await, Some(Err(ApiError::QuotaExceeded)));
+        assert!(rx.recv().await.is_none());
     }
 
     #[tokio::test]
