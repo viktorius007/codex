@@ -6,6 +6,7 @@ use crate::exec::ExecExpiration;
 use crate::sandboxing::ExecRequest;
 use crate::session::session::Session;
 use crate::session::tests::make_session_and_context;
+use crate::session::tests::make_session_and_context_with_rx;
 use crate::session::turn_context::TurnContext;
 use crate::tools::context::ExecCommandToolOutput;
 use crate::unified_exec::WriteStdinRequest;
@@ -684,8 +685,12 @@ async fn terminating_initial_exec_command_rechecks_initial_response_state() -> a
     Ok(())
 }
 
+#[test_case::test_case(false; "normal_exit")]
+#[test_case::test_case(true; "removed_before_exit")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Result<()> {
+async fn terminal_write_stdin_does_not_leave_exec_completion_armed(
+    remove_before_exit: bool,
+) -> anyhow::Result<()> {
     let (session, turn) = test_session_and_turn().await;
     let manager = &session.services.unified_exec_manager;
     let process_id = manager.allocate_process_id().await;
@@ -700,6 +705,7 @@ async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
     #[allow(deprecated)]
     let cwd = turn.cwd.clone();
     let last_used = Instant::now() - Duration::from_secs(1);
+    let wake_on_exit = Arc::new(std::sync::atomic::AtomicBool::new(true));
     manager.process_store.lock().await.processes.insert(
         process_id,
         ProcessEntry {
@@ -709,7 +715,7 @@ async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
             process_id,
             cwd: cwd.into(),
             initial_exec_command_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            wake_on_exit: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            wake_on_exit: Arc::clone(&wake_on_exit),
             hook_command: "sleep 60".to_string(),
             tty: true,
             environment_id: codex_exec_server::LOCAL_ENVIRONMENT_ID.to_string(),
@@ -757,7 +763,9 @@ async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
     .await
     .expect("poll should clone process handles");
 
-    manager.release_process_id(process_id).await;
+    if remove_before_exit {
+        manager.release_process_id(process_id).await;
+    }
     allow_terminate.notify_one();
     process.terminate_confirmed().await?;
 
@@ -767,7 +775,148 @@ async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
         .expect("poll task should not panic")?;
     assert_eq!(output.process_id, None);
     assert!(manager.process_store.lock().await.processes.is_empty());
+    assert!(
+        !wake_on_exit.load(std::sync::atomic::Ordering::Acquire),
+        "terminal write_stdin output must disarm the background completion watcher"
+    );
 
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn terminal_write_stdin_does_not_queue_duplicate_exec_completion() -> anyhow::Result<()> {
+    let (session, turn, rx_event) = make_session_and_context_with_rx().await;
+    let manager = &session.services.unified_exec_manager;
+    let process_id = manager.allocate_process_id().await;
+    let (writer_tx, _writer_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1);
+    let (stdout_tx, stdout_rx) = tokio::sync::broadcast::channel::<Vec<u8>>(8);
+    let (exit_tx, exit_rx) = tokio::sync::oneshot::channel::<i32>();
+    let spawned = codex_utils_pty::spawn_from_driver(codex_utils_pty::ProcessDriver {
+        writer_tx,
+        stdout_rx,
+        stderr_rx: None,
+        exit_rx,
+        terminator: None,
+        writer_handle: None,
+        resizer: None,
+        #[cfg(windows)]
+        tty: false,
+    });
+    let process = Arc::new(
+        UnifiedExecProcess::from_spawned(spawned, SandboxType::None, Box::new(NoopSpawnLifecycle))
+            .await?,
+    );
+    let context = UnifiedExecContext::new(
+        Arc::clone(&session),
+        crate::session::step_context::StepContext::for_test(Arc::clone(&turn)),
+        tokio_util::sync::CancellationToken::new(),
+        "exec-call".to_string(),
+    );
+    let transcript = Arc::new(tokio::sync::Mutex::new(
+        crate::unified_exec::head_tail_buffer::HeadTailBuffer::default(),
+    ));
+    crate::unified_exec::async_watcher::start_streaming_output(
+        &process,
+        &context,
+        Arc::clone(&transcript),
+    );
+    let wake_on_exit = Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let interaction_lock = process.interaction_lock();
+    #[allow(deprecated)]
+    let cwd = turn.cwd.clone();
+    let last_used = Instant::now() - Duration::from_secs(1);
+    manager.process_store.lock().await.processes.insert(
+        process_id,
+        ProcessEntry {
+            process: Arc::clone(&process),
+            plugin_metrics_sidecar: None,
+            call_id: context.call_id.clone(),
+            process_id,
+            cwd: cwd.clone().into(),
+            initial_exec_command_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            wake_on_exit: Arc::clone(&wake_on_exit),
+            hook_command: "controlled process".to_string(),
+            tty: false,
+            environment_id: codex_exec_server::LOCAL_ENVIRONMENT_ID.to_string(),
+            permissions: TerminalPermissions::for_launch(
+                turn.initial_environments
+                    .primary()
+                    .expect("turn environment"),
+                &turn,
+                TerminalSandboxSource::Native,
+                SandboxPermissions::UseDefault,
+                /*additional_permissions*/ None,
+                /*internal_permissions*/ None,
+            ),
+            network_approval: None,
+            session: Arc::downgrade(&session),
+            last_used,
+        },
+    );
+    crate::unified_exec::async_watcher::spawn_exit_watcher(
+        Arc::clone(&process),
+        &context,
+        vec!["controlled process".to_string()],
+        cwd.into(),
+        process_id,
+        None,
+        transcript,
+        Instant::now(),
+        None,
+        None,
+        wake_on_exit,
+    );
+    session.mark_interrupted();
+
+    let poll_task = tokio::spawn({
+        let session = Arc::clone(&session);
+        let turn = Arc::clone(&turn);
+        async move { write_stdin(&session, &turn, process_id, "", 60_000).await }
+    });
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            if manager
+                .process_store
+                .lock()
+                .await
+                .processes
+                .get(&process_id)
+                .is_some_and(|entry| entry.last_used != last_used)
+            {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("write_stdin should begin polling while process is live");
+    exit_tx.send(0).expect("signal process exit");
+    drop(stdout_tx);
+    let output = tokio::time::timeout(Duration::from_secs(2), poll_task)
+        .await
+        .expect("write_stdin should finish")
+        .expect("write_stdin task should not panic")?;
+    assert_eq!(output.process_id, None);
+
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            if matches!(rx_event.recv().await.expect("event channel").msg,
+                codex_protocol::protocol::EventMsg::ExecCommandEnd(event)
+                    if event.call_id == context.call_id)
+            {
+                break;
+            }
+        }
+    })
+    .await
+    .expect("watcher should emit terminal event");
+    // The watcher holds this mutex through both ExecCommandEnd and completion injection.
+    let _watcher_finished = interaction_lock.lock_owned().await;
+    assert_eq!(
+        session.input_queue.drain_next_async_results().await,
+        Vec::<crate::session::TurnInput>::new(),
+        "terminal write_stdin already delivered exit; watcher must not enqueue it again"
+    );
     Ok(())
 }
 

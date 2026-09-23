@@ -883,7 +883,7 @@ impl UnifiedExecProcessManager {
         // Different terminal sessions can be polled concurrently, but reads and
         // writes against one terminal must not overlap because they share a
         // draining output buffer and process lifecycle.
-        let locked_process = {
+        let (locked_process, wake_on_exit) = {
             let store = self.process_store.lock().await;
             let entry = store
                 .processes
@@ -893,7 +893,7 @@ impl UnifiedExecProcessManager {
             if let Some(call_id) = trace_id(&entry.call_id) {
                 tracing::Span::current().record("original_exec_call_id", call_id);
             }
-            Arc::clone(&entry.process)
+            (Arc::clone(&entry.process), Arc::clone(&entry.wake_on_exit))
         };
         let _interaction_guard = locked_process.interaction_lock().lock_owned().await;
         // A queued write must observe strict review enabled while it was waiting.
@@ -1122,6 +1122,10 @@ impl UnifiedExecProcessManager {
             session
                 .send_event(turn.as_ref(), EventMsg::TerminalInteraction(interaction))
                 .await;
+        }
+
+        if response.process_id.is_none() {
+            wake_on_exit.store(false, Ordering::Release);
         }
 
         Ok(response)
