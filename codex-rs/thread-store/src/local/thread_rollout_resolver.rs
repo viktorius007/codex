@@ -8,6 +8,8 @@ use std::path::PathBuf;
 
 use codex_protocol::ThreadId;
 use codex_protocol::protocol::ThreadHistoryMode;
+use codex_rollout::ARCHIVED_SESSIONS_SUBDIR;
+use codex_rollout::SESSIONS_SUBDIR;
 use codex_rollout::find_archived_thread_path_by_id_str;
 use codex_rollout::find_thread_path_by_id_str;
 
@@ -92,19 +94,46 @@ async fn resolve(
                 // authoritative: after `thread/revert`, a scan could find an older immutable
                 // rollout for the same thread. Filesystem fallback remains available when SQLite
                 // has no row or identifies the thread as legacy.
-                if let Some(path) =
-                    codex_rollout::existing_rollout_path(metadata.rollout_path.as_path()).await
-                {
+                let selected_path =
+                    codex_rollout::existing_rollout_path(metadata.rollout_path.as_path()).await;
+                if let Some(path) = selected_path.as_ref() {
                     let belongs_to_thread =
                         match codex_rollout::read_session_meta_line(path.as_path()).await {
                             Ok(session_meta) => session_meta.meta.id == thread_id,
                             Err(_) => true,
                         };
                     if belongs_to_thread {
-                        return resolve_path_in_scope(store, thread_id, path, scope).await;
+                        return resolve_path_in_scope(store, thread_id, path.clone(), scope).await;
                     }
                 }
                 if metadata.history_mode == ThreadHistoryMode::Paginated {
+                    if selected_path.is_none()
+                        && metadata.archived_at.is_none()
+                        && scope.accepts(RolloutLocation::Archived)
+                        && metadata
+                            .rollout_path
+                            .starts_with(store.config.codex_home.join(SESSIONS_SUBDIR))
+                        && let Some(file_name) = metadata.rollout_path.file_name()
+                        && let Some(selected_rollout_id) =
+                            codex_rollout::rollout_id_from_path(metadata.rollout_path.as_path())
+                    {
+                        let archived_path = store
+                            .config
+                            .codex_home
+                            .join(ARCHIVED_SESSIONS_SUBDIR)
+                            .join(file_name);
+                        if let Some(path) =
+                            codex_rollout::existing_rollout_path(archived_path.as_path()).await
+                            && codex_rollout::rollout_id_from_path(path.as_path())
+                                == Some(selected_rollout_id)
+                            && matches!(
+                                codex_rollout::read_session_meta_line(path.as_path()).await,
+                                Ok(session_meta) if session_meta.meta.id == thread_id
+                            )
+                        {
+                            return resolve_path_in_scope(store, thread_id, path, scope).await;
+                        }
+                    }
                     return Ok(None);
                 }
             }

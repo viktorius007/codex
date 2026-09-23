@@ -368,4 +368,100 @@ mod tests {
         assert!(updated.archived_at.is_some());
         assert_eq!(updated.recency_at, metadata.recency_at);
     }
+
+    #[tokio::test]
+    async fn archive_crash_after_rename_keeps_paginated_context_resumable() {
+        let home = TempDir::new().expect("temp dir");
+        let config = test_config(home.path());
+        let uuid = Uuid::from_u128(208);
+        let thread_id = ThreadId::from_string(&uuid.to_string()).expect("valid thread id");
+        let active_path = write_session_file_with_history_mode(
+            home.path(),
+            "2025-01-03T12-00-00",
+            uuid,
+            ThreadHistoryMode::Paginated,
+        )
+        .expect("session file");
+        let runtime = codex_state::StateRuntime::init(
+            codex_state::SqliteConfig::new_for_testing(home.path().abs()),
+            config.default_model_provider_id.clone(),
+        )
+        .await
+        .expect("state db should initialize");
+        runtime
+            .mark_backfill_complete(/*last_watermark*/ None)
+            .await
+            .expect("backfill should be complete");
+        let mut builder = codex_state::ThreadMetadataBuilder::new(
+            thread_id,
+            active_path.clone(),
+            Utc::now(),
+            SessionSource::Cli,
+        );
+        builder.model_provider = Some(config.default_model_provider_id.clone());
+        builder.history_mode = ThreadHistoryMode::Paginated;
+        builder.cwd = home.path().to_path_buf();
+        builder.cli_version = Some("test_version".to_string());
+        let metadata = builder.build(config.default_model_provider_id.as_str());
+        runtime
+            .upsert_thread(&metadata)
+            .await
+            .expect("state db upsert should succeed");
+        let store = LocalThreadStore::new(config.clone(), Some(runtime.clone()));
+        store
+            .load_latest_model_context(crate::LoadThreadHistoryParams {
+                thread_id,
+                include_archived: true,
+            })
+            .await
+            .expect("fixture must be resumable before archive");
+
+        let archived_path = home
+            .path()
+            .join(ARCHIVED_SESSIONS_SUBDIR)
+            .join(active_path.file_name().expect("file name"));
+        std::fs::create_dir_all(archived_path.parent().expect("archive directory"))
+            .expect("create archive directory");
+        std::fs::rename(&active_path, &archived_path)
+            .expect("simulate archive rename immediately before process crash");
+        #[cfg(unix)]
+        for path in [
+            archived_path.as_path(),
+            archived_path.parent().expect("archive directory"),
+            active_path.parent().expect("session directory"),
+        ] {
+            std::fs::File::open(path)
+                .expect("open archived state for sync")
+                .sync_all()
+                .expect("sync archived state");
+        }
+        drop(store);
+        drop(runtime);
+
+        let restarted_runtime = codex_state::StateRuntime::init(
+            codex_state::SqliteConfig::new_for_testing(home.path().abs()),
+            config.default_model_provider_id.clone(),
+        )
+        .await
+        .expect("reopen state database after simulated crash");
+        let stale_metadata = restarted_runtime
+            .get_thread(thread_id)
+            .await
+            .expect("read reopened state database")
+            .expect("thread metadata must survive crash");
+        assert_eq!(stale_metadata.rollout_path, active_path);
+        assert!(!active_path.exists());
+        assert!(archived_path.exists());
+
+        let restarted_store = LocalThreadStore::new(config, Some(restarted_runtime));
+        let context = restarted_store
+            .load_latest_model_context(crate::LoadThreadHistoryParams {
+                thread_id,
+                include_archived: true,
+            })
+            .await
+            .expect("archive crash must leave model context resumable by id");
+        assert_eq!(context.thread_id, thread_id);
+        assert!(!context.items.is_empty());
+    }
 }
