@@ -23,6 +23,7 @@
 - Always create subagents with fresh context. Never create them by forking existing context.
 - Launch the Codex harness with an inherited open-file soft limit of at least 4096 and verify it before concurrent work. Raising a child shell limit does not raise the already-running host limit. Investigate recurring exhaustion instead of relying on repeated retries.
 - Preserve cache diagnostic evidence indefinitely: no disk cap, age limit, or automatic deletion. Cleanup applies to agent-created temporary/build artifacts, not diagnostic evidence.
+- For harness reliability audits, use local session records under `~/.codex/` as read-only incident evidence when relevant; keep reports sanitized, preserve original records, and surface significant adjacent issues to the coordinator.
 - For cache repair work, adapt priorities to new evidence within the agreed Pareto scope; treat GitHub proposals as clues and choose the simplest locally justified root-cause fix with regression protection. Keep a durable run ledger and small independently applicable commits.
 - Use Sol for load-bearing investigation, architecture, implementation decisions, and verification; use Terra only for basic, tightly scoped work. Delegate independent work with fresh context; the coordinator owns small corrections, integration, and cleanup.
 - Use only Luna for live testing because it is the cheapest model. This overrides other model-selection guidance for live tests.
@@ -381,6 +382,39 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
+- [harness-audit/mcp-review.md](research/harness-audit/mcp-review.md) — Records the idle MCP cancellation audit; later fixture correction and delivery results are tracked in the run ledger.
+- [harness-audit/mcp-findings.json](research/harness-audit/mcp-findings.json) — Preserves the initial structured MCP recovery finding and test evidence.
+- [harness-audit/mcp-red.txt](research/harness-audit/mcp-red.txt) — Preserves the initial coordinator MCP failure replay before the documented presentation-fixture correction.
+- [harness-audit/residency-review.md](research/harness-audit/residency-review.md) — Records the proven eviction accounting defect and rejected queue-only mailbox claim.
+- [harness-audit/residency-findings.json](research/harness-audit/residency-findings.json) — Stores the structured residency finding with its final causal test.
+- [harness-audit/residency-red.txt](research/harness-audit/residency-red.txt) — Records the coordinator's failing capacity and cancellation replay.
+- [harness-audit/retry-delivery/builder-report.md](research/harness-audit/retry-delivery/builder-report.md) — Records the retry repair and passing API verification.
+- [harness-audit/retry-delivery/verifier-report.md](research/harness-audit/retry-delivery/verifier-report.md) — Records independent acceptance of the retry repair.
+- [harness-audit/ordering-delivery/report.md](research/harness-audit/ordering-delivery/report.md) — Records the malformed-search finding and dismissed batching premise.
+- [harness-audit/ordering-delivery/builder-report.md](research/harness-audit/ordering-delivery/builder-report.md) — Records the tool-search output repair and affected tests.
+- [harness-audit/ordering-delivery/verifier-report.md](research/harness-audit/ordering-delivery/verifier-report.md) — Records independent acceptance of the tool-search repair.
+
+- [harness-audit/storage-review.md](research/harness-audit/storage-review.md) — Records transcript persistence review and the archive crash recovery finding.
+- [harness-audit/storage-findings.json](research/harness-audit/storage-findings.json) — Stores the structured archive crash finding and causal regression.
+- [harness-audit/storage-red.patch](research/harness-audit/storage-red.patch) — Preserves the durable crash-state regression for paginated archive recovery.
+- [harness-audit/storage-red.txt](research/harness-audit/storage-red.txt) — Records the coordinator's independent failing archive recovery replay.
+
+- [harness-audit/retry-review.md](research/harness-audit/retry-review.md) — Records terminal-response parsing review and the quota-error classification defect.
+- [harness-audit/retry-findings.json](research/harness-audit/retry-findings.json) — Stores the structured retry finding with causal proof and source trace.
+- [harness-audit/retry-red.patch](research/harness-audit/retry-red.patch) — Preserves the regression that exposes terminal quota errors overwritten by transport errors.
+- [harness-audit/retry-red.txt](research/harness-audit/retry-red.txt) — Preserves the investigator's executed failing retry regression log.
+
+- [harness-audit/replay-review.md](research/harness-audit/replay-review.md) — Records the session replay and rollback source audit, clean result, and unproven history-scaling limit.
+
+- [harness-audit/session-evidence.md](research/harness-audit/session-evidence.md) — Summarizes sanitized local-session observations, incident leads, and running-version limits.
+- [harness-audit/session-evidence.json](research/harness-audit/session-evidence.json) — Preserves content-free session counts and source-manifest hashes from the coordinator replay.
+- [harness-audit/scan_sessions.py](research/harness-audit/scan_sessions.py) — Reproduces the bounded read-only session and runtime-log evidence scan.
+
+- [harness-audit/brief.md](research/harness-audit/brief.md) — Defines the six harness audit scopes, causal proof requirements, private-session handling, and agent handoff contract.
+- [harness-audit/run-ledger.md](research/harness-audit/run-ledger.md) — Tracks parallel harness investigations, findings, validation, integration, and cleanup.
+
+- [next-audit-targets.md](research/next-audit-targets.md) — Ranks further audit targets using current open GitHub reports, local patch deduplication, and proposed causal tests.
+
 - [custom-patch-audit.md](research/custom-patch-audit.md) — Tracks the significant cache and wasted-turn patch audit, regression evidence, repairs, and verification limits.
 - [findings.json](reviews/findings.json) — Stores the two proven custom-patch defects, complete regression patches, replay evidence, and repair status.
 - [ledger.json](reviews/ledger.json) — Records the audited commit and scope for primary source paths reviewed for significant cache and turn defects.
@@ -451,3 +485,37 @@ Codex supports running connected app-server and exec-server on different operati
 - [local-build-pipeline.md](docs/experiments/local-build-pipeline.md) — Records measured local build settings and compiler-cache experiments.
 - [Goal/async local.5 installation record](/Users/viktor/.local/lib/codex-local/0.155.1+local.5-9d738e79eeb1-84c1f583e9dd/provenance.json) — Records the installed CLI and code-mode host, source commit, checksums, installation time, build log, and rollback directory.
 - [Stable 0.156.1 local.6 installation record](/Users/viktor/.local/lib/codex-local/0.156.1+local.6-2a63855bea2a-320f2b1dd788/provenance.json) — Records the installed CLI and code-mode host, source commit, checksums, tests, installation time, and rollback release.
+
+- [mcp/builder-report.md](research/harness-audit/mcp-delivery/builder-report.md) — Records the mcp audit builder report and its verification limits.
+
+- [mcp/report.md](research/harness-audit/mcp-delivery/report.md) — Records the mcp audit report and its verification limits.
+
+- [mcp/verifier-report.md](research/harness-audit/mcp-delivery/verifier-report.md) — Records the mcp audit verifier report and its verification limits.
+
+- [residency/builder-report.md](research/harness-audit/residency-delivery/builder-report.md) — Records the residency audit builder report and its verification limits.
+
+- [residency/report.md](research/harness-audit/residency-delivery/report.md) — Records the residency audit report and its verification limits.
+
+- [residency/verifier-report.md](research/harness-audit/residency-delivery/verifier-report.md) — Records the residency audit verifier report and its verification limits.
+
+- [storage/builder-report.md](research/harness-audit/storage-delivery/builder-report.md) — Records the storage audit builder report and its verification limits.
+
+- [storage/report.md](research/harness-audit/storage-delivery/report.md) — Records the storage audit report and its verification limits.
+
+- [storage/tester-report.md](research/harness-audit/storage-delivery/tester-report.md) — Records the storage audit tester report and its verification limits.
+
+- [storage/verifier-initial-report.md](research/harness-audit/storage-delivery/verifier-initial-report.md) — Records the storage audit verifier initial report and its verification limits.
+
+- [storage/verifier-report.md](research/harness-audit/storage-delivery/verifier-report.md) — Records the storage audit verifier report and its verification limits.
+
+- [Harness audit summary](research/harness-audit/summary.md) — Summarizes five proven repairs, two clean audit slices, evidence, and delivery limits.
+
+- [worktree-evidence.tar.gz](research/harness-audit/worktree-evidence.tar.gz) — Preserves audit worktree reports, raw test logs, patches, and integration evidence before cleanup.
+
+- [worktree-evidence-manifest.json](research/harness-audit/worktree-evidence-manifest.json) — Lists verified SHA-256 hashes for every file in the preserved worktree evidence archive.
+
+- [installation-local8.json](research/harness-audit/installation-local8.json) — Records installed local.8 binaries, checksums, validation limits, installation time, and local.7 rollback.
+
+- [validation-evidence.tar.gz](research/harness-audit/validation-evidence.tar.gz) — Preserves combined build, lint, test, smoke-check and cleanup evidence for local.8.
+
+- [validation-manifest.json](research/harness-audit/validation-manifest.json) — Lists verified SHA-256 hashes for the combined validation evidence archive.

@@ -1,0 +1,42 @@
+diff --git a/codex-rs/codex-api/src/sse/responses.rs b/codex-rs/codex-api/src/sse/responses.rs
+index 3f867d5d0b..5ff0eddb61 100644
+--- a/codex-rs/codex-api/src/sse/responses.rs
++++ b/codex-rs/codex-api/src/sse/responses.rs
+@@ -1173,6 +1173,37 @@ mod tests {
+         }
+     }
+ 
++    #[tokio::test]
++    async fn failed_response_keeps_terminal_classification_when_transport_fails_afterward() {
++        let failed = json!({
++            "type": "response.failed",
++            "response": {
++                "id": "resp-quota",
++                "status": "failed",
++                "error": { "code": "insufficient_quota", "message": "Quota exceeded." }
++            }
++        });
++        let body = format!("event: response.failed\ndata: {failed}\n\n");
++        let stream = stream::iter([
++            Ok(bytes::Bytes::from(body)),
++            Err(TransportError::Network(
++                "transport failed after terminal response".to_string(),
++            )),
++        ]);
++        let (tx, mut rx) = mpsc::channel(2);
++
++        process_sse(
++            Box::pin(stream),
++            tx,
++            idle_timeout(),
++            /*telemetry*/ None,
++        )
++        .await;
++
++        assert_matches!(rx.recv().await, Some(Err(ApiError::QuotaExceeded)));
++        assert!(rx.recv().await.is_none());
++    }
++
+     #[tokio::test]
+     async fn context_window_error_is_fatal() {
+         let raw_error = r#"{"type":"response.failed","sequence_number":3,"response":{"id":"resp_5c66275b97b9baef1ed95550adb3b7ec13b17aafd1d2f11b","object":"response","created_at":1759510079,"status":"failed","background":false,"error":{"code":"context_length_exceeded","message":"Your input exceeds the context window of this model. Please adjust your input and try again."},"usage":null,"user":null,"metadata":{}}}"#;

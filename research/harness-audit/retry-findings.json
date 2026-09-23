@@ -1,0 +1,66 @@
+[
+  {
+    "id": "harness-retry-sse-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-09-23T12:53:56Z",
+      "commit": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "model": "sol-high",
+      "mode": "production-readiness",
+      "slice": "terminal-responses-retry"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "HTTP SSE replaces a terminal quota failure with a later transport error, making the refused sampling request retryable.",
+    "scenario": "A response.failed event with insufficient_quota is decoded, then the byte stream reports a network read error while closing; the consumer receives ApiError::Stream instead of ApiError::QuotaExceeded, and core may submit another sampling request.",
+    "evidence": [
+      {
+        "path": "codex-rs/codex-api/src/sse/responses.rs",
+        "lines": "417-428",
+        "point": "process_responses_event classifies insufficient_quota as ApiError::QuotaExceeded"
+      },
+      {
+        "path": "codex-rs/codex-api/src/sse/responses.rs",
+        "lines": "596-614,676-688",
+        "point": "process_sse_with_treatment stores the terminal failure but a later stream read error takes precedence"
+      },
+      {
+        "path": "codex-rs/codex-api/src/endpoint/responses_websocket.rs",
+        "lines": "851-860",
+        "point": "WebSocket path returns the classified terminal error immediately"
+      },
+      {
+        "path": "codex-rs/codex-api/src/api_bridge.rs",
+        "lines": "21-41",
+        "point": "ApiError::Stream maps to CodexErr::Stream while QuotaExceeded maps to a terminal error"
+      },
+      {
+        "path": "codex-rs/protocol/src/error.rs",
+        "lines": "379-425",
+        "point": "CodexErr::Stream has retry delay; CodexErr::QuotaExceeded does not"
+      },
+      {
+        "path": "codex-rs/core/src/session/turn.rs",
+        "lines": "1704-1743",
+        "point": "sampling loop passes stream errors to retry handling and repeats after Ok(())"
+      }
+    ],
+    "trace": "ResponsesClient::stream_request -> spawn_response_stream -> process_sse_with_treatment -> process_responses_event(QuotaExceeded) -> later byte-stream error overwrites it -> map_api_error(Stream) -> run_sampling_request/handle_response_stream_error -> retry",
+    "authority": {
+      "source": "OpenAI Responses streaming event reference and official Agents SDK terminal-state guidance",
+      "url": "https://developers.openai.com/api/reference/resources/responses/streaming-events",
+      "guidance_url": "https://openai.github.io/openai-agents-js/guides/models/#responses-terminal-states",
+      "quote": "An event that is emitted when a response fails."
+    },
+    "proof": {
+      "name": "failed_response_keeps_terminal_classification_when_transport_fails_afterward",
+      "red_test": "diff --git a/codex-rs/codex-api/src/sse/responses.rs b/codex-rs/codex-api/src/sse/responses.rs\nindex 3f867d5d0b..5ff0eddb61 100644\n--- a/codex-rs/codex-api/src/sse/responses.rs\n+++ b/codex-rs/codex-api/src/sse/responses.rs\n@@ -1173,6 +1173,37 @@ mod tests {\n         }\n     }\n \n+    #[tokio::test]\n+    async fn failed_response_keeps_terminal_classification_when_transport_fails_afterward() {\n+        let failed = json!({\n+            \"type\": \"response.failed\",\n+            \"response\": {\n+                \"id\": \"resp-quota\",\n+                \"status\": \"failed\",\n+                \"error\": { \"code\": \"insufficient_quota\", \"message\": \"Quota exceeded.\" }\n+            }\n+        });\n+        let body = format!(\"event: response.failed\\ndata: {failed}\\n\\n\");\n+        let stream = stream::iter([\n+            Ok(bytes::Bytes::from(body)),\n+            Err(TransportError::Network(\n+                \"transport failed after terminal response\".to_string(),\n+            )),\n+        ]);\n+        let (tx, mut rx) = mpsc::channel(2);\n+\n+        process_sse(\n+            Box::pin(stream),\n+            tx,\n+            idle_timeout(),\n+            /*telemetry*/ None,\n+        )\n+        .await;\n+\n+        assert_matches!(rx.recv().await, Some(Err(ApiError::QuotaExceeded)));\n+        assert!(rx.recv().await.is_none());\n+    }\n+\n     #[tokio::test]\n     async fn context_window_error_is_fatal() {\n         let raw_error = r#\"{\"type\":\"response.failed\",\"sequence_number\":3,\"response\":{\"id\":\"resp_5c66275b97b9baef1ed95550adb3b7ec13b17aafd1d2f11b\",\"object\":\"response\",\"created_at\":1759510079,\"status\":\"failed\",\"background\":false,\"error\":{\"code\":\"context_length_exceeded\",\"message\":\"Your input exceeds the context window of this model. Please adjust your input and try again.\"},\"usage\":null,\"user\":null,\"metadata\":{}}}\"#;\n",
+      "fails_on": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "command": "RUSTC_WRAPPER= HOST_CC=clang HOST_CXX=clang++ CARGO_TARGET_DIR=/private/tmp/codex-harness-audit/retry/codex-rs/target just test -p codex-api -E 'test(failed_response_keeps_terminal_classification_when_transport_fails_afterward)'",
+      "output": "Summary: 1 test run, 0 passed, 1 failed; observed Some(Err(Stream(\"Transport error: network error: transport failed after terminal response\"))) rather than Some(Err(ApiError::QuotaExceeded)).",
+      "log": "retry-red-final.txt"
+    },
+    "severity": "High for affected HTTP SSE turns: a terminal quota refusal is misreported as a transient disconnection and may be retried up to the configured stream budget, adding delay and unnecessary requests. Requires a transport read failure or idle timeout after the terminal event; WebSocket path is unaffected.",
+    "status": "open"
+  }
+]

@@ -1,0 +1,12 @@
+PASS
+COMMIT: 16af2553d570fba1e44790f6b5cd7cba60d8ba91
+COMMAND: `RUSTC_WRAPPER= HOST_CC=clang HOST_CXX=clang++ CARGO_BUILD_JOBS=32 CARGO_INCREMENTAL=1 just test -p codex-api -E 'test(failed_response_keeps_terminal_classification_when_transport_fails_afterward)'` — 1 passed, 193 skipped (`codex-rs/verifier-focused.log`).
+PRIOR EVIDENCE: `coordinator-red.log` at 34d1bd0a11 — test failed twice, receiving `ApiError::Stream` instead of `ApiError::QuotaExceeded`; `codex-api-suite-escalated.log` at this commit — 194 passed; `codex-api-fix-escalated.log` — scoped lint finished.
+CRITERION | PROOF
+Terminal decoded failure survives later connection failure | `responses.rs:1183–1211` feeds quota failure then network failure; exact `QuotaExceeded` and sole event asserted; independent green above and baseline red.
+Quota failure cannot become unintended retry | `responses.rs:417–427,674–692` sends decoded error and returns before polling transport; `api_bridge.rs:21–24` retains quota identity; `protocol/src/error.rs:379–405` gives quota no retry delay; `core/src/responses_retry.rs:63–66` returns terminal error.
+Other event kinds retain behavior | `responses.rs:674–694` changes only `Err` for payload kind `response.failed`; `response.incomplete` and parse error still take the old stored-error path; `response.completed` and other `Ok` event paths are unchanged. Builder's 194 passing crate tests include existing event-kind tests.
+FINDINGS: none in the audited diff.
+SHAPE/TEST: one condition and immediate send in an existing function; no new API, indirection, comment, or variant. Test owns its fixture, reaches the actual SSE decoder, and asserts the terminal output and absence of a later event. Its discriminator is the network error after the failed response; the baseline run failed on that named property.
+LIMITS: Graph coverage reported no file gaps but Rust call edges are semantically partial; source and diff were checked directly. No mutation sweep, live provider test, complete workspace suite, or separate commit hook was run. The builder's successful crate suite and scoped lint are prior evidence, while the focused test was independently rerun here.
+CHECKED: `codex-rs/codex-api/src/sse/responses.rs` production branch and new test; adjacent mapping/retry path in `codex-rs/codex-api/src/{api_bridge,error}.rs`, `codex-rs/protocol/src/error.rs`, `codex-rs/core/src/responses_retry.rs`, and sampling retry call in `codex-rs/core/src/session/turn.rs`. No defect found.

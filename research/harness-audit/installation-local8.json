@@ -1,0 +1,44 @@
+{
+  "status": "installed",
+  "version": "0.156.1+local.8",
+  "source_commit": "09a54a34c25f631734f5b7e7664a87676814e0e8",
+  "source_codex_rs_tree": "c7529b221b93eb6ef7eef11ab8cd4dffeef0e97d",
+  "stable_base": "rust-v0.156.1",
+  "profile": "dev",
+  "release": "/Users/viktor/.local/lib/codex-local/0.156.1+local.8-09a54a34c25f-fb06182fe71d",
+  "previous_release": "/Users/viktor/.local/lib/codex-local/0.156.1+local.7-1329fc249e83-57ce616cb9f2",
+  "binaries": {
+    "codex": {
+      "sha256": "fb06182fe71d75d599033ae8b5fa76b891efef4354afb7d09bac24f5284d26e5",
+      "size_bytes": 637826632,
+      "architecture": "arm64",
+      "dynamic_links": "macOS system libraries only"
+    },
+    "codex-code-mode-host": {
+      "sha256": "10b3201f0e6bbe746cbe6af107e043b4fe4f40353868e62e8304d7f58f8319a9",
+      "size_bytes": 143053656,
+      "architecture": "arm64",
+      "dynamic_links": "macOS system libraries only"
+    }
+  },
+  "validation": {
+    "causal_regressions": "Five defects replayed red to green; independent repair verification PASS",
+    "affected_crates": "5305 passed (1 flaky), 3 known baseline failures, 27 skipped",
+    "known_failures": [
+      "shell_zsh_fork_skill_scripts_ignore_declared_permissions",
+      "unified_exec_zsh_fork_parent_approval_preserves_denied_reads",
+      "unified_exec_zsh_fork_guardian_reviews_persistent_terminal_in_current_turn"
+    ],
+    "workspace": "Not executed: compilation exhausted disk; no workspace pass claimed",
+    "fmt": "passed",
+    "scoped_lint": "passed",
+    "workspace_bins": "built successfully",
+    "cli_version": "codex-cli 0.156.1+local.8",
+    "cli_and_host_help": "passed",
+    "live_provider_cache_measurement": "not run",
+    "installed_checks": "Version, both help commands, resolved paths and hashes passed; rollback hashes verified."
+  },
+  "delivery_authorization": "Durable repository instruction authorizes validated local milestones with retained rollback; scoped verification limits recorded.",
+  "installed_at_utc": "2026-09-23T14:19:49.305686+00:00",
+  "installed_at_local": "2026-09-24T00:19:49.306230+10:00"
+}
