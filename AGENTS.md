@@ -31,6 +31,7 @@
 - For Goal and asynchronous-tool implementation, keep edits within the agreed fixes and hold incidental findings for the final response.
 - Cache repair full-suite tests are authorized. The deliverable is a trustworthy installed local binary; build and install validated milestones when this does not disrupt the running harness, preserving the previous binary and recording installation time/version.
 - Cache repair verification must cover ordinary and post-compaction cold resumes within the provider cache lifetime, checking preserved input prefixes and unchanged effective model, instructions, settings, and ordered tools separately from provider-reported cache reuse.
+- When auditing local patches for cache misses or wasted turns, focus on significant defects, require executed failing tests that assert the causal mechanism, group findings by severity, and have the coordinator choose the simplest surgical fix before delegating implementation to Sol. Retire this manual review rule when an automated gate enforces it.
 
 ## Syncing to a new upstream stable release
 
@@ -380,6 +381,23 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
+- [custom-patch-audit.md](research/custom-patch-audit.md) — Tracks the significant cache and wasted-turn patch audit, regression evidence, repairs, and verification limits.
+- [findings.json](reviews/findings.json) — Stores the two proven custom-patch defects, complete regression patches, replay evidence, and repair status.
+- [ledger.json](reviews/ledger.json) — Records the audited commit and scope for primary source paths reviewed for significant cache and turn defects.
+- [prefix-review.md](research/custom-patch-audit/prefix-review.md) — Records source review of local prefix, compaction, and resume patches with no proven significant defect.
+- [diagnostics-review.md](research/custom-patch-audit/diagnostics-review.md) — Records source review of diagnostic observers and transport continuation with no proven significant defect.
+- [catalog-review.md](research/custom-patch-audit/catalog-review.md) — Proves unnecessary tool-catalog changes from disabled plugin skills with a failing regression.
+- [catalog-fix.md](research/custom-patch-audit/catalog-fix.md) — Records the one-condition catalog repair and 176 passing skills-extension tests.
+- [catalog-verification.md](research/custom-patch-audit/catalog-verification.md) — Records independent review of the disabled-plugin repair and its evidence limits.
+- [async-review.md](research/custom-patch-audit/async-review.md) — Proves duplicate model-visible exec completion after a terminal write_stdin result and records rejected candidates.
+- [async-fix.md](research/custom-patch-audit/async-fix.md) — Records the terminal-result disarming repair, focused green tests, and isolated-target suite failures.
+- [async-verification.md](research/custom-patch-audit/async-verification.md) — Records independent review and passing causal tests for terminal completion delivery.
+- [validation-diagnosis.md](research/custom-patch-audit/validation-diagnosis.md) — Separates load-sensitive core test failures from three reproducible fixture/policy mismatches.
+- [validation-evidence.tar.gz](research/custom-patch-audit/validation-evidence.tar.gz) — Preserves raw audit reports, red replays, validation logs, baseline comparison, and build-cleanup records.
+- [validation-manifest.json](research/custom-patch-audit/validation-manifest.json) — Lists SHA-256 hashes for every archived audit and validation evidence file.
+- [candidate-provenance.json](research/custom-patch-audit/candidate-provenance.json) — Records local.7 candidate binaries, source tree, checksums, validation results, and delivery status.
+- [catalog-red-replay.log](research/custom-patch-audit/catalog-red-replay.log) — Preserves the coordinator's independent failing replay of the disabled-plugin regression.
+- [async-red-replay.log](research/custom-patch-audit/async-red-replay.log) — Preserves the coordinator's independent failing replay of all three terminal-completion regression cases.
 - [goal-async-workflow-analysis.md](research/goal-async-workflow-analysis.md) — Assesses Goal continuation and asynchronous result delivery, explains the empty-turn breaker, and ranks compatible repair layers with their evidence and verification limits.
 - [wait-agent-disablement-evidence.md](research/wait-agent-disablement-evidence.md) — Records the polling measurements, runtime flag behavior, source paths, live Luna probes, workflow effects, and public issue/PR evidence for disabling MultiAgentV2 `wait_agent`.
 - [wait-agent-evidence/README.md](research/wait-agent-evidence/README.md) — Defines the immutable inputs, reproduction commands, schemas, assertions, and files for the self-verifying `wait_agent` evidence bundle.

@@ -1,0 +1,37 @@
+{
+  "status": "candidate-awaiting-delivery-choice",
+  "version": "0.156.1+local.7",
+  "source_commit": "1329fc249e83e83baf97b02c261b665c328871ca",
+  "source_codex_rs_tree": "cc79bb5293e0b2cce986e49fda8a4ebc470f33e9",
+  "stable_base": "rust-v0.156.1",
+  "profile": "dev",
+  "release": "/Users/viktor/.local/lib/codex-local/0.156.1+local.7-1329fc249e83-57ce616cb9f2",
+  "previous_release": "/Users/viktor/.local/lib/codex-local/0.156.1+local.6-2a63855bea2a-320f2b1dd788",
+  "prepared_at_utc": "2026-09-23T10:54:25.829864+00:00",
+  "binaries": {
+    "codex": {
+      "sha256": "57ce616cb9f21a339e47325ee0dbeb2111a04a01eeae12cbf57b9daf5f2e4c4d",
+      "size_bytes": 637855752,
+      "architecture": "arm64",
+      "dynamic_links": "macOS system libraries only"
+    },
+    "codex-code-mode-host": {
+      "sha256": "113c8e50abf2405d3968cc939d3e0ac7e2a3707c40b0233ee86e3244d3aa03de",
+      "size_bytes": 143032904,
+      "architecture": "arm64",
+      "dynamic_links": "macOS system libraries only"
+    }
+  },
+  "validation": {
+    "skills_extension": "176 passed; independent review PASS",
+    "exec_regressions": "3 baseline red, 3 fixed green; independent replay/review",
+    "exec_related": "173 passed",
+    "root_core": "4599 passed, 10 failed, 27 skipped; 7 failures passed focused reruns; remaining 3 also fail with both production repairs removed",
+    "workspace": "did not execute: test linking exhausted disk",
+    "fmt": "passed",
+    "scoped_lint": "passed with compiler cache bypassed",
+    "cli_version": "codex-cli 0.156.1+local.7",
+    "cli_and_host_help": "passed",
+    "live_provider_cache_measurement": "not run"
+  }
+}

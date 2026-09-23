@@ -1,0 +1,114 @@
+{
+  "archive": "validation-evidence.tar.gz",
+  "archive_sha256": "df35756ee0f4c6e5a54f9be612fbe4ae3eab8e35fee17811905c7fe4a0bccc6d",
+  "files": {
+    "removed-incremental.json": {
+      "sha256": "314f8ca879860739fcc16750b85d499f738fce1618844dba94f640b59030e67a",
+      "size_bytes": 243016
+    },
+    "validation-diagnosis.md": {
+      "sha256": "f5c24573e8f8ba55ad98b172ea4a3cfacb9c1cc08f3d698f2aff998c7ac37243",
+      "size_bytes": 5859
+    },
+    "root-workspace-tests.log": {
+      "sha256": "113a464153fe7ff8e6496e98451c183f922153fb8936e167658e1324a5866f85",
+      "size_bytes": 601725
+    },
+    "async-red-replay.log": {
+      "sha256": "0bd95eb995842b8b7d6f4441e59b1e9ee486ebbd9508dbbcd0d994553ecbf7e3",
+      "size_bytes": 9722
+    },
+    "async-core-tests.log": {
+      "sha256": "eb94d4b6ca3ca35d649784a101a2998858ca976de479c629ed8c679fc97b5a4e",
+      "size_bytes": 1174396
+    },
+    "root-core-tests.log": {
+      "sha256": "129ebd7a8324ba69c5856ddaf3a1a372b2e065cd65eb91f4fedf917734b11528",
+      "size_bytes": 995652
+    },
+    "async-related-tests.log": {
+      "sha256": "d1169bdc85cd66a06b8db738e50b89299f59df3949aca6bc6ab3d2f69b1d82f6",
+      "size_bytes": 24594
+    },
+    "root-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "root-build.log": {
+      "sha256": "eab0fd4dd71112b0b0c90e92233a3f8d15b67b886c36bc7c0f6c96c488b79afc",
+      "size_bytes": 25911
+    },
+    "metadata.json": {
+      "sha256": "1775dc276b0189ca1961d80cb3096e4f2e73b31f6a92ab371e4a144eaeb55162",
+      "size_bytes": 782933
+    },
+    "catalog-red-replay.log": {
+      "sha256": "d19d1bfdaa0fbe9d57a0a1ccafc450d14c42c4bf7004973b7cfbad6ea9074436",
+      "size_bytes": 39308
+    },
+    "removed-build-artifacts.json": {
+      "sha256": "5fb81ffee86827878740fe798ce8c239c10737bc05d83f28a0de68c2b87941c1",
+      "size_bytes": 20676221
+    },
+    "root-lint.log": {
+      "sha256": "b267860d2318ed75a15fe7333503fb15955715db9a77ba3f9e5daf6c3ced755b",
+      "size_bytes": 11201
+    },
+    "baseline-three-tests.log": {
+      "sha256": "3212cc880e9df8069e2f9fd6065379534f096722f94814343ac9d9158aacad22",
+      "size_bytes": 338526
+    },
+    "candidate-host-help.txt": {
+      "sha256": "049a2dd4443292662c24710d2ed1da0d224e11d2e885404263f1b91e30fb3313",
+      "size_bytes": 563
+    },
+    "brief.md": {
+      "sha256": "16af6cf097cc71bbceba791055e4332efba889bf3d4602c82ef31be4ce636858",
+      "size_bytes": 2993
+    },
+    "candidate-cli-help.txt": {
+      "sha256": "4a7f0188d4d6e6d812c5cfbcf82468336b899acd5e437de7450421a403c0071e",
+      "size_bytes": 5849
+    },
+    "root-lint-no-cache.log": {
+      "sha256": "f2fc9f54322b92061a95a1e533ba7c78060447c54e979f87ae3af58505a650ce",
+      "size_bytes": 9599
+    },
+    "async-fix.patch": {
+      "sha256": "9de596000c2482e1c74e87f95593f207a9000d28debf78fae5d1ff03925bf14b",
+      "size_bytes": 9791
+    },
+    "catalog/report.md": {
+      "sha256": "c3aaf9e11d61df2142ecec789b254b5f3935238bf9d9eb63f7f15d28bf52710b",
+      "size_bytes": 4903
+    },
+    "catalog/findings.json": {
+      "sha256": "6bc1ceef8cb60debda296823b6c9315554949509f08ca72d1637734f065ad3ea",
+      "size_bytes": 1206
+    },
+    "catalog/fix-report.md": {
+      "sha256": "806871121522be1c0eed369db3c14e782583cab952f88a743d27cbc67624695e",
+      "size_bytes": 2066
+    },
+    "catalog/verify-report.md": {
+      "sha256": "88821a662f779fd04dd169cf4aaf73b33e1ffde3137f84fb7a3bfc3ccf3a5690",
+      "size_bytes": 3588
+    },
+    "async/report.md": {
+      "sha256": "6b47489dcd73490dd289d42199aa26794ac0e21b7170cc035e3012e047572efd",
+      "size_bytes": 6262
+    },
+    "async/findings.json": {
+      "sha256": "51c25e638ff766102835fd241f54e127501acc705e60a60d3d66990d3ce350b1",
+      "size_bytes": 760
+    },
+    "async/fix-report.md": {
+      "sha256": "79048afe9923f4137c5d6e78158bc9ae8f697f71efc6f5d50f3ec00c80e38916",
+      "size_bytes": 2471
+    },
+    "async/verify-report.md": {
+      "sha256": "08eb33d99f2b10cbdd0c0c5ad0ff6d30f0295eecce960291b88212eadd7a2b21",
+      "size_bytes": 3121
+    }
+  }
+}
