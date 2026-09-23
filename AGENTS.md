@@ -42,6 +42,7 @@ Apply this workflow only when the user requests moving `local/customizations` to
 - For a test close to its timeout, use measured isolated runs to justify a test-specific timeout change; do not weaken assertions or broadly increase timeouts.
 - Let long-running commands report completion instead of polling logs for progress. Read bounded failure summaries when a command finishes, and update the user at meaningful milestones or blockers rather than per-test counts.
 - Build the final binaries from the verified tree. Check version, checksums, architecture, and CLI/host launch commands; preserve the previous installation, atomically switch to the versioned release only after candidate checks, then verify the installed commands and record provenance. Complete the cleanup check without deleting diagnostic evidence or unknown files.
+- After a verified rebase, compare the previous fork branch's local commits with the rebased patch series, and preserve its tip in a local backup ref until the new branch is published and checked. Publish `local/customizations` to `fork` with an explicit `--force-with-lease` bound to the remote tip observed immediately before pushing, then verify the remote tip equals the local tip. A normal push cannot advance the old release-based history, and `git pull` would merge that old history into the new stable base.
 
 Retire a manual step above when a repository command enforces that step mechanically.
 
