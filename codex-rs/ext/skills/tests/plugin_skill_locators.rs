@@ -167,13 +167,13 @@ async fn load_snapshot(
         .await)
 }
 
-async fn render_host_catalog(
+async fn host_catalog_for_turn(
     registry: &ExtensionRegistry<TestConfig>,
     session_store: &ExtensionData,
     thread_store: &ExtensionData,
     turn_id: &str,
     snapshot: HostSkillsSnapshot,
-) -> TestResult<(ExtensionData, String)> {
+) -> TestResult<(ExtensionData, Option<String>)> {
     let turn_store = ExtensionData::new(turn_id);
     turn_store.insert(snapshot);
     let model_info = ModelInfo {
@@ -201,10 +201,20 @@ async fn render_host_catalog(
         .find(|section| section.id() == "host_skills")
         .ok_or("host catalog section should exist")?
         .render_diff(PreviousWorldStateSection::Absent)
-        .ok_or("host catalog should render")?
-        .body()
-        .to_string();
+        .map(|rendered| rendered.body().to_string());
     Ok((turn_store, catalog))
+}
+
+async fn render_host_catalog(
+    registry: &ExtensionRegistry<TestConfig>,
+    session_store: &ExtensionData,
+    thread_store: &ExtensionData,
+    turn_id: &str,
+    snapshot: HostSkillsSnapshot,
+) -> TestResult<(ExtensionData, String)> {
+    let (turn_store, catalog) =
+        host_catalog_for_turn(registry, session_store, thread_store, turn_id, snapshot).await?;
+    Ok((turn_store, catalog.ok_or("host catalog should render")?))
 }
 
 async fn read_package(
@@ -377,6 +387,104 @@ async fn plugin_packages_stay_stable_across_cache_revisions_and_resolve_the_acti
             "next_cursor": null,
         })
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn disabled_plugin_skill_does_not_advertise_read_tool() -> TestResult {
+    let codex_home = TempDir::new()?;
+    let cwd = codex_home.path().join("workspace");
+    std::fs::create_dir_all(&cwd)?;
+    let plugin = write_plugin_skill(
+        codex_home.path(),
+        "marketplace-one",
+        "revision-a",
+        PRIMARY_PLUGIN_ID,
+        PRIMARY_PLUGIN_SKILL,
+        PRIMARY_REFERENCE_A,
+    )?;
+    let service = HostSkillsService::new_with_restriction_product(
+        AbsolutePathBuf::try_from(codex_home.path().to_path_buf())?,
+        /*bundled_skills_enabled*/ false,
+        /*restriction_product*/ None,
+    );
+    let (registry, session_store, thread_store) = start_registry().await?;
+
+    let enabled = load_snapshot(&service, &cwd, vec![plugin.skill_root.clone()]).await?;
+    let (enabled_turn, _) = render_host_catalog(
+        &registry,
+        &session_store,
+        &thread_store,
+        "enabled-plugin",
+        enabled,
+    )
+    .await?;
+    let enabled_specs = registry.tool_contributors()[0]
+        .tools_for_step(&session_store, &thread_store, &enabled_turn)
+        .into_iter()
+        .map(|tool| serde_json::to_value(tool.spec()))
+        .collect::<Result<Vec<_>, _>>()?;
+    assert_eq!(
+        enabled_specs.len(),
+        1,
+        "enabled plugin should expose skills.read"
+    );
+    assert_eq!(enabled_specs[0]["name"], "skills");
+
+    let skill_path = plugin.skill_root.path.join("analyze/SKILL.md");
+    let disabled_config = ConfigLayerStack::new(
+        vec![ConfigLayerEntry::new(
+            ConfigLayerSource::SessionFlags,
+            toml::from_str(&format!(
+                "[skills.bundled]\nenabled = false\n[[skills.config]]\npath = {}\nenabled = false\n",
+                toml::Value::String(skill_path.display().to_string())
+            ))?,
+        )],
+        Default::default(),
+        ConfigRequirementsToml::default(),
+    )?;
+    let disabled = service
+        .snapshot_for_config(
+            &HostSkillsLoadInput::new(
+                AbsolutePathBuf::try_from(cwd.clone())?,
+                vec![plugin.skill_root.clone()],
+                disabled_config,
+            ),
+            /*fs*/ None,
+        )
+        .await;
+    let (disabled_turn, disabled_catalog) = host_catalog_for_turn(
+        &registry,
+        &session_store,
+        &thread_store,
+        "disabled-plugin",
+        disabled,
+    )
+    .await?;
+    let no_plugin = load_snapshot(&service, &cwd, Vec::new()).await?;
+    let (no_plugin_turn, no_plugin_catalog) = host_catalog_for_turn(
+        &registry,
+        &session_store,
+        &thread_store,
+        "no-plugin",
+        no_plugin,
+    )
+    .await?;
+    assert_eq!(disabled_catalog, no_plugin_catalog);
+    assert_eq!(disabled_catalog, None);
+    let disabled_specs = registry.tool_contributors()[0]
+        .tools_for_step(&session_store, &thread_store, &disabled_turn)
+        .into_iter()
+        .map(|tool| serde_json::to_value(tool.spec()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let no_plugin_specs = registry.tool_contributors()[0]
+        .tools_for_step(&session_store, &thread_store, &no_plugin_turn)
+        .into_iter()
+        .map(|tool| serde_json::to_value(tool.spec()))
+        .collect::<Result<Vec<_>, _>>()?;
+    assert_eq!(no_plugin_specs, Vec::<Value>::new());
+    assert_eq!(disabled_specs, no_plugin_specs);
 
     Ok(())
 }

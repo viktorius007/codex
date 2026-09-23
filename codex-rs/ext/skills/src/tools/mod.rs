@@ -88,7 +88,7 @@ pub(crate) fn skill_tools(
             .0
             .entries
             .iter()
-            .any(SkillCatalogEntry::is_plugin_package)
+            .any(|entry| entry.enabled && entry.is_plugin_package())
     });
     let list_available = orchestrator_available || executor_query.is_some();
     if !list_available && !host_plugins_available {
