@@ -68,6 +68,66 @@ async fn residency_slot_reservation_unloads_oldest_idle_v2_agent() {
 }
 
 #[tokio::test]
+async fn residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction() {
+    let mut config = test_config().await;
+    let _ = config.features.enable(Feature::MultiAgentV2);
+    config.multi_agent_v2.max_concurrent_threads_per_session = 2;
+    let temp_home = tempfile::tempdir().expect("create temp home");
+    config.codex_home = temp_home.path().to_path_buf().try_into().unwrap();
+    config.cwd = temp_home.path().to_path_buf().try_into().unwrap();
+    let manager = ThreadManager::with_models_provider_and_home_for_tests(
+        CodexAuth::from_api_key("dummy"),
+        config.model_provider.clone(),
+        config.codex_home.to_path_buf(),
+        Arc::new(codex_exec_server::EnvironmentManager::default_for_tests()),
+    );
+    let root = manager
+        .start_thread(StartThreadOptions::new(config.clone()))
+        .await
+        .expect("start root thread");
+    let control = manager.agent_control();
+    let state = control.upgrade().expect("thread manager should be live");
+
+    let first_slot = control
+        .reserve_v2_residency_slot(&state, &config, /*protected_thread_id*/ None)
+        .await
+        .expect("first resident slot");
+    let first =
+        spawn_v2_subagent(&control, &state, config.clone(), root.thread_id, "worker-1").await;
+    first_slot.commit(first.thread_id);
+    mark_thread_completed(first.thread.as_ref()).await;
+
+    assert!(manager.get_thread(first.thread_id).await.is_ok());
+    assert_eq!(
+        first.thread.agent_status().await,
+        crate::agent::AgentStatus::Completed(Some("done".to_string()))
+    );
+
+    // The held active-turn lock makes the eviction check pending after the
+    // uncontended manager lookup and terminal-status read.
+    let active_turn = first.thread.session.active_turn.lock().await;
+    let mut evictor =
+        Box::pin(control.reserve_v2_residency_slot(&state, &config, /*protected_thread_id*/ None));
+    assert!(futures::poll!(evictor.as_mut()).is_pending());
+    assert!(manager.get_thread(first.thread_id).await.is_ok());
+
+    let concurrent_reservation = control.v2_residency.try_reserve_pending_slot(1);
+    if concurrent_reservation {
+        control.v2_residency.release_pending_slot();
+    }
+    drop(evictor);
+    drop(active_turn);
+    assert_eq!(
+        (
+            concurrent_reservation,
+            control.v2_residency.resident_count()
+        ),
+        (false, 1),
+        "the loaded owner must occupy capacity during eviction and after cancellation"
+    );
+}
+
+#[tokio::test]
 async fn interrupted_v2_agent_is_lost_after_residency_eviction() {
     let mut config = test_config().await;
     let _ = config.features.enable(Feature::MultiAgentV2);

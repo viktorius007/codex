@@ -17,6 +17,7 @@ use tracing::warn;
 #[derive(Default)]
 pub(super) struct V2Residency {
     state: Mutex<V2ResidencyState>,
+    eviction_gate: tokio::sync::Mutex<()>,
 }
 
 #[derive(Default)]
@@ -91,6 +92,14 @@ impl V2Residency {
                     active: true,
                 });
             }
+            let eviction_guard = self.eviction_gate.lock().await;
+            if self.try_reserve_pending_slot(capacity) {
+                drop(eviction_guard);
+                return Ok(V2ResidencySlot {
+                    residency: self,
+                    active: true,
+                });
+            }
             if !self
                 .try_unload_one_resident(manager, protected_thread_id)
                 .await
@@ -99,6 +108,7 @@ impl V2Residency {
                     max_threads: capacity,
                 }));
             }
+            drop(eviction_guard);
         }
     }
 
@@ -121,7 +131,7 @@ impl V2Residency {
     ) -> bool {
         let candidates_to_scan = self.resident_count();
         for _ in 0..candidates_to_scan {
-            let Some(candidate_thread_id) = self.pop_lru_candidate(protected_thread_id) else {
+            let Some(candidate_thread_id) = self.next_lru_candidate(protected_thread_id) else {
                 return false;
             };
             let Some(candidate_thread) = manager
@@ -130,10 +140,10 @@ impl V2Residency {
                 .ok()
                 .filter(|thread| is_resident_candidate(thread))
             else {
+                self.remove(candidate_thread_id);
                 continue;
             };
             if !is_unloadable(candidate_thread.as_ref()).await {
-                self.touch(candidate_thread_id);
                 continue;
             }
             candidate_thread.ensure_rollout_materialized().await;
@@ -141,7 +151,6 @@ impl V2Residency {
                 warn!(
                     "failed to shut down v2 resident thread before unloading {candidate_thread_id}: {err}"
                 );
-                self.touch(candidate_thread_id);
                 continue;
             }
             let environments = candidate_thread.environment_selections().await;
@@ -152,6 +161,7 @@ impl V2Residency {
                 .state
                 .save_evicted_environments(candidate_thread_id, environments);
             let _ = manager.remove_thread(&candidate_thread_id).await;
+            self.remove(candidate_thread_id);
             return true;
         }
         false
@@ -165,7 +175,7 @@ impl V2Residency {
             .len()
     }
 
-    fn pop_lru_candidate(&self, protected_thread_id: Option<ThreadId>) -> Option<ThreadId> {
+    fn next_lru_candidate(&self, protected_thread_id: Option<ThreadId>) -> Option<ThreadId> {
         let mut state = self
             .state
             .lock()
@@ -173,8 +183,8 @@ impl V2Residency {
         let candidates_to_scan = state.residents.len();
         for _ in 0..candidates_to_scan {
             let candidate_thread_id = state.residents.pop_front()?;
+            state.residents.push_back(candidate_thread_id);
             if Some(candidate_thread_id) == protected_thread_id {
-                state.residents.push_back(candidate_thread_id);
                 continue;
             }
             return Some(candidate_thread_id);
