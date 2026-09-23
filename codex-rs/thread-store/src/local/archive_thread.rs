@@ -151,13 +151,19 @@ async fn archive_thread_with_paths(
 
 #[cfg(test)]
 mod tests {
+    use std::fs::OpenOptions;
+    use std::io::Write;
     use std::time::Duration;
 
     use chrono::Utc;
     use codex_protocol::ThreadId;
+    use codex_protocol::models::ContentItem;
+    use codex_protocol::models::ResponseItem;
     use codex_protocol::protocol::SessionSource;
     use codex_protocol::protocol::ThreadHistoryMode;
     use codex_rollout::ARCHIVED_SESSIONS_SUBDIR;
+    use codex_rollout::RolloutItem;
+    use codex_rollout::RolloutLine;
     use codex_utils_absolute_path::test_support::PathExt;
     use pretty_assertions::assert_eq;
     use tempfile::TempDir;
@@ -172,6 +178,35 @@ mod tests {
     use crate::local::test_support::test_config;
     use crate::local::test_support::write_session_file;
     use crate::local::test_support::write_session_file_with_history_mode;
+
+    fn append_user_message(path: &std::path::Path, message: &str) {
+        let item = RolloutItem::ResponseItem(
+            ResponseItem::Message {
+                id: None,
+                role: "user".to_string(),
+                content: vec![ContentItem::InputText {
+                    text: message.to_string(),
+                }],
+                phase: None,
+                internal_chat_message_metadata_passthrough: None,
+            }
+            .into(),
+        );
+        let line = RolloutLine {
+            timestamp: "2025-01-03T12:00:01Z".to_string(),
+            ordinal: Some(1),
+            item,
+        };
+        writeln!(
+            OpenOptions::new()
+                .append(true)
+                .open(path)
+                .expect("open rollout"),
+            "{}",
+            serde_json::to_string(&line).expect("serialize user message")
+        )
+        .expect("append user message");
+    }
 
     #[tokio::test]
     async fn archive_waits_for_fork_reservation_without_holding_writer_lock() {
@@ -375,13 +410,27 @@ mod tests {
         let config = test_config(home.path());
         let uuid = Uuid::from_u128(208);
         let thread_id = ThreadId::from_string(&uuid.to_string()).expect("valid thread id");
-        let active_path = write_session_file_with_history_mode(
+        let older_path = write_session_file_with_history_mode(
+            home.path(),
+            "2025-01-03T11-59-59",
+            uuid,
+            ThreadHistoryMode::Paginated,
+        )
+        .expect("older session file");
+        append_user_message(older_path.as_path(), "older history");
+        let initial_path = write_session_file_with_history_mode(
             home.path(),
             "2025-01-03T12-00-00",
             uuid,
             ThreadHistoryMode::Paginated,
         )
         .expect("session file");
+        let selected_rollout_uuid = Uuid::from_u128(209);
+        let active_path = initial_path.with_file_name(format!(
+            "rollout-2025-01-03T12-00-00-{uuid}_{selected_rollout_uuid}.jsonl"
+        ));
+        std::fs::rename(&initial_path, &active_path).expect("select newer immutable rollout");
+        append_user_message(active_path.as_path(), "selected history");
         let runtime = codex_state::StateRuntime::init(
             codex_state::SqliteConfig::new_for_testing(home.path().abs()),
             config.default_model_provider_id.clone(),
@@ -408,13 +457,17 @@ mod tests {
             .await
             .expect("state db upsert should succeed");
         let store = LocalThreadStore::new(config.clone(), Some(runtime.clone()));
-        store
+        let before_crash = store
             .load_latest_model_context(crate::LoadThreadHistoryParams {
                 thread_id,
                 include_archived: true,
             })
             .await
             .expect("fixture must be resumable before archive");
+        let before_crash_items =
+            serde_json::to_value(before_crash.items).expect("serialize selected context");
+        assert!(before_crash_items.to_string().contains("selected history"));
+        assert!(!before_crash_items.to_string().contains("older history"));
 
         let archived_path = home
             .path()
@@ -453,7 +506,7 @@ mod tests {
         assert!(!active_path.exists());
         assert!(archived_path.exists());
 
-        let restarted_store = LocalThreadStore::new(config, Some(restarted_runtime));
+        let restarted_store = LocalThreadStore::new(config, Some(restarted_runtime.clone()));
         let context = restarted_store
             .load_latest_model_context(crate::LoadThreadHistoryParams {
                 thread_id,
@@ -462,6 +515,116 @@ mod tests {
             .await
             .expect("archive crash must leave model context resumable by id");
         assert_eq!(context.thread_id, thread_id);
-        assert!(!context.items.is_empty());
+        assert_eq!(
+            serde_json::to_value(context.items).expect("serialize recovered context"),
+            before_crash_items
+        );
+        assert_eq!(
+            thread_rollout_resolver::resolve_current_including_archived(
+                &restarted_store,
+                thread_id
+            )
+            .await
+            .expect("resolve selected archive")
+            .expect("selected archived counterpart")
+            .path,
+            archived_path
+        );
+        assert_eq!(
+            thread_rollout_resolver::resolve_current(&restarted_store, thread_id)
+                .await
+                .expect("active-only resolution"),
+            None
+        );
+        assert_eq!(
+            restarted_runtime
+                .get_thread(thread_id)
+                .await
+                .expect("read metadata after recovery")
+                .expect("thread metadata after recovery"),
+            stale_metadata
+        );
+    }
+
+    #[tokio::test]
+    async fn missing_selected_paginated_rollout_does_not_use_older_or_wrong_owner_archive() {
+        let home = TempDir::new().expect("temp dir");
+        let config = test_config(home.path());
+        let uuid = Uuid::from_u128(210);
+        let thread_id = ThreadId::from_string(&uuid.to_string()).expect("thread id");
+        let older_path = write_session_file_with_history_mode(
+            home.path(),
+            "2025-01-03T11-59-59",
+            uuid,
+            ThreadHistoryMode::Paginated,
+        )
+        .expect("older rollout");
+        append_user_message(older_path.as_path(), "older history");
+        let selected_path = write_session_file_with_history_mode(
+            home.path(),
+            "2025-01-03T12-00-00",
+            uuid,
+            ThreadHistoryMode::Paginated,
+        )
+        .expect("selected rollout");
+        append_user_message(selected_path.as_path(), "selected history");
+        let runtime = codex_state::StateRuntime::init(
+            codex_state::SqliteConfig::new_for_testing(home.path().abs()),
+            config.default_model_provider_id.clone(),
+        )
+        .await
+        .expect("initialize state database");
+        let mut builder = codex_state::ThreadMetadataBuilder::new(
+            thread_id,
+            selected_path.clone(),
+            Utc::now(),
+            SessionSource::Cli,
+        );
+        builder.history_mode = ThreadHistoryMode::Paginated;
+        let metadata = builder.build(config.default_model_provider_id.as_str());
+        runtime
+            .upsert_thread(&metadata)
+            .await
+            .expect("save selected rollout");
+        let archived_dir = home.path().join(ARCHIVED_SESSIONS_SUBDIR);
+        std::fs::create_dir_all(&archived_dir).expect("create archive directory");
+        let older_archive = archived_dir.join(older_path.file_name().expect("older file name"));
+        std::fs::rename(&older_path, &older_archive).expect("archive older rollout");
+        std::fs::remove_file(&selected_path).expect("remove selected rollout");
+        let store = LocalThreadStore::new(config, Some(runtime.clone()));
+
+        assert_eq!(
+            thread_rollout_resolver::resolve_current_including_archived(&store, thread_id)
+                .await
+                .expect("resolve with only older archive"),
+            None
+        );
+
+        let wrong_owner_uuid = Uuid::from_u128(211);
+        let wrong_owner_path = write_session_file_with_history_mode(
+            home.path(),
+            "2025-01-03T12-00-01",
+            wrong_owner_uuid,
+            ThreadHistoryMode::Paginated,
+        )
+        .expect("wrong-owner rollout");
+        append_user_message(wrong_owner_path.as_path(), "wrong owner history");
+        let selected_archive = archived_dir.join(selected_path.file_name().expect("selected name"));
+        std::fs::rename(wrong_owner_path, selected_archive)
+            .expect("place wrong owner at selected name");
+        assert_eq!(
+            thread_rollout_resolver::resolve_current_including_archived(&store, thread_id)
+                .await
+                .expect("reject mismatched archive owner"),
+            None
+        );
+        assert_eq!(
+            runtime
+                .get_thread(thread_id)
+                .await
+                .expect("read metadata after failed resolution")
+                .expect("selected metadata"),
+            metadata
+        );
     }
 }
