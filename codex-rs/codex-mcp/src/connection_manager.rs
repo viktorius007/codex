@@ -138,9 +138,15 @@ impl McpServerConnection {
         self.client.shutdown().await;
     }
 
-    fn cancel_startup(&self) {
-        if !self.startup_is_dormant() && !self.client.startup_complete.load(Ordering::Acquire) {
+    fn cancel_startup(&self) -> bool {
+        if !self.startup_is_dormant()
+            && !self.client.startup_complete.load(Ordering::Acquire)
+            && !self.client.cancel_token.is_cancelled()
+        {
             self.client.cancel_token.cancel();
+            true
+        } else {
+            false
         }
     }
 
@@ -928,10 +934,12 @@ impl McpConnectionSet {
         }
     }
 
-    pub(crate) fn cancel_startup(&self) {
+    pub(crate) fn cancel_startup(&self) -> bool {
+        let mut cancelled = false;
         for view in self.servers.values() {
-            view.connection.cancel_startup();
+            cancelled |= view.connection.cancel_startup();
         }
+        cancelled
     }
 
     pub fn plugin_id_for_mcp_server_name(&self, server_name: &str) -> Option<&str> {

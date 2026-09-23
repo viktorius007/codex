@@ -672,8 +672,9 @@ impl McpRuntime {
         self.latest_connections().validate_required_servers().await
     }
 
-    pub fn cancel_startup(&self) {
-        self.current.load().connections.cancel_startup();
+    /// Cancels active, pending startups and reports whether any were newly cancelled.
+    pub fn cancel_startup(&self) -> bool {
+        self.current.load().connections.cancel_startup()
     }
 
     /// Observes matching published registrations without starting or reconnecting servers.

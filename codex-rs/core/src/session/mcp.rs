@@ -726,8 +726,8 @@ impl Session {
             .collect()
     }
 
-    pub(crate) fn cancel_mcp_startup(&self) {
-        self.services.mcp_runtime.cancel_startup();
+    pub(crate) fn cancel_mcp_startup(&self) -> bool {
+        self.services.mcp_runtime.cancel_startup()
     }
 }
 

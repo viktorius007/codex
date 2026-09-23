@@ -3,10 +3,14 @@
 use std::time::Duration;
 
 use anyhow::Context;
+use codex_protocol::protocol::EventMsg;
+use codex_protocol::protocol::McpStartupStatus;
+use codex_protocol::protocol::Op;
 use core_test_support::apps_test_server::AppsTestServer;
 use core_test_support::responses;
 use core_test_support::skip_if_no_network;
 use core_test_support::test_codex::test_codex;
+use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 use test_case::test_case;
@@ -14,6 +18,88 @@ use test_case::test_case;
 const SERVER_NAME: &str = "optional_startup";
 const TOOL_NAMESPACE: &str = "mcp__optional_startup";
 const TOOL_NAME: &str = "calendar_create_event";
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn interrupted_idle_mcp_startup_reconnects_for_next_turn() -> anyhow::Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let responses_server = responses::start_mock_server().await;
+    let mcp_server = responses::start_mock_server().await;
+    let (http_server, startup_control) =
+        AppsTestServer::mount_with_startup_control(&mcp_server).await?;
+    let release_startup = startup_control.hold_next_successful_initialize();
+    let server_url = format!("{}/api/codex/ps/mcp", http_server.chatgpt_base_url);
+    let fixture = test_codex()
+        .with_model_info_override("gpt-5.4", |model| model.supports_search_tool = false)
+        .with_config(move |config| {
+            config.mcp_optional_startup_grace = Duration::ZERO;
+            let mut servers = config.mcp_servers.get().clone();
+            servers.insert(
+                SERVER_NAME.to_string(),
+                serde_json::from_value(json!({
+                    "url": server_url,
+                    "http_headers": { "Authorization": "Bearer synthetic-test-token" },
+                    "enabled_tools": [TOOL_NAME],
+                    "startup_timeout_sec": 10,
+                }))
+                .expect("synthetic MCP server configuration"),
+            );
+            config
+                .mcp_servers
+                .set(servers)
+                .expect("valid MCP configuration");
+        })
+        .build_with_auto_env(&responses_server)
+        .await?;
+
+    wait_for_event(&fixture.codex, |event| {
+        matches!(event, EventMsg::McpStartupUpdate(update)
+            if update.server == SERVER_NAME && matches!(update.status, McpStartupStatus::Starting))
+    })
+    .await;
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while startup_control.initialize_attempts() == 0 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .context("MCP initialization should be in flight before the idle interrupt")?;
+    assert_eq!(startup_control.initialize_attempts(), 1);
+    fixture.codex.submit(Op::Interrupt).await?;
+    wait_for_event(&fixture.codex, |event| {
+        matches!(event, EventMsg::McpStartupUpdate(update)
+            if update.server == SERVER_NAME && matches!(update.status, McpStartupStatus::Cancelled))
+    })
+    .await;
+    release_startup
+        .send(())
+        .expect("held initialization should release");
+
+    let response = responses::mount_sse_once(
+        &responses_server,
+        responses::sse(vec![
+            responses::ev_response_created("resp-after-idle-interrupt"),
+            responses::ev_assistant_message("msg-after-idle-interrupt", "done"),
+            responses::ev_completed("resp-after-idle-interrupt"),
+        ]),
+    )
+    .await;
+    fixture
+        .submit_text_turn("show the available MCP tools")
+        .await?;
+
+    let request = response.single_request().body_json();
+    assert_eq!(
+        (
+            startup_control.initialize_attempts(),
+            responses::namespace_child_tool(&request, TOOL_NAMESPACE, TOOL_NAME).is_some(),
+        ),
+        (2, true),
+        "the next turn should reconnect and advertise the recovered server tool"
+    );
+    fixture.codex.shutdown_and_wait().await?;
+    Ok(())
+}
 
 #[derive(Clone, Copy)]
 enum StartupGraceScenario {
