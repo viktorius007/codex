@@ -32,6 +32,19 @@
 - Cache repair full-suite tests are authorized. The deliverable is a trustworthy installed local binary; build and install validated milestones when this does not disrupt the running harness, preserving the previous binary and recording installation time/version.
 - Cache repair verification must cover ordinary and post-compaction cold resumes within the provider cache lifetime, checking preserved input prefixes and unchanged effective model, instructions, settings, and ordered tools separately from provider-reported cache reuse.
 
+## Syncing to a new upstream stable release
+
+Apply this workflow only when the user requests moving `local/customizations` to a newer upstream stable `rust-v*` release tag. Do not start it for `origin/main` updates, alpha tags, routine code changes, or merely discovering a new tag.
+
+- Before rebasing, verify the selected stable tag and current base; inspect branch, worktrees, uncommitted changes, free disk, installed version, rollback release, and the local patch set. For each patch, check whether upstream already supplies its behavior. Ask the user only when dropping a patch or resolving a significant functional tradeoff is necessary.
+- Adapt the patches, then build the CLI and code-mode host early to catch cross-crate compile failures. Run focused tests for changed crates and preserved local behaviors. Group failures by cause, check for test-host contamination, and resolve them with focused reruns before the workspace suite.
+- Finish generated fixtures, formatting, and scoped lint before the final suite; if any of those change code, recheck the affected scope. Once the tree is frozen, run the complete workspace `just test` once. Rerun the complete suite only when a later change invalidates that result or a failure remains unresolved. This final suite is authorized for a requested stable-release sync without separate approval.
+- For a test close to its timeout, use measured isolated runs to justify a test-specific timeout change; do not weaken assertions or broadly increase timeouts.
+- Let long-running commands report completion instead of polling logs for progress. Read bounded failure summaries when a command finishes, and update the user at meaningful milestones or blockers rather than per-test counts.
+- Build the final binaries from the verified tree. Check version, checksums, architecture, and CLI/host launch commands; preserve the previous installation, atomically switch to the versioned release only after candidate checks, then verify the installed commands and record provenance. Complete the cleanup check without deleting diagnostic evidence or unknown files.
+
+Retire a manual step above when a repository command enforces that step mechanically.
+
 # Local exec-completion customization
 
 This checkout carries a local patch derived from `tekacs/codex@9ffcf8db9078eae43d4111ff94259795c1e962c9`. Preserve the behavior below when rebasing onto a newer stable release, adapting the implementation when upstream code changes.
@@ -110,9 +123,9 @@ Run `just fmt` (in the `codex-rs` directory) automatically after you have finish
 
 1. Do not run `cargo test` directly. Use `just test` so test execution follows the repo defaults.
 2. Run the test for the specific project that was changed. For example, if changes were made in `codex-rs/tui`, run `just test -p codex-tui`.
-3. Once those pass, if any changes were made in common, core, or protocol, run the complete test suite with `just test`. Avoid `--all-features` for routine local runs because it expands the build matrix and can significantly increase `target/` disk usage; use it only when you specifically need full feature coverage. project-specific or individual tests can be run without asking the user, but do ask the user before running the complete test suite.
+3. Once those pass, if any changes were made in common, core, or protocol, run the complete test suite with `just test`. Avoid `--all-features` for routine local runs because it expands the build matrix and can significantly increase `target/` disk usage; use it only when you specifically need full feature coverage. Project-specific or individual tests can be run without asking the user, but do ask the user before running the complete test suite except for the stable-release sync workflow above.
 
-Before finalizing a large change to `codex-rs`, run `just fix -p <project>` (in `codex-rs` directory) to fix any linter issues in the code. Prefer scoping with `-p` to avoid slow workspace‑wide Clippy builds; only run `just fix` without `-p` if you changed shared crates. Do not re-run tests after running `fix` or `fmt`.
+Before finalizing a large change to `codex-rs`, run `just fix -p <project>` (in `codex-rs` directory) to fix any linter issues in the code. Prefer scoping with `-p` to avoid slow workspace‑wide Clippy builds; only run `just fix` without `-p` if you changed shared crates. Do not re-run tests after running `fix` or `fmt` unless either command changed code covered by those tests. For a stable-release sync, use the staged order above.
 
 ## The `codex-core` crate
 
