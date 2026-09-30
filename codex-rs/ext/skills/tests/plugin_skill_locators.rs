@@ -534,6 +534,86 @@ async fn plugin_package_subresources_follow_the_active_snapshot_and_stay_within_
     Ok(())
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn symlinked_plugin_skill_uses_logical_package_locator_and_reads_physical_resources()
+-> TestResult {
+    let codex_home = TempDir::new()?;
+    let target = TempDir::new()?;
+    let cwd = codex_home.path().join("workspace");
+    let plugin_root = codex_home.path().join("plugin");
+    let skills_root = plugin_root.join("skills");
+    let target_skill = target.path().join("analyze");
+    std::fs::create_dir_all(&cwd)?;
+    std::fs::create_dir_all(&skills_root)?;
+    std::fs::create_dir_all(target_skill.join("references"))?;
+    std::fs::write(target_skill.join("SKILL.md"), PRIMARY_PLUGIN_SKILL)?;
+    std::fs::write(target_skill.join("references/x.md"), PRIMARY_REFERENCE_A)?;
+    std::os::unix::fs::symlink(&target_skill, skills_root.join("alias"))?;
+
+    let plugin_id = "symlinked@marketplace";
+    let package = "skill://symlinked@marketplace/alias";
+    let service = HostSkillsService::new_with_restriction_product(
+        AbsolutePathBuf::try_from(codex_home.path().to_path_buf())?,
+        /*bundled_skills_enabled*/ false,
+        /*restriction_product*/ None,
+    );
+    let snapshot = load_snapshot(
+        &service,
+        &cwd,
+        vec![PluginSkillRoot {
+            path: AbsolutePathBuf::try_from(skills_root)?,
+            plugin_identity: PluginIdentity {
+                plugin_id: plugin_id.to_string(),
+                remote_plugin_id: None,
+            },
+            plugin_namespace: "symlinked".to_string(),
+            plugin_root: AbsolutePathBuf::try_from(plugin_root)?,
+            discovery_mode: SkillDiscoveryMode::Recursive,
+        }],
+    )
+    .await?;
+    let (registry, session_store, thread_store) = start_registry().await?;
+    let (turn_store, catalog) = render_host_catalog(
+        &registry,
+        &session_store,
+        &thread_store,
+        "symlinked-turn",
+        snapshot,
+    )
+    .await?;
+
+    assert_eq!(
+        catalog
+            .lines()
+            .filter(|line| line.starts_with("- symlinked:analyze:"))
+            .map(str::to_string)
+            .collect::<Vec<_>>(),
+        vec![format!(
+            "- symlinked:analyze: Analyze data. (plugin package: {package})"
+        )]
+    );
+    let reference = format!("{package}/references/x.md");
+    assert_eq!(
+        read_package(
+            &registry,
+            &session_store,
+            &thread_store,
+            &turn_store,
+            package,
+            ReadTarget::Resource(&reference),
+        )
+        .await?,
+        serde_json::json!({
+            "resource": reference,
+            "contents": PRIMARY_REFERENCE_A,
+            "next_cursor": null,
+        })
+    );
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn ordinary_host_skills_keep_filesystem_locators_and_direct_prompt_reads() -> TestResult {
     let codex_home = TempDir::new()?;
