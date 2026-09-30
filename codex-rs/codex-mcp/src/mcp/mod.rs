@@ -120,7 +120,7 @@ pub struct McpPermissionPromptAutoApproveContext {
 /// settings, so its connection, approval policy, and sandbox authority cannot
 /// change independently. Auth remains separate and is supplied explicitly to
 /// runtime entry points such as [`effective_mcp_servers`].
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct McpConfig {
     /// Base URL for ChatGPT-hosted app MCP servers, copied from the root config.
     pub chatgpt_base_url: String,

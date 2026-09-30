@@ -11,11 +11,11 @@ use codex_config::McpServerDisabledReason;
 use codex_config::McpServerTransportConfig;
 use codex_mcp::CODEX_APPS_MCP_SERVER_NAME;
 use codex_mcp::ElicitationReviewerHandle;
+use codex_mcp::McpBinding;
 use codex_mcp::McpServerRegistration;
 use codex_mcp::McpServerSource;
 use codex_mcp::McpStartupPolicy;
 use codex_mcp::PreparedMcpCall;
-use codex_mcp::ToolInfo;
 use codex_protocol::capabilities::SelectedCapabilityRoot;
 use std::collections::HashSet;
 
@@ -53,16 +53,21 @@ impl Session {
             .await;
     }
 
-    /// Captures this session's current MCP client and catalog for one tool call.
+    /// Uses the sampled binding only while its configuration authority remains current.
     pub(crate) async fn prepare_mcp_call(
         self: &Arc<Self>,
-        advertised_tool: &ToolInfo,
+        binding: &McpBinding,
+        server: &str,
+        tool: &str,
     ) -> Option<PreparedMcpCall> {
         self.refresh_mcp_if_dirty().await;
-        self.services
+        let current = self
+            .services
             .mcp_runtime
-            .prepare_call(advertised_tool)
-            .await
+            .current_binding_for_call(server)
+            .await?
+            .prepare_call(server, tool)?;
+        binding.prepare_call_if_current(current)
     }
 
     pub(super) async fn latest_mcp_desired_state(
