@@ -309,6 +309,47 @@ fn output_context(session: Arc<Session>, turn_context: Arc<TurnContext>) -> Hand
 }
 
 #[tokio::test]
+async fn malformed_tool_search_call_records_matching_search_output() {
+    let (session, turn_context) = make_session_and_context().await;
+    let mut ctx = output_context(Arc::new(session), Arc::new(turn_context));
+    let call = serde_json::from_value(json!({
+        "type": "tool_search_call",
+        "call_id": "search-invalid",
+        "execution": "client",
+        "arguments": { "query": 7 },
+    }))
+    .expect("well-formed response item with invalid search arguments");
+
+    let result = handle_output_item_done(&mut ctx, call, /*previously_active_item*/ None)
+        .await
+        .expect("invalid search arguments should be answered in history");
+    assert!(result.needs_follow_up);
+    let history = ctx.sess.clone_history().await;
+    let call_and_outputs = history
+        .raw_items()
+        .filter_map(|item| match item {
+            ResponseItem::ToolSearchCall { call_id, .. } => {
+                Some(("tool_search_call", call_id.as_deref()))
+            }
+            ResponseItem::ToolSearchOutput { call_id, .. } => {
+                Some(("tool_search_output", call_id.as_deref()))
+            }
+            ResponseItem::FunctionCallOutput { call_id, .. } => {
+                Some(("function_call_output", call_id.as_deref()))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        call_and_outputs,
+        vec![
+            ("tool_search_call", Some("search-invalid")),
+            ("tool_search_output", Some("search-invalid")),
+        ],
+    );
+}
+
+#[tokio::test]
 async fn handle_output_item_done_returns_contributed_last_agent_message() {
     let (mut session, turn_context) = make_session_and_context().await;
     let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
