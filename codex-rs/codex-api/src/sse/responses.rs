@@ -645,6 +645,7 @@ async fn process_sse_with_treatment(
             return;
         }
 
+        let is_failed = event.kind() == "response.failed";
         match process_responses_event(event) {
             Ok(Some(event)) => {
                 let is_completed = matches!(event, ResponseEvent::Completed { .. });
@@ -658,10 +659,12 @@ async fn process_sse_with_treatment(
             Ok(None) => {}
             Err(error) => {
                 let error = error.into_api_error();
-                if matches!(
-                    error,
-                    ApiError::FlexUnavailable | ApiError::ResponseIncomplete(_)
-                ) {
+                if is_failed
+                    || matches!(
+                        error,
+                        ApiError::FlexUnavailable | ApiError::ResponseIncomplete(_)
+                    )
+                {
                     let _ = tx_event.send(Err(error)).await;
                     return;
                 }
