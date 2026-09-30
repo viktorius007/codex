@@ -15,14 +15,7 @@ pub(super) async fn spawn_review_thread(
         .review_model
         .clone()
         .unwrap_or_else(|| parent_turn_context.model_info().slug.clone());
-    let available_models = sess
-        .services
-        .models_manager
-        .list_models(
-            RefreshStrategy::OnlineIfUncached,
-            config.http_client_factory(),
-        )
-        .await;
+    let available_models = sess.model_catalog_snapshot().await;
     let review_model_info = sess
         .services
         .models_manager

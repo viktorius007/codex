@@ -26,7 +26,9 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::LazyLock;
+use std::sync::OnceLock;
 use toml::Value as TomlValue;
 
 /// The role name used when a caller omits `agent_type`.
@@ -263,6 +265,12 @@ mod role_overrides {
 
 pub(crate) mod spawn_tool_spec {
     use super::*;
+
+    /// Thread-scoped cache for the role text embedded in spawn-agent tool specs.
+    #[derive(Default)]
+    pub(crate) struct SpawnRoleSpecSnapshot {
+        pub(crate) description: OnceLock<Arc<str>>,
+    }
 
     /// Builds the spawn-agent tool description text from built-in and configured roles.
     pub(crate) fn build(user_defined_agent_roles: &BTreeMap<String, AgentRoleConfig>) -> String {

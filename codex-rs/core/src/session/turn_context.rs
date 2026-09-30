@@ -50,6 +50,11 @@ pub(crate) type ShellSnapshotTask = Shared<BoxFuture<'static, Option<Arc<ShellSn
 pub(crate) type ShellSnapshotCache =
     Arc<Mutex<HashMap<ShellSnapshotCacheKey, Arc<ShellSnapshotFile>>>>;
 
+#[derive(Default)]
+struct ModelCatalogSnapshot {
+    presets: tokio::sync::OnceCell<Vec<ModelPreset>>,
+}
+
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct ShellSnapshotCacheKey {
     cwd: AbsolutePathBuf,
@@ -659,12 +664,6 @@ impl TurnContext {
         };
         config.model_reasoning_effort = reasoning_effort.clone();
 
-        let available_models = models_manager
-            .list_models(
-                RefreshStrategy::OnlineIfUncached,
-                config.http_client_factory(),
-            )
-            .await;
         let model_info = Arc::new(model_info);
         let mut selected = self.initial_settings.selected().clone();
         selected.collaboration_mode = selected.collaboration_mode.with_updates(
@@ -709,7 +708,7 @@ impl TurnContext {
             multi_agent_version: self.multi_agent_version,
             network: self.network.clone(),
             windows_sandbox_level: self.windows_sandbox_level,
-            available_models,
+            available_models: self.available_models.clone(),
             unified_exec_shell_mode: self.unified_exec_shell_mode.clone(),
             final_output_json_schema: self.final_output_json_schema.clone(),
             dynamic_tools: self.dynamic_tools.clone(),
@@ -909,6 +908,23 @@ impl Session {
                 .to_string(),
         );
         config
+    }
+
+    /// Returns the model presets captured on this thread's first turn construction.
+    pub(crate) async fn model_catalog_snapshot(&self) -> Vec<ModelPreset> {
+        let snapshot = self
+            .services
+            .thread_extension_data
+            .get_or_init(ModelCatalogSnapshot::default);
+        snapshot
+            .presets
+            .get_or_init(|| async {
+                let models_manager = &self.services.models_manager;
+                let remote_models = models_manager.get_remote_models().await;
+                models_manager.build_available_models(remote_models)
+            })
+            .await
+            .clone()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1233,6 +1249,7 @@ impl Session {
             Arc::new(model_info),
             self.features.enabled(Feature::FastMode),
         ));
+        let available_models = self.model_catalog_snapshot().await;
         let mut turn_context: TurnContext = Self::make_turn_context(
             self.thread_id(),
             self.session_id(),
@@ -1262,6 +1279,7 @@ impl Session {
             sub_id,
             skills_snapshot,
         );
+        turn_context.available_models = available_models;
         turn_context.code_mode_available = self.services.code_mode_service.is_available();
         turn_context.extension_data.insert(trusted_plugin_roots);
         turn_context.active_host_plugin_identities = Some(

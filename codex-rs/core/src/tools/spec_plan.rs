@@ -114,7 +114,7 @@ struct CoreToolPlanContext<'a> {
     mcp: &'a codex_mcp::McpBinding,
     tool_suggest_candidates: Option<&'a crate::tools::router::ToolSuggestCandidates>,
     wait_for_environment_tool_config: Option<&'a Arc<crate::WaitForEnvironmentToolConfig>>,
-    default_agent_type_description: &'a str,
+    agent_type_description: &'a str,
     wait_agent_timeouts: WaitAgentTimeoutOptions,
 }
 
@@ -130,8 +130,18 @@ pub(crate) fn build_tool_router(
     step_store: &ExtensionData,
     tool_suggest_candidates: Option<&crate::tools::router::ToolSuggestCandidates>,
 ) -> CodexResult<ToolRouter> {
-    let default_agent_type_description =
-        crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+    let role_snapshot = session
+        .services
+        .thread_extension_data
+        .get_or_init(crate::agent::role::spawn_tool_spec::SpawnRoleSpecSnapshot::default);
+    let agent_type_description = Arc::clone(role_snapshot.description.get_or_init(|| {
+        let default_agent_type_description =
+            crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+        Arc::from(agent_type_description(
+            turn_context,
+            &default_agent_type_description,
+        ))
+    }));
     let wait_for_environment_tool_config = session
         .services
         .thread_extension_data
@@ -144,7 +154,7 @@ pub(crate) fn build_tool_router(
         mcp,
         tool_suggest_candidates,
         wait_for_environment_tool_config: wait_for_environment_tool_config.as_ref(),
-        default_agent_type_description: &default_agent_type_description,
+        agent_type_description: &agent_type_description,
         wait_agent_timeouts: wait_agent_timeout_options(turn_context),
     };
     let mut registry = ToolRegistry::with_tool_policy(Arc::clone(&session.tool_policy));
@@ -281,6 +291,8 @@ pub(crate) fn build_core_tool_registry(
 ) -> ToolRegistry {
     let default_agent_type_description =
         crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+    let agent_type_description =
+        agent_type_description(turn_context, &default_agent_type_description);
     let context = CoreToolPlanContext {
         tool_policy: &Default::default(),
         turn_context,
@@ -289,7 +301,7 @@ pub(crate) fn build_core_tool_registry(
         mcp,
         tool_suggest_candidates,
         wait_for_environment_tool_config,
-        default_agent_type_description: &default_agent_type_description,
+        agent_type_description: &agent_type_description,
         wait_agent_timeouts: wait_agent_timeout_options(turn_context),
     };
     let mut registry = ToolRegistry::default();
@@ -1311,8 +1323,7 @@ fn add_collaboration_tools(context: &CoreToolPlanContext<'_>, registry: &mut Too
             let tool_namespace = namespace_tools_enabled(turn_context)
                 .then_some(turn_context.config.multi_agent_v2.tool_namespace.as_deref())
                 .flatten();
-            let agent_type_description =
-                agent_type_description(turn_context, context.default_agent_type_description);
+            let agent_type_description = context.agent_type_description.to_string();
             let hide_spawn_agent_metadata =
                 turn_context.config.multi_agent_v2.hide_spawn_agent_metadata;
             registry.register_trusted_with_exposure(
@@ -1394,8 +1405,7 @@ fn add_collaboration_tools(context: &CoreToolPlanContext<'_>, registry: &mut Too
                 exposure,
             );
         } else {
-            let agent_type_description =
-                agent_type_description(turn_context, context.default_agent_type_description);
+            let agent_type_description = context.agent_type_description.to_string();
             let exposure = if search_tool_enabled(turn_context, context.model_info) {
                 ToolExposure::Deferred
             } else {
