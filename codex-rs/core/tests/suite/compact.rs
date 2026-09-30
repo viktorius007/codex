@@ -1,5 +1,6 @@
 use anyhow::Result;
 use anyhow::anyhow;
+use codex_core::StartThreadOptions;
 use codex_core::TurnInputRequest;
 use codex_core::compact::SUMMARIZATION_PROMPT;
 use codex_core::compact::SUMMARY_PREFIX;
@@ -16,6 +17,8 @@ use codex_protocol::config_types::ModeKind;
 use codex_protocol::config_types::ReasoningSummary;
 use codex_protocol::config_types::ServiceTier;
 use codex_protocol::config_types::Settings;
+use codex_protocol::dynamic_tools::DynamicToolFunctionSpec;
+use codex_protocol::dynamic_tools::DynamicToolSpec;
 use codex_protocol::items::TurnItem;
 use codex_protocol::models::ImageReference;
 use codex_protocol::models::PermissionProfile;
@@ -4388,6 +4391,98 @@ async fn auto_compact_allows_multiple_attempts_when_interleaved_with_other_turn_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn mid_turn_local_compaction_reuses_the_active_step_tool_catalog() -> Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let server = start_mock_server().await;
+    let context_window = 100;
+    let limit = context_window * 90 / 100;
+    let over_limit_tokens = context_window * 95 / 100 + 1;
+    let dynamic_tool_name = "compaction_catalog_probe";
+    let request_log = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_function_call(DUMMY_CALL_ID, DUMMY_FUNCTION_NAME, "{}"),
+                ev_completed_with_tokens("sampling-response", over_limit_tokens),
+            ]),
+            sse(vec![
+                ev_assistant_message("compact-message", AUTO_SUMMARY_TEXT),
+                ev_completed_with_tokens("compact-response", /*total_tokens*/ 10),
+            ]),
+            sse(vec![
+                ev_assistant_message("follow-up-message", FINAL_REPLY),
+                ev_completed_with_tokens("follow-up-response", /*total_tokens*/ 10),
+            ]),
+        ],
+    )
+    .await;
+    let model_provider = non_openai_model_provider(&server);
+    let mut builder = test_codex().with_config(move |config| {
+        config.model_provider = model_provider;
+        set_test_compact_prompt(config);
+        config.model_context_window = Some(context_window);
+        config.model_auto_compact_token_limit = Some(limit);
+    });
+    let base_test = builder.build_with_auto_env(&server).await?;
+    let thread = base_test
+        .thread_manager
+        .start_thread(StartThreadOptions {
+            dynamic_tools: vec![DynamicToolSpec::Function(DynamicToolFunctionSpec {
+                name: dynamic_tool_name.to_string(),
+                description: "Confirms compaction request tool catalog parity.".to_string(),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false,
+                }),
+                defer_loading: false,
+            })],
+            ..StartThreadOptions::new(base_test.config.clone())
+        })
+        .await?
+        .thread;
+
+    thread
+        .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+            text: FUNCTION_CALL_LIMIT_MSG.to_string(),
+            text_elements: Vec::new(),
+        }]))
+        .await?;
+    wait_for_event(&thread, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+
+    let requests = request_log.requests();
+    assert_eq!(
+        requests.len(),
+        3,
+        "expected sampling, mid-turn local compaction, and continuation requests"
+    );
+    let sampling_body = requests[0].body_json();
+    let compact_body = requests[1].body_json();
+    assert!(
+        sampling_body["tools"].as_array().is_some_and(|tools| tools
+            .iter()
+            .any(|tool| { tool.get("name").and_then(Value::as_str) == Some(dynamic_tool_name) })),
+        "sampling fixture should advertise the non-default dynamic tool"
+    );
+    assert!(
+        body_contains_text(&compact_body.to_string(), SUMMARIZATION_PROMPT),
+        "second request should be the local compaction request"
+    );
+    let sampling_tool_components = (
+        &sampling_body["tools"],
+        &sampling_body["parallel_tool_calls"],
+    );
+    let compact_tool_components = (&compact_body["tools"], &compact_body["parallel_tool_calls"]);
+    assert_eq!(
+        compact_tool_components, sampling_tool_components,
+        "mid-turn local compaction should reuse the active sampling step's advertised tool request components"
+    );
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn paginated_compaction_cold_resume_from_bounded_suffix() -> Result<()> {
     skip_if_no_network!(Ok(()));
     let server = start_mock_server().await;
@@ -5042,6 +5137,172 @@ async fn auto_compact_accounts_for_encrypted_reasoning(first_response_includes_r
     assert!(
         third_request_body.contains(REMOTE_V2_SUMMARY),
         "third turn should include compaction summary item"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn pre_turn_auto_compact_counts_incoming_user_input_without_compacting_it() {
+    skip_if_no_network!();
+
+    let server = start_mock_server().await;
+    let pending_user_input = format!("PENDING_USER_INPUT {}", "x".repeat(800));
+    let request_log = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_assistant_message("m1", FIRST_REPLY),
+                ev_completed_with_tokens("r1", /*total_tokens*/ 190),
+            ]),
+            sse(vec![
+                ev_assistant_message("m2", "PRE_TURN_SUMMARY"),
+                ev_completed_with_tokens("r2", /*total_tokens*/ 50),
+            ]),
+            sse(vec![
+                ev_assistant_message("m3", FINAL_REPLY),
+                ev_completed_with_tokens("r3", /*total_tokens*/ 40),
+            ]),
+        ],
+    )
+    .await;
+
+    let model_provider = non_openai_model_provider(&server);
+    let codex = test_codex()
+        .with_config(move |config| {
+            config.model_provider = model_provider;
+            set_test_compact_prompt(config);
+            config.model_auto_compact_token_limit = Some(200);
+        })
+        .build(&server)
+        .await
+        .expect("build codex")
+        .codex;
+
+    for user_input in ["STORED_USER_INPUT", pending_user_input.as_str()] {
+        codex
+            .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+                text: user_input.to_string(),
+                text_elements: Vec::new(),
+            }]))
+            .await
+            .expect("submit user input");
+        wait_for_event(&codex, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    }
+
+    let requests = request_log.requests();
+    assert_eq!(
+        requests.len(),
+        3,
+        "incoming user input should trigger compaction before the next sampling request"
+    );
+
+    let compact_body = requests[1].body_json().to_string();
+    assert!(
+        body_contains_text(&compact_body, SUMMARIZATION_PROMPT),
+        "the second request should compact the stored history"
+    );
+    assert!(
+        !body_contains_text(&compact_body, &pending_user_input),
+        "incoming user input should not be included in the compact request"
+    );
+
+    let follow_up_body = requests[2].body_json().to_string();
+    assert!(
+        !body_contains_text(&follow_up_body, SUMMARIZATION_PROMPT),
+        "the post-compaction request should be an ordinary sampling request"
+    );
+    assert_eq!(
+        requests[2]
+            .message_input_texts("user")
+            .iter()
+            .filter(|text| *text == &pending_user_input)
+            .count(),
+        1,
+        "post-compaction sampling should include the incoming user input exactly once"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn auto_compact_counts_usage_less_history_before_next_sampling() {
+    skip_if_no_network!();
+
+    let server = start_mock_server().await;
+    let usage_less_reply = format!("USAGE_LESS_REPLY {}", "y".repeat(2_000));
+    let request_log = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_assistant_message("m1", FIRST_REPLY),
+                ev_completed_with_tokens("r1", /*total_tokens*/ 100),
+            ]),
+            sse(vec![
+                ev_assistant_message("m2", &usage_less_reply),
+                json!({"type": "response.completed", "response": {"id": "r2"}}),
+            ]),
+            sse(vec![
+                ev_assistant_message("m3", "USAGE_LESS_TAIL_SUMMARY"),
+                ev_completed_with_tokens("r3", /*total_tokens*/ 50),
+            ]),
+            sse(vec![
+                ev_assistant_message("m4", FINAL_REPLY),
+                ev_completed_with_tokens("r4", /*total_tokens*/ 40),
+            ]),
+        ],
+    )
+    .await;
+
+    let model_provider = non_openai_model_provider(&server);
+    let codex = test_codex()
+        .with_config(move |config| {
+            config.model_provider = model_provider;
+            set_test_compact_prompt(config);
+            config.model_auto_compact_token_limit = Some(400);
+        })
+        .build(&server)
+        .await
+        .expect("build codex")
+        .codex;
+
+    for user_input in ["USAGE_RECORDED_USER", "USAGE_LESS_USER", "NEXT_USER"] {
+        codex
+            .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+                text: user_input.to_string(),
+                text_elements: Vec::new(),
+            }]))
+            .await
+            .expect("submit user input");
+        wait_for_event(&codex, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    }
+
+    let requests = request_log.requests();
+    assert_eq!(
+        requests.len(),
+        4,
+        "the uncounted history tail should trigger compaction before the third turn samples"
+    );
+
+    let compact_body = requests[2].body_json().to_string();
+    assert!(
+        body_contains_text(&compact_body, SUMMARIZATION_PROMPT),
+        "the third request should compact history after the usage-less response"
+    );
+    assert!(
+        body_contains_text(&compact_body, &usage_less_reply),
+        "compaction should receive the usage-less response that crossed the threshold"
+    );
+
+    let follow_up_body = requests[3].body_json().to_string();
+    assert!(
+        !body_contains_text(&follow_up_body, SUMMARIZATION_PROMPT),
+        "the post-compaction request should be an ordinary sampling request"
+    );
+    assert_eq!(
+        requests[3]
+            .message_input_texts("user")
+            .iter()
+            .filter(|text| text.as_str() == "NEXT_USER")
+            .count(),
+        1,
+        "post-compaction sampling should include the third user input exactly once"
     );
 }
 
