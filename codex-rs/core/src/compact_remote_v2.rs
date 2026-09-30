@@ -7,6 +7,7 @@ use crate::session::FileAudioDurations;
 
 use crate::Prompt;
 use crate::ResponseStream;
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client::ResponsesHttpExecutor;
 use crate::client_common::ResponseEvent;
@@ -314,7 +315,7 @@ async fn run_remote_compaction_request_v2(
                 stream = http_executor.stream_responses_http(
                     &turn_state, auth_owner.clone(), /*event_sender*/ None, prompt, &settings.model_info, &step_context.session_telemetry, effort,
                     settings.reasoning_summary, settings.service_tier.clone(), responses_metadata,
-                    &trace,
+                    &trace, &CacheDiagnosticAttemptSequencer::default(),
                 ) => stream?,
             };
             return collect_compaction_output(
@@ -334,9 +335,10 @@ async fn run_remote_compaction_request_v2(
         .stream_max_retries()
         .min(MAX_REMOTE_COMPACTION_V2_STREAM_RETRIES);
     let mut retry_state = ResponsesStreamRetryState::default();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
     loop {
         let result = match client_session
-            .stream(
+            .stream_with_diagnostic_attempts(
                 prompt,
                 &settings.model_info,
                 &turn_context.session_telemetry,
@@ -346,6 +348,7 @@ async fn run_remote_compaction_request_v2(
                 step_context.settings.service_tier.clone(),
                 responses_metadata,
                 &InferenceTraceContext::disabled(),
+                &diagnostic_attempts,
             )
             .await
         {

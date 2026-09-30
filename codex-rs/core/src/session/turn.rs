@@ -6,6 +6,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::time::Instant;
 
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
@@ -13,9 +14,11 @@ use crate::compact::AutoCompactionDisabled;
 use crate::compact::run_inline_auto_compact_task;
 use crate::compact_remote_v2::BackgroundCompactionCandidate;
 use crate::compact_remote_v2::run_inline_remote_auto_compact_task as run_inline_remote_auto_compact_task_v2;
+use crate::compact_retained_tool_outputs::is_retained_tool_output;
 use crate::connectors;
 use crate::context::ContextualUserFragment;
 use crate::context::UserVerificationNotice;
+use crate::context_manager::estimate_item_token_count;
 use crate::context_manager::rejected_audio;
 use crate::cyber_access_program;
 use crate::environment_selection::TurnEnvironmentSnapshot;
@@ -254,10 +257,8 @@ pub(crate) async fn run_turn(
 
     let mut client_session =
         prewarmed_client_session.unwrap_or_else(|| sess.services.model_client.new_session());
-    // TODO(ccunningham): Pre-turn compaction runs before context updates and the
-    // new user message are recorded. Estimate pending incoming items (context
-    // diffs/full reinjection + user input) and trigger compaction preemptively
-    // when they would push the thread over the compaction threshold.
+    // Pre-turn compaction projects incoming turn input without recording it, so a compact request
+    // still contains only the stored history it will replace.
     if auto_compaction_enabled
         && let Err(err) = preserve_initial_input_during(
             &sess,
@@ -1557,14 +1558,53 @@ async fn track_turn_resolved_config_analytics(
 async fn run_pre_sampling_compact(
     sess: &Arc<Session>,
     turn_context: &Arc<TurnContext>,
+    input: &[TurnInput],
     client_session: &mut ModelClientSession,
     cancellation_token: &CancellationToken,
 ) -> CodexResult<()> {
     maybe_run_previous_model_inline_compact(sess, turn_context, client_session, cancellation_token)
         .await?;
-    let token_status =
-        super::context_window::context_window_token_status(sess.as_ref(), turn_context.as_ref())
-            .await;
+    // Guardian trims optional evidence when it finalizes its complete request.
+    // Projecting that unbudgeted draft here would compact or reject it too early.
+    let pending_tokens = if sess
+        .services
+        .thread_extension_data
+        .get::<crate::guardian::PendingReviewContext>()
+        .is_some()
+    {
+        0
+    } else {
+        // Compaction keeps enabled retained outputs whole, so counting them here only forces
+        // futile pre-turn compactions; send them first and let upstream trimming apply.
+        let retains_outputs = turn_context
+            .config
+            .features
+            .enabled(Feature::RetainClientToolOutputs);
+        input
+            .iter()
+            .map(|input| match input {
+                TurnInput::UserInput { content, .. } => {
+                    estimate_item_token_count(&sess.response_item_from_user_input(content.clone()))
+                }
+                TurnInput::FunctionCallOutput(item) | TurnInput::ResponseItem(item)
+                    if retains_outputs && is_retained_tool_output(item) =>
+                {
+                    0
+                }
+                TurnInput::FunctionCallOutput(item) => estimate_item_token_count(item),
+                TurnInput::ResponseItem(item) => estimate_item_token_count(&item.item),
+                TurnInput::InterAgentCommunication(communication) => {
+                    estimate_item_token_count(&communication.to_model_input_item())
+                }
+            })
+            .fold(0i64, i64::saturating_add)
+    };
+    let token_status = super::context_window::context_window_token_status_with_pending_tokens(
+        sess.as_ref(),
+        turn_context.as_ref(),
+        pending_tokens,
+    )
+    .await;
     let candidate = super::async_compaction::take_ready(sess, turn_context).await;
     // Compact if the configured auto-compaction budget or usable context window is exhausted.
     if token_status.token_limit_reached || candidate.is_some() {
@@ -1786,6 +1826,7 @@ async fn run_auto_compact(
                 Arc::clone(sess),
                 Arc::clone(turn_context),
                 replacement_step_context,
+                Arc::clone(&step_context),
                 world_state,
                 reason,
                 phase,
@@ -1884,6 +1925,7 @@ pub(crate) fn build_prompt(
         ),
         prompt_cache_ttl: turn_context.prompt_cache_ttl,
         cyber_access_program: turn_context.cyber_access_program,
+        tool_build_provenance: Some(step_context.tool_router.tool_build_provenance().clone()),
     }
 }
 
@@ -1937,6 +1979,7 @@ async fn run_sampling_request(
         incremental_tools,
     );
     let mut retry_state = ResponsesStreamRetryState::default();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
     let mut initial_input = Some(input);
     let mut notify_messages = Vec::new();
     let mut executed_tool_calls_by_output = HashMap::new();
@@ -2027,6 +2070,7 @@ async fn run_sampling_request(
             input_item_count,
             cancellation_token.child_token(),
             &mut draining_for_mailbox,
+            &diagnostic_attempts,
         )
         .await
         {
@@ -2485,6 +2529,7 @@ pub(super) fn realtime_text_for_event(msg: &EventMsg) -> Option<RealtimeEventTex
         | EventMsg::TurnModerationMetadata(_)
         | EventMsg::SafetyBuffering(_)
         | EventMsg::ContextCompacted(_)
+        | EventMsg::ToolCatalogChanged(_)
         | EventMsg::ThreadRolledBack(_)
         | EventMsg::TurnStarted(_)
         | EventMsg::ThreadSettingsApplied(_)
@@ -2909,6 +2954,7 @@ async fn try_run_sampling_request(
     input_item_count: usize,
     cancellation_token: CancellationToken,
     draining_for_mailbox: &mut bool,
+    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
 ) -> CodexResult<SamplingRequestResult> {
     let turn_context = Arc::clone(&step_context.turn);
     feedback_tags!(
@@ -3004,7 +3050,7 @@ async fn try_run_sampling_request(
     let mut resampling = crate::guardian::ResponseResampling::new(&sess);
     let mut stream_request = async |prompt: &Prompt| {
         client_session
-            .stream(
+            .stream_with_diagnostic_attempts(
                 prompt,
                 &step_context.settings.model_info,
                 &step_context.session_telemetry,
@@ -3013,6 +3059,7 @@ async fn try_run_sampling_request(
                 step_context.settings.service_tier.clone(),
                 responses_metadata,
                 &inference_trace,
+                diagnostic_attempts.clone(),
             )
             .instrument(trace_span!("stream_request"))
             .await
