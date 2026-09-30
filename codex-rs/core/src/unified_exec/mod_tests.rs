@@ -144,6 +144,7 @@ async fn exec_command_with_tty(
             process_id,
             cwd: cwd.clone().into(),
             initial_exec_command_active: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            wake_on_exit: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             hook_command: cmd.to_string(),
             tty,
             environment_id: codex_exec_server::LOCAL_ENVIRONMENT_ID.to_string(),
@@ -620,6 +621,7 @@ async fn terminating_initial_exec_command_rechecks_initial_response_state() -> a
             process_id,
             cwd: cwd.into(),
             initial_exec_command_active: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            wake_on_exit: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             hook_command: "sleep 60".to_string(),
             tty: true,
             environment_id: codex_exec_server::LOCAL_ENVIRONMENT_ID.to_string(),
@@ -706,6 +708,7 @@ async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
             process_id,
             cwd: cwd.into(),
             initial_exec_command_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            wake_on_exit: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             hook_command: "sleep 60".to_string(),
             tty: true,
             environment_id: codex_exec_server::LOCAL_ENVIRONMENT_ID.to_string(),
@@ -983,7 +986,7 @@ async fn terminal_write_stdin_does_not_queue_duplicate_exec_completion() -> anyh
         loop {
             if matches!(rx_event.recv().await.expect("event channel").msg,
                 codex_protocol::protocol::EventMsg::ItemCompleted(event)
-                    if matches!(event.item,
+                    if matches!(&event.item,
                         codex_protocol::items::TurnItem::CommandExecution(item)
                             if item.id == context.call_id))
             {
