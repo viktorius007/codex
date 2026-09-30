@@ -534,6 +534,8 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [validation-manifest.json](research/harness-audit/validation-manifest.json) — Lists verified SHA-256 hashes for the combined validation evidence archive.
 
+- [Stable 0.159.2 local.9 installation record](/Users/viktor/.local/lib/codex-local/0.159.2+local.9-2cf7c7b2402b-1af74a6637e4/provenance.json) — Records installed local.9 binaries, checksums, validation limits, installation time, and the local.8 rollback release.
+
 - [TODO.md](TODO.md) — Tracks the remaining explicit Goal deferral follow-up.
 - [audit_cache_diagnostics.py](scripts/audit_cache_diagnostics.py) — Analyzes privacy-preserving prompt-cache diagnostic records offline.
 - [audit_prompt_cache.py](scripts/audit_prompt_cache.py) — Finds likely prompt-cache drops in local Codex rollout files without printing private content.
