@@ -4852,6 +4852,7 @@ impl Session {
         loop {
             let mut next_item = None;
             // Render the active mode after the usage hint so it can override that hint.
+            let mut initial_multi_agent_usage_hint = None;
             let mut initial_multi_agent_mode = None;
             let mut managed_developer_instructions = None;
             for update in context.by_ref() {
@@ -4881,13 +4882,21 @@ impl Session {
                     "developer"
                         if fragment.markers().0 == MultiAgentRoleInstructions::type_markers().0 =>
                     {
+<<<<<<< HEAD
                         separate_developer_messages.push(fragment.render_fragment().into());
+=======
+                        initial_multi_agent_usage_hint = Some(fragment);
+>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
                     }
                     "developer"
                         if update.placement == Placement::Standalone
                             && fragment.markers().0.is_empty() =>
                     {
+<<<<<<< HEAD
                         separate_developer_messages.push(fragment.render_fragment().into());
+=======
+                        initial_multi_agent_usage_hint = Some(fragment);
+>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
                     }
                     "developer" => developer_sections.push(fragment.render_fragment()),
                     "user" => contextual_user_sections.push(fragment.render_fragment()),
@@ -4908,14 +4917,15 @@ impl Session {
             ) {
                 items.push(developer_message);
             }
+<<<<<<< HEAD
             items.append(&mut separate_developer_messages);
-            if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
-                && let Some(message) =
-                    crate::context_manager::updates::build_rendered_message(vec![
-                        initial_multi_agent_mode.render_fragment(),
-                    ])
-            {
-                items.push(message);
+=======
+            for section in separate_developer_sections.drain(..) {
+                if let Some(developer_message) =
+                    crate::context_manager::updates::build_rendered_message(vec![section])
+                {
+                    items.push(developer_message);
+                }
             }
             if let Some(contextual_user_message) =
                 crate::context_manager::updates::build_rendered_message(std::mem::take(
@@ -4923,6 +4933,20 @@ impl Session {
                 ))
             {
                 items.push(contextual_user_message);
+            }
+            if let Some(fragment) = initial_multi_agent_usage_hint
+                && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![fragment.render_fragment()])
+            {
+                items.push(message);
+            }
+>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+            if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
+                && let Some(message) =
+                    crate::context_manager::updates::build_rendered_message(vec![
+                        initial_multi_agent_mode.render_fragment(),
+                    ])
+            {
+                items.push(message);
             }
             // Emit the guardian policy prompt as a separate developer item so the guardian
             // subagent sees a distinct, easy-to-audit instruction block.
@@ -5557,8 +5581,8 @@ impl Session {
         info!("interrupt received: abort current task, if any");
         let had_active_turn = self.active_turn.lock().await.is_some();
         self.abort_all_tasks(TurnAbortReason::Interrupted).await;
-        if !had_active_turn {
-            self.cancel_mcp_startup();
+        if !had_active_turn && self.cancel_mcp_startup() {
+            self.mark_mcp_runtime_dirty();
         }
     }
 
