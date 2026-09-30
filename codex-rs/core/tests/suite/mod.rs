@@ -61,6 +61,7 @@ mod base_instructions;
 mod bedrock_multi_agent;
 #[path = "bedrock_service_tier_tests.rs"]
 mod bedrock_service_tier;
+mod cache_diagnostics;
 mod catalog_permission_messages;
 mod cli_stream;
 mod client;
