@@ -1102,6 +1102,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn failed_response_keeps_terminal_classification_when_transport_fails_afterward() {
+        let failed = json!({
+            "type": "response.failed",
+            "response": {
+                "id": "resp-quota",
+                "status": "failed",
+                "error": { "code": "insufficient_quota", "message": "Quota exceeded." }
+            }
+        });
+        let body = format!("event: response.failed\ndata: {failed}\n\n");
+        let stream = stream::iter([
+            Ok(bytes::Bytes::from(body)),
+            Err(TransportError::Network(
+                "transport failed after terminal response".to_string(),
+            )),
+        ]);
+        let (tx, mut rx) = mpsc::channel(2);
+
+        process_sse(
+            Box::pin(stream),
+            tx,
+            idle_timeout(),
+            /*telemetry*/ None,
+        )
+        .await;
+
+        assert_matches!(rx.recv().await, Some(Err(ApiError::QuotaExceeded)));
+        assert!(rx.recv().await.is_none());
+    }
+
+    #[tokio::test]
     async fn context_window_error_with_newline_is_fatal() {
         let raw_error = r#"{"type":"response.failed","sequence_number":4,"response":{"id":"resp_fatal_newline","object":"response","created_at":1759510080,"status":"failed","background":false,"error":{"code":"context_length_exceeded","message":"Your input exceeds the context window of this model. Please adjust your input and try\nagain."},"usage":null,"user":null,"metadata":{}}}"#;
 
