@@ -1,0 +1,22 @@
+{
+  "scan_started_at": "2026-09-14T01:02:15+10:00",
+  "completion_observed_at": "2026-09-13T15:03:23.723361+00:00",
+  "scanner_commit": "41b496a829521e9bd18f69c3cb0a0be23a29316d",
+  "checkout_commit": "a6f7c2ebf428d9a307247ec278769605c4b542df",
+  "command": "uv run --python 3.12 python scripts/audit_prompt_cache.py ~/.codex/sessions --json --limit 100000",
+  "configuration": {
+    "warm_minutes": 30,
+    "min_cached_tokens": 1024,
+    "min_lost_tokens": 1024,
+    "drop_fraction": 0.5,
+    "include_backups": false,
+    "limit": 100000
+  },
+  "scan_sha256": "437c6ab9e95f0398eca04d41a136070436289b73f5728dfab8c5f15cf86f8011",
+  "limitations": [
+    "Archive was live; no immutable file-byte cohort was captured.",
+    "Completion timestamp is observation time, not exact process exit time.",
+    "This scan supplements rather than replaces the original recorded baseline.",
+    "Compare future post-installation cohorts using normalized rates, not growing-archive raw totals."
+  ]
+}
