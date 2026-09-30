@@ -58,6 +58,11 @@ pub(crate) type ShellSnapshotTask = Shared<BoxFuture<'static, Option<Arc<ShellSn
 pub(crate) type ShellSnapshotCache =
     Arc<Mutex<HashMap<ShellSnapshotCacheKey, Arc<ShellSnapshotFile>>>>;
 
+#[derive(Default)]
+struct ModelCatalogSnapshot {
+    presets: tokio::sync::OnceCell<Vec<ModelPreset>>,
+}
+
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct ShellSnapshotCacheKey {
     cwd: AbsolutePathBuf,
@@ -393,6 +398,11 @@ pub struct TurnContext {
     // so owner-provided environment settings govern the remaining sandbox decisions.
     pub(crate) windows_sandbox_level: WindowsSandboxLevel,
     pub(crate) available_models: Vec<ModelPreset>,
+    /// True when `available_models` fell back to empty because the models
+    /// manager lock was contended. The empty list changes the serialized
+    /// spawn-agent tool description and with it the cached prompt prefix, so
+    /// diagnostics must be able to attribute that change.
+    pub(crate) available_models_lock_contention_fallback: bool,
     pub(crate) final_output_json_schema: Option<Value>,
     pub(crate) prompt_cache_ttl: Option<crate::PromptCacheTtl>,
     pub(crate) turn_metadata_state: Arc<TurnMetadataState>,
@@ -473,6 +483,7 @@ impl TurnContext {
             originator: self.originator.clone(),
             initial_environments: self.initial_environments.clone(),
             available_models,
+            available_models_lock_contention_fallback: false,
             current_date: self.current_date.clone(),
             timezone: self.timezone.clone(),
             app_server_client_name: self.app_server_client_name.clone(),
@@ -867,12 +878,6 @@ impl TurnContext {
         };
         config.model_reasoning_effort = reasoning_effort.clone();
 
-        let available_models = models_manager
-            .list_models(
-                RefreshStrategy::OnlineIfUncached,
-                config.http_client_factory(),
-            )
-            .await;
         let model_info = Arc::new(model_info);
         let mut selected = self.initial_settings.selected().clone();
         selected.collaboration_mode = selected.collaboration_mode.with_updates(
@@ -921,7 +926,9 @@ impl TurnContext {
             multi_agent_version: self.multi_agent_version,
             network: self.network.clone(),
             windows_sandbox_level: self.windows_sandbox_level,
-            available_models,
+            available_models: self.available_models.clone(),
+            available_models_lock_contention_fallback: self
+                .available_models_lock_contention_fallback,
             final_output_json_schema: self.final_output_json_schema.clone(),
             prompt_cache_ttl: self.prompt_cache_ttl,
             turn_metadata_state: self.turn_metadata_state.clone(),
@@ -1077,6 +1084,23 @@ impl Session {
         config
     }
 
+    /// Returns the model presets captured on this thread's first turn construction.
+    pub(crate) async fn model_catalog_snapshot(&self) -> Vec<ModelPreset> {
+        let snapshot = self
+            .services
+            .thread_extension_data
+            .get_or_init(ModelCatalogSnapshot::default);
+        snapshot
+            .presets
+            .get_or_init(|| async {
+                let models_manager = &self.services.models_manager;
+                let remote_models = models_manager.get_remote_models().await;
+                models_manager.build_available_models(remote_models)
+            })
+            .await
+            .clone()
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[instrument(name = "turn_context.make", level = "trace", skip_all)]
     pub(crate) fn make_turn_context(
@@ -1100,7 +1124,11 @@ impl Session {
         let model_info = &step_settings.model_info;
         let session_telemetry_for_context = step_settings.telemetry(session_telemetry);
         let session_source = session_configuration.session_source.clone();
-        let available_models = models_manager.try_list_models().unwrap_or_default();
+        let (available_models, available_models_lock_contention_fallback) =
+            match models_manager.try_list_models() {
+                Ok(models) => (models, false),
+                Err(_) => (Vec::new(), true),
+            };
 
         let mut per_turn_config = per_turn_config;
         let configured_token_budget = per_turn_config.token_budget.clone();
@@ -1192,6 +1220,7 @@ impl Session {
             network,
             windows_sandbox_level: session_configuration.windows_sandbox_level,
             available_models,
+            available_models_lock_contention_fallback,
             final_output_json_schema: None,
             prompt_cache_ttl: None,
             turn_metadata_state,
@@ -1436,6 +1465,7 @@ impl Session {
             Arc::new(model_info),
             &self.features,
         ));
+        let available_models = self.model_catalog_snapshot().await;
         let mut turn_context: TurnContext = Self::make_turn_context(
             self.thread_id(),
             self.session_id(),
@@ -1466,6 +1496,7 @@ impl Session {
                 .map(|discovery| discovery.snapshot.as_ref().clone())
                 .unwrap_or_else(|| HostSkillsSnapshot::new(Arc::new(SkillLoadOutcome::default()))),
         );
+        turn_context.available_models = available_models;
         if let Some(discovery) = skill_discovery {
             turn_context.extension_data.insert(discovery);
         }

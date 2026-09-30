@@ -113,7 +113,8 @@ struct CoreToolPlanContext<'a> {
     mcp: &'a codex_mcp::McpBinding,
     tool_suggest_candidates: Option<&'a crate::tools::router::ToolSuggestCandidates>,
     wait_for_environment_tool_config: Option<&'a Arc<crate::WaitForEnvironmentToolConfig>>,
-    default_agent_type_description: &'a str,
+    agent_type_description: &'a str,
+    role_file_read_failures: usize,
     wait_agent_timeouts: WaitAgentTimeoutOptions,
 }
 
@@ -130,8 +131,24 @@ pub(crate) fn build_tool_router(
     tool_suggest_candidates: Option<&crate::tools::router::ToolSuggestCandidates>,
     dynamic_tools: &[DynamicToolSpec],
 ) -> CodexResult<ToolRouter> {
-    let default_agent_type_description =
-        crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+    let role_snapshot = session
+        .services
+        .thread_extension_data
+        .get_or_init(crate::agent::role::spawn_tool_spec::SpawnRoleSpecSnapshot::default);
+    let agent_type_spec = Arc::clone(role_snapshot.build.get_or_init(|| {
+        let default_agent_type_spec =
+            crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+        let role_file_read_failures =
+            std::cell::Cell::new(default_agent_type_spec.role_file_read_failures);
+        Arc::new(crate::agent::role::spawn_tool_spec::SpawnToolSpecBuild {
+            text: agent_type_description(
+                turn_context,
+                &default_agent_type_spec.text,
+                &role_file_read_failures,
+            ),
+            role_file_read_failures: role_file_read_failures.get(),
+        })
+    }));
     let wait_for_environment_tool_config = session
         .services
         .thread_extension_data
@@ -144,7 +161,8 @@ pub(crate) fn build_tool_router(
         mcp,
         tool_suggest_candidates,
         wait_for_environment_tool_config: wait_for_environment_tool_config.as_ref(),
-        default_agent_type_description: &default_agent_type_description,
+        agent_type_description: &agent_type_spec.text,
+        role_file_read_failures: agent_type_spec.role_file_read_failures,
         wait_agent_timeouts: wait_agent_timeout_options(turn_context),
     };
     let mut registry = ToolRegistry::with_tool_policy(Arc::clone(&session.tool_policy));
@@ -208,6 +226,13 @@ pub(crate) fn build_tool_router(
         Vec::new()
     };
 
+    let tool_build_provenance = crate::tools::router::ToolBuildProvenance {
+        model_preset_count: turn_context.available_models.len(),
+        model_catalog_lock_contention_fallback: turn_context
+            .available_models_lock_contention_fallback,
+        model_catalog_identity: serde_json::to_string(&turn_context.available_models).ok(),
+        role_file_read_failures: context.role_file_read_failures,
+    };
     finalize_tool_router(
         turn_context,
         model_info,
@@ -215,6 +240,7 @@ pub(crate) fn build_tool_router(
         hosted_specs,
         &session.services.tool_search_handler_cache,
     )
+    .map(|router| router.with_tool_build_provenance(tool_build_provenance))
 }
 
 /// Use the effective mode because the model can override the thread's configured mode.
@@ -330,8 +356,15 @@ pub(crate) fn build_core_tool_registry(
     tool_suggest_candidates: Option<&crate::tools::router::ToolSuggestCandidates>,
     wait_for_environment_tool_config: Option<&Arc<crate::WaitForEnvironmentToolConfig>>,
 ) -> ToolRegistry {
-    let default_agent_type_description =
+    let default_agent_type_spec =
         crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+    let role_file_read_failures =
+        std::cell::Cell::new(default_agent_type_spec.role_file_read_failures);
+    let agent_type_description = agent_type_description(
+        turn_context,
+        &default_agent_type_spec.text,
+        &role_file_read_failures,
+    );
     let context = CoreToolPlanContext {
         tool_policy: &Default::default(),
         turn_context,
@@ -340,7 +373,8 @@ pub(crate) fn build_core_tool_registry(
         mcp,
         tool_suggest_candidates,
         wait_for_environment_tool_config,
-        default_agent_type_description: &default_agent_type_description,
+        agent_type_description: &agent_type_description,
+        role_file_read_failures: role_file_read_failures.get(),
         wait_agent_timeouts: wait_agent_timeout_options(turn_context),
     };
     let mut registry = ToolRegistry::default();
@@ -874,13 +908,14 @@ fn wait_agent_timeout_options(turn_context: &TurnContext) -> WaitAgentTimeoutOpt
 fn agent_type_description(
     turn_context: &TurnContext,
     default_agent_type_description: &str,
+    role_file_read_failures: &std::cell::Cell<usize>,
 ) -> String {
-    let agent_type_description =
-        crate::agent::role::spawn_tool_spec::build(&turn_context.config.agent_roles);
-    if agent_type_description.is_empty() {
+    let spec = crate::agent::role::spawn_tool_spec::build(&turn_context.config.agent_roles);
+    role_file_read_failures.set(role_file_read_failures.get() + spec.role_file_read_failures);
+    if spec.text.is_empty() {
         default_agent_type_description.to_string()
     } else {
-        agent_type_description
+        spec.text
     }
 }
 
@@ -1525,8 +1560,7 @@ fn add_collaboration_tools(context: &CoreToolPlanContext<'_>, registry: &mut Too
             } else {
                 NativeReview::Disabled
             };
-            let agent_type_description =
-                agent_type_description(turn_context, context.default_agent_type_description);
+            let agent_type_description = context.agent_type_description.to_string();
             let hide_spawn_agent_metadata =
                 turn_context.config.multi_agent_v2.hide_spawn_agent_metadata;
             registry.register_trusted_with_native_review(
@@ -1616,8 +1650,7 @@ fn add_collaboration_tools(context: &CoreToolPlanContext<'_>, registry: &mut Too
                 exposure,
             );
         } else {
-            let agent_type_description =
-                agent_type_description(turn_context, context.default_agent_type_description);
+            let agent_type_description = context.agent_type_description.to_string();
             let exposure = if context.model_info.supports_search_tool {
                 ToolExposure::Deferred
             } else {
