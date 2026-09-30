@@ -136,7 +136,8 @@ fn persisted_event_msg(
         | EventMsg::TurnAborted(_)
         | EventMsg::TurnStarted(_)
         | EventMsg::TurnComplete(_)
-        | EventMsg::ThreadSettingsApplied(_) => Some(Cow::Borrowed(ev)),
+        | EventMsg::ThreadSettingsApplied(_)
+        | EventMsg::ToolCatalogChanged(_) => Some(Cow::Borrowed(ev)),
 
         // Only persist these legacy events when the thread's history mode is Legacy.
         // New, paginated rollouts persist ItemCompleted events with TurnItems.

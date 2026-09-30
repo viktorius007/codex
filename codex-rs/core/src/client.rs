@@ -124,6 +124,9 @@ use uuid::Uuid;
 use crate::attestation::AttestationContext;
 use crate::attestation::AttestationProvider;
 use crate::attestation::X_OAI_ATTESTATION_HEADER;
+use crate::cache_diagnostics::CacheDiagnosticAttempt;
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
+use crate::cache_diagnostics::CacheDiagnostics;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
 use crate::client_common::ResponseStream;
@@ -277,6 +280,7 @@ pub struct ModelClient {
     executed_tool_calls: Option<ExecutedToolCalls>,
     // Resolved once when the session is created, like other session feature flags.
     api_key_cyber_access_programs: cyber_access_program::ApiKeyCyberAccessPrograms,
+    cache_diagnostics: Option<CacheDiagnostics>,
 }
 
 /// A turn-scoped streaming session created from a [`ModelClient`].
@@ -416,6 +420,8 @@ fn responses_request_properties_mismatch(
         reasoning: current_reasoning,
         store: current_store,
         stream: current_stream,
+        // Stream options control delivery for this response, not the context
+        // referenced by `previous_response_id`.
         stream_options: _,
         include: current_include,
         service_tier: current_service_tier,
@@ -453,6 +459,98 @@ fn responses_request_properties_mismatch(
         return None;
     };
     Some(reason)
+}
+
+/// Why the previous WebSocket continuation could not carry this request, with
+/// enough localization for cache-loss attribution.
+struct ContinuationDrop {
+    failure: NonIncrementalReason,
+    reason: codex_cache_diagnostics::ContinuationDropReason,
+    first_mismatched_property: Option<&'static str>,
+    first_mismatched_input_index: Option<usize>,
+    divergence: Option<codex_cache_diagnostics::ContinuationDivergence>,
+}
+
+impl ContinuationDrop {
+    fn new(
+        failure: NonIncrementalReason,
+        reason: codex_cache_diagnostics::ContinuationDropReason,
+    ) -> Self {
+        Self {
+            failure,
+            reason,
+            first_mismatched_property: None,
+            first_mismatched_input_index: None,
+            divergence: None,
+        }
+    }
+
+    /// Splits the drop into the metrics reason and the diagnostic report.
+    fn into_parts(
+        self,
+    ) -> (
+        NonIncrementalReason,
+        codex_cache_diagnostics::ContinuationReport,
+    ) {
+        (
+            self.failure,
+            codex_cache_diagnostics::ContinuationReport {
+                transport: codex_cache_diagnostics::ContinuationTransport::Websocket,
+                decision: codex_cache_diagnostics::ContinuationDecision::Full,
+                drop_reason: Some(self.reason),
+                first_mismatched_property: self.first_mismatched_property,
+                first_mismatched_input_index: self.first_mismatched_input_index,
+                divergence: self.divergence,
+            },
+        )
+    }
+}
+
+fn record_prompt_tool_provenance(attempt: &CacheDiagnosticAttempt, prompt: &Prompt) {
+    if let Some(provenance) = &prompt.tool_build_provenance {
+        attempt.record_tool_provenance(codex_cache_diagnostics::ToolProvenance {
+            model_preset_count: provenance.model_preset_count,
+            model_catalog_lock_contention_fallback: provenance
+                .model_catalog_lock_contention_fallback,
+            model_catalog_identity: provenance
+                .model_catalog_identity
+                .as_deref()
+                .map(str::as_bytes),
+            role_file_read_failures: provenance.role_file_read_failures,
+        });
+    }
+}
+
+fn incremental_continuation_report() -> codex_cache_diagnostics::ContinuationReport {
+    codex_cache_diagnostics::ContinuationReport {
+        transport: codex_cache_diagnostics::ContinuationTransport::Websocket,
+        decision: codex_cache_diagnostics::ContinuationDecision::Incremental,
+        drop_reason: None,
+        first_mismatched_property: None,
+        first_mismatched_input_index: None,
+        divergence: None,
+    }
+}
+
+/// Localizes the first differing byte between the serializations of a
+/// mismatched input-item pair. Offsets and lengths only; no content.
+fn input_item_divergence(
+    previous: &ResponseItem,
+    current: &ResponseItem,
+) -> Option<codex_cache_diagnostics::ContinuationDivergence> {
+    let previous = serde_json::to_vec(previous).ok()?;
+    let current = serde_json::to_vec(current).ok()?;
+    let byte_offset = previous
+        .iter()
+        .zip(&current)
+        .position(|(previous_byte, current_byte)| previous_byte != current_byte)
+        .unwrap_or_else(|| previous.len().min(current.len()));
+    Some(codex_cache_diagnostics::ContinuationDivergence {
+        scope: codex_cache_diagnostics::DivergenceScope::InputItem,
+        byte_offset,
+        previous_bytes: previous.len(),
+        current_bytes: current.len(),
+    })
 }
 
 fn response_items_equal_ignoring_internal_metadata(
@@ -610,6 +708,7 @@ impl ModelClient {
             executed_tool_calls: None,
             api_key_cyber_access_programs:
                 cyber_access_program::ApiKeyCyberAccessPrograms::UnsupportedProvider,
+            cache_diagnostics: None,
         }
     }
 
@@ -626,6 +725,13 @@ impl ModelClient {
 
     pub(crate) fn with_restored_history(mut self, restored_history: bool) -> Self {
         self.restored_history = restored_history;
+        self
+    }
+
+    /// Records private request fingerprints under Codex home when local storage is available.
+    /// Failure to open diagnostic storage leaves model requests unaffected.
+    pub fn with_cache_diagnostics(mut self, codex_home: &std::path::Path) -> Self {
+        self.cache_diagnostics = CacheDiagnostics::open(codex_home);
         self
     }
 
@@ -1495,33 +1601,68 @@ impl ModelClientSession {
         &self,
         request: &ResponsesApiRequest,
         last_response: &LastResponse,
-    ) -> std::result::Result<Vec<ResponseItem>, NonIncrementalReason> {
-        let previous_request = self
-            .websocket_session
-            .last_request
-            .as_ref()
-            .ok_or(NonIncrementalReason::NoPreviousRequest)?;
+        allow_empty_delta: bool,
+    ) -> std::result::Result<Vec<ResponseItem>, ContinuationDrop> {
+        use codex_cache_diagnostics::ContinuationDropReason;
+        let Some(previous_request) = self.websocket_session.last_request.as_ref() else {
+            return Err(ContinuationDrop::new(
+                NonIncrementalReason::NoPreviousRequest,
+                ContinuationDropReason::NoPreviousRequest,
+            ));
+        };
         if let Some(reason) = responses_request_properties_mismatch(previous_request, request) {
-            return Err(NonIncrementalReason::RequestPropertyChanged { reason });
+            let mut drop = ContinuationDrop::new(
+                NonIncrementalReason::RequestPropertyChanged { reason },
+                ContinuationDropReason::PropertiesMismatch,
+            );
+            drop.first_mismatched_property = Some(reason.strip_suffix("_changed").unwrap_or(reason));
+            return Err(drop);
         }
 
         let response_items = &last_response.items_added;
+        // Diagnostics attribute any shortened request to its length before prefix contents.
+        let input_shorter_than_previous = previous_request
+            .input
+            .len()
+            .checked_add(response_items.len())
+            .is_none_or(|previous_items_len| request.input.len() < previous_items_len);
         let previous_items = previous_request.input.iter().chain(response_items);
         let mut current_items = request.input.iter();
-        for previous in previous_items {
+        for (index, previous) in previous_items.enumerate() {
             let Some(current) = current_items.next() else {
-                return Err(NonIncrementalReason::InputShortened {
-                    previous: previous.item_type(),
-                });
+                return Err(ContinuationDrop::new(
+                    NonIncrementalReason::InputShortened {
+                        previous: previous.item_type(),
+                    },
+                    ContinuationDropReason::InputShorterThanPrevious,
+                ));
             };
             if !response_items_equal_ignoring_internal_metadata(previous, current) {
-                return Err(NonIncrementalReason::InputMismatch {
+                let failure = NonIncrementalReason::InputMismatch {
                     previous: previous.item_type(),
                     current: current.item_type(),
-                });
+                };
+                if input_shorter_than_previous {
+                    return Err(ContinuationDrop::new(
+                        failure,
+                        ContinuationDropReason::InputShorterThanPrevious,
+                    ));
+                }
+                let mut drop =
+                    ContinuationDrop::new(failure, ContinuationDropReason::InputPrefixMismatch);
+                drop.first_mismatched_input_index = Some(index);
+                drop.divergence = input_item_divergence(previous, current);
+                return Err(drop);
             }
         }
-        Ok(current_items.cloned().collect())
+        let incremental_items = current_items.cloned().collect::<Vec<_>>();
+        if !allow_empty_delta && incremental_items.is_empty() {
+            return Err(ContinuationDrop::new(
+                NonIncrementalReason::InputShortened { previous: "none" },
+                ContinuationDropReason::InputShorterThanPrevious,
+            ));
+        }
+        Ok(incremental_items)
     }
 
     fn get_last_response(&mut self) -> Option<LastResponse> {
@@ -1534,24 +1675,57 @@ impl ModelClientSession {
             })
     }
 
+    /// Decides between an incremental and a full WebSocket send.
+    ///
+    /// The returned report captures that decision and, on a full send, the
+    /// first cause, for the diagnostic request record.
     fn prepare_websocket_request(
         &mut self,
         request: &ResponsesApiRequest,
-    ) -> std::result::Result<WebsocketContinuation, NonIncrementalReason> {
-        let last_response = self
-            .get_last_response()
-            .ok_or(NonIncrementalReason::NoPreviousResponse)?;
-        let items = self.get_incremental_items(request, &last_response)?;
+    ) -> (
+        std::result::Result<WebsocketContinuation, NonIncrementalReason>,
+        codex_cache_diagnostics::ContinuationReport,
+    ) {
+        use codex_cache_diagnostics::ContinuationDropReason;
+        let Some(last_response) = self.get_last_response() else {
+            let (failure, report) = ContinuationDrop::new(
+                NonIncrementalReason::NoPreviousResponse,
+                ContinuationDropReason::NoPreviousResponse,
+            )
+            .into_parts();
+            return (Err(failure), report);
+        };
+        let previous_response_id_from_untraced_warmup =
+            self.websocket_session.last_response_from_untraced_warmup;
+        let incremental_items = match self.get_incremental_items(
+            request,
+            &last_response,
+            /*allow_empty_delta*/ true,
+        ) {
+            Ok(incremental_items) => incremental_items,
+            Err(drop) => {
+                let (failure, report) = drop.into_parts();
+                return (Err(failure), report);
+            }
+        };
 
         if last_response.response_id.is_empty() {
-            return Err(NonIncrementalReason::NoPreviousResponseId);
+            let (failure, report) = ContinuationDrop::new(
+                NonIncrementalReason::NoPreviousResponseId,
+                ContinuationDropReason::EmptyPreviousResponseId,
+            )
+            .into_parts();
+            return (Err(failure), report);
         }
 
-        Ok(WebsocketContinuation {
-            response_id: last_response.response_id,
-            items,
-            from_untraced_warmup: self.websocket_session.last_response_from_untraced_warmup,
-        })
+        (
+            Ok(WebsocketContinuation {
+                response_id: last_response.response_id,
+                items: incremental_items,
+                from_untraced_warmup: previous_response_id_from_untraced_warmup,
+            }),
+            incremental_continuation_report(),
+        )
     }
 
     /// Opportunistically preconnects a websocket for this turn-scoped client session.
@@ -1766,6 +1940,7 @@ impl ResponsesHttpExecutor<'_> {
         service_tier: Option<String>,
         responses_metadata: &CodexResponsesMetadata,
         inference_trace: &InferenceTraceContext,
+        diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
     ) -> Result<ResponseStream> {
         let auth_manager = self.client.state.provider.auth_manager();
         let mut auth_recovery = auth_manager
@@ -1877,12 +2052,26 @@ impl ResponsesHttpExecutor<'_> {
                 request.input = input;
             }
             inference_trace_attempt.record_started(&request);
-            let client = ApiResponsesClient::new(
+            let cache_diagnostic_attempt =
+                self.client.cache_diagnostics.as_ref().map(|diagnostics| {
+                    let attempt = diagnostics.start_responses_attempt(
+                        responses_metadata,
+                        &request,
+                        diagnostic_attempts.next(),
+                        /*previous_response_id*/ None,
+                    );
+                    record_prompt_tool_provenance(&attempt, prompt);
+                    attempt
+                });
+            let mut client = ApiResponsesClient::new(
                 transport,
                 client_setup.api_provider,
                 client_setup.api_auth,
             )
             .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+            if let Some(attempt) = &cache_diagnostic_attempt {
+                client = client.with_request_observer(attempt.clone());
+            }
             let stream_result = client.stream_request(request, options).await;
 
             match stream_result {
@@ -1892,6 +2081,8 @@ impl ResponsesHttpExecutor<'_> {
                         request_session_telemetry,
                         inference_trace_attempt,
                         Arc::clone(&self.client.state.provider),
+                        interceptors,
+                        cache_diagnostic_attempt,
                         interceptors,
                     );
                     return Ok(stream);
@@ -1910,6 +2101,9 @@ impl ResponsesHttpExecutor<'_> {
                         response_debug_context.request_id.as_deref(),
                         /*output_items*/ &[],
                     );
+                    if let Some(attempt) = &cache_diagnostic_attempt {
+                        attempt.failed();
+                    }
                     pending_retry = PendingUnauthorizedRetry::from_recovery(
                         handle_unauthorized(
                             unauthorized_transport,
@@ -1933,6 +2127,9 @@ impl ResponsesHttpExecutor<'_> {
                         response_debug_context.request_id.as_deref(),
                         /*output_items*/ &[],
                     );
+                    if let Some(attempt) = &cache_diagnostic_attempt {
+                        attempt.failed();
+                    }
                     return Err(err);
                 }
             }
@@ -1968,6 +2165,7 @@ impl ModelClientSession {
         warmup: bool,
         request_trace: Option<W3cTraceContext>,
         inference_trace: &InferenceTraceContext,
+        diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
     ) -> Result<WebsocketStreamOutcome> {
         let after_prewarm = !warmup && self.websocket_session.last_response_from_untraced_warmup;
         let provider = Arc::clone(&self.client.state.provider);
@@ -2082,8 +2280,10 @@ impl ModelClientSession {
             if let Some(turn_state) = self.turn_state.get() {
                 client_metadata.insert(X_CODEX_TURN_STATE_HEADER.to_string(), turn_state.clone());
             }
+            let (continuation_result, continuation_report) =
+                self.prepare_websocket_request(&request);
             let (continuation, mode, reason, previous_item_type, current_item_type) =
-                match self.prepare_websocket_request(&request) {
+                match continuation_result {
                     Ok(continuation) => (
                         Some(continuation),
                         "incremental",
@@ -2173,6 +2373,28 @@ impl ModelClientSession {
                 },
                 &mut ws_payload.client_metadata,
             );
+            let cache_diagnostic_attempt =
+                self.client.cache_diagnostics.as_ref().map(|diagnostics| {
+                    let retry_ordinal = diagnostic_attempts.next();
+                    let attempt = if warmup {
+                        diagnostics.start_warmup_attempt(
+                            responses_metadata,
+                            &request,
+                            retry_ordinal,
+                            ws_payload.previous_response_id.as_deref(),
+                        )
+                    } else {
+                        diagnostics.start_responses_attempt(
+                            responses_metadata,
+                            &request,
+                            retry_ordinal,
+                            ws_payload.previous_response_id.as_deref(),
+                        )
+                    };
+                    attempt.record_continuation(continuation_report.clone());
+                    record_prompt_tool_provenance(&attempt, prompt);
+                    attempt
+                });
             let mut ws_request = ResponsesWsRequest::ResponseCreate(ws_payload);
             stamp_ws_stream_request_start_ms(&mut ws_request);
             let ResponsesWsRequest::ResponseCreate(payload) = &ws_request;
@@ -2209,13 +2431,24 @@ impl ModelClientSession {
                     ),
                 ],
             );
-            let stream_result = websocket_connection
-                .stream_request(
-                    ws_request,
-                    self.websocket_session.connection_reused(),
-                    Some(Arc::clone(&self.turn_state)),
-                )
-                .await;
+            let stream_result = if let Some(attempt) = &cache_diagnostic_attempt {
+                websocket_connection
+                    .stream_request_observed(
+                        ws_request,
+                        self.websocket_session.connection_reused(),
+                        Some(Arc::clone(&self.turn_state)),
+                        attempt.clone(),
+                    )
+                    .await
+            } else {
+                websocket_connection
+                    .stream_request(
+                        ws_request,
+                        self.websocket_session.connection_reused(),
+                        Some(Arc::clone(&self.turn_state)),
+                    )
+                    .await
+            };
             if let Some(original_item_ids) = original_item_ids {
                 for (item, original_item_id) in request.input.iter_mut().zip(original_item_ids) {
                     item.set_id(original_item_id);
@@ -2231,6 +2464,9 @@ impl ModelClientSession {
                     response_debug_context.request_id.as_deref(),
                     /*output_items*/ &[],
                 );
+                if let Some(attempt) = &cache_diagnostic_attempt {
+                    attempt.failed();
+                }
                 err
             })?;
             let (stream, last_request_rx) = map_response_stream(
@@ -2238,6 +2474,8 @@ impl ModelClientSession {
                 request_session_telemetry,
                 inference_trace_attempt,
                 Arc::clone(&self.client.state.provider),
+                interceptors,
+                cache_diagnostic_attempt,
                 interceptors,
             );
             self.websocket_session.last_response_rx = Some(last_request_rx);
@@ -2311,6 +2549,7 @@ impl ModelClientSession {
         }
 
         let disabled_trace = InferenceTraceContext::disabled();
+        let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
         match self
             .stream_responses_websocket(
                 prompt,
@@ -2323,6 +2562,7 @@ impl ModelClientSession {
                 /*warmup*/ true,
                 current_span_w3c_trace_context(),
                 &disabled_trace,
+                &diagnostic_attempts,
             )
             .await
         {
@@ -2365,6 +2605,34 @@ impl ModelClientSession {
         responses_metadata: &CodexResponsesMetadata,
         inference_trace: &InferenceTraceContext,
     ) -> Result<ResponseStream> {
+        let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
+        self.stream_with_diagnostic_attempts(
+            prompt,
+            model_info,
+            session_telemetry,
+            effort,
+            summary,
+            service_tier,
+            responses_metadata,
+            inference_trace,
+            &diagnostic_attempts,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn stream_with_diagnostic_attempts(
+        &mut self,
+        prompt: &Prompt,
+        model_info: &ModelInfo,
+        session_telemetry: &SessionTelemetry,
+        effort: Option<ReasoningEffortConfig>,
+        summary: ReasoningSummaryConfig,
+        service_tier: Option<String>,
+        responses_metadata: &CodexResponsesMetadata,
+        inference_trace: &InferenceTraceContext,
+        diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
+    ) -> Result<ResponseStream> {
         let wire_api = self.client.state.provider.info().wire_api;
         match wire_api {
             WireApi::Responses => {
@@ -2382,6 +2650,7 @@ impl ModelClientSession {
                             /*warmup*/ false,
                             request_trace,
                             inference_trace,
+                            diagnostic_attempts,
                         )
                         .await?
                     {
@@ -2405,6 +2674,7 @@ impl ModelClientSession {
                         service_tier,
                         responses_metadata,
                         inference_trace,
+                        diagnostic_attempts,
                     )
                     .await
             }
@@ -2495,12 +2765,30 @@ fn map_response_stream(
     inference_trace_attempt: InferenceTraceAttempt,
     provider: SharedModelProvider,
     interceptors: Vec<Box<dyn codex_extension_api::ModelResponseInterceptor>>,
+    cache_diagnostic_attempt: Option<Arc<CacheDiagnosticAttempt>>,
 ) -> (ResponseStream, oneshot::Receiver<LastResponse>) {
     let upstream_request_id = api_stream.upstream_request_id.take();
     let interrupt = api_stream.interrupt.take();
+    let mut api_stream = crate::model_request::intercept_stream(Box::pin(api_stream), interceptors);
     let (mut stream, last_response) = map_response_events(
         upstream_request_id,
-        crate::model_request::intercept_stream(Box::pin(api_stream), interceptors),
+        futures::stream::poll_fn(move |context| {
+            let event = futures::Stream::poll_next(std::pin::Pin::new(&mut api_stream), context);
+            if let std::task::Poll::Ready(event) = &event
+                && let Some(attempt) = &cache_diagnostic_attempt
+            {
+                match event {
+                    Some(Ok(ResponseEvent::Completed {
+                        response_id,
+                        token_usage,
+                        ..
+                    })) => attempt.completed(response_id, token_usage.as_ref()),
+                    Some(Err(_)) | None => attempt.failed(),
+                    Some(Ok(_)) => {}
+                }
+            }
+            event
+        }),
         session_telemetry,
         inference_trace_attempt,
         provider,

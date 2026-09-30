@@ -39,6 +39,10 @@ pub struct Prompt {
     pub output_schema_strict: bool,
 
     pub(crate) cyber_access_program: Option<codex_protocol::turn_input::CyberAccessProgram>,
+
+    /// Provenance of the dynamic inputs behind `tools`, recorded into cache
+    /// diagnostics so a changed serialized tool array can be attributed.
+    pub(crate) tool_build_provenance: Option<crate::tools::router::ToolBuildProvenance>,
 }
 
 impl Default for Prompt {
@@ -51,6 +55,7 @@ impl Default for Prompt {
             output_schema: None,
             output_schema_strict: true,
             cyber_access_program: None,
+            tool_build_provenance: None,
         }
     }
 }
