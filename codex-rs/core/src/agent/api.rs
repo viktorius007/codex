@@ -14,6 +14,7 @@ use crate::codex_thread::GuardianRootSnapshot;
 use crate::codex_thread::ThreadConfigSnapshot;
 use crate::config::Config;
 use crate::rollout_budget::RolloutBudgetReminder;
+use codex_extension_api::ExtensionData;
 use codex_protocol::AgentPath;
 use codex_protocol::SessionId;
 use codex_protocol::ThreadId;
@@ -27,6 +28,7 @@ use codex_protocol::turn_input::TurnStartOptions;
 use codex_protocol::user_input::UserInput;
 use codex_rollout_trace::ThreadTraceContext;
 use futures::future::BoxFuture;
+use std::sync::Arc;
 
 // Keep dynamic dispatch a compile-time property of the contract.
 const _: Option<&dyn AgentControl> = None;
@@ -244,6 +246,7 @@ pub struct AgentTurnOutcome {
     pub status: AgentStatus,
     /// Typed reason used to choose guidance in the parent notification.
     pub error_info: Option<CodexErrorInfo>,
+    pub async_result_origin: Arc<ExtensionData>,
 }
 
 /// Settings shared by the tree. A service tier of `None` restores the default tier.
