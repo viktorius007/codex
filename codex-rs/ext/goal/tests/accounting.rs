@@ -61,61 +61,6 @@ fn goal_accounting_ignores_plan_mode_turns() {
 }
 
 #[test]
-fn empty_continuations_require_three_turns_without_activity_or_goal_changes() {
-    let empty_final = TurnItem::AgentMessage(AgentMessageItem {
-        id: "empty".into(),
-        content: vec![AgentMessageContent::Text { text: " \n".into() }],
-        phase: Some(MessagePhase::FinalAnswer),
-        memory_citation: None,
-        delivery: None,
-        questions: None,
-    });
-    for (interruption, blocking_turn) in [
-        ("none", 3),
-        ("user", 6),
-        ("tool", 6),
-        ("goal", 5),
-        ("reset", 6),
-        ("missing final", 6),
-    ] {
-        let state = GoalAccountingState::default();
-        for turn in 1..=blocking_turn {
-            let id = turn.to_string();
-            let goal_id = if interruption == "goal" && turn >= 3 {
-                "new"
-            } else {
-                "goal"
-            };
-            state.start_turn(&id, ModeKind::Default, &TokenUsage::default());
-            state.mark_turn_goal_active(&id, goal_id);
-            if !(turn == 3 && interruption == "missing final") {
-                state.record_item(&id, &empty_final);
-            }
-            // Admission can finish after output arrives, but before turn-stop evaluation.
-            if !(turn == 3 && interruption == "user") {
-                state.mark_goal_continuation(id.clone());
-            }
-            if turn == 3 && interruption == "tool" {
-                state.record_tool_outcome(
-                    &id,
-                    &ToolName::plain("shell"),
-                    ToolCallOutcome::Completed { success: false },
-                );
-            }
-            if turn == 3 && interruption == "reset" {
-                state.reset_empty_responses();
-            }
-            assert_eq!(
-                (turn == blocking_turn).then(|| goal_id.to_string()),
-                state.empty_response_goal(&id),
-                "interruption: {interruption}, turn: {turn}",
-            );
-            state.finish_turn(&id);
-        }
-    }
-}
-
-#[test]
 fn empty_continuations_require_three_turns_without_model_output_or_goal_changes() {
     let empty_final = TurnItem::AgentMessage(AgentMessageItem {
         id: "empty".into(),
