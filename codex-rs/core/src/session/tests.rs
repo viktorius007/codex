@@ -10,6 +10,8 @@ mod network_policy_tests;
 
 #[path = "notification_tests.rs"]
 mod notification_tests;
+#[path = "tool_catalog_tests.rs"]
+mod tool_catalog_tests;
 
 #[path = "patch_approval_tests.rs"]
 mod patch_approval_tests;
