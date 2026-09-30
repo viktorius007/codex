@@ -16,6 +16,7 @@ use super::auto_compact_window::AutoCompactWindowIds;
 use super::auto_compact_window::AutoCompactWindowSnapshot;
 use super::auto_compact_window::ContextWindowIdGenerator;
 use crate::TurnStartOptions;
+use crate::context_manager::AcceptedTokenUsage;
 use crate::agent::host::ServiceTierAcceptance;
 use crate::context_manager::ContextManager;
 use crate::context_manager::HistoryReplacement;
@@ -120,6 +121,9 @@ pub(crate) struct SessionState {
     pub(crate) pending_session_start_sources: VecDeque<codex_hooks::SessionStartSource>,
     next_turn_is_first: bool,
     initial_settings_pending: bool,
+    /// Digest of the last model-visible tool catalog, for mid-thread
+    /// catalog-change detection (a changed catalog busts the cached prefix).
+    pub(crate) last_tool_catalog_digest: Option<crate::tools::router::ToolCatalogDigest>,
 }
 
 impl SessionState {
@@ -172,6 +176,7 @@ impl SessionState {
             pending_session_start_sources: VecDeque::new(),
             next_turn_is_first: true,
             initial_settings_pending: true,
+            last_tool_catalog_digest: None,
         }
     }
 
@@ -331,6 +336,35 @@ impl SessionState {
             model_context_window,
             includes_reasoning,
             input_item_count,
+        );
+    }
+
+    pub(crate) fn set_recomputed_token_usage(
+        &mut self,
+        estimated_total_tokens: i64,
+        model_context_window: Option<i64>,
+    ) {
+        let mut info = self.token_info().unwrap_or(TokenUsageInfo {
+            total_token_usage: TokenUsage::default(),
+            last_token_usage: TokenUsage::default(),
+            model_context_window: None,
+        });
+        info.last_token_usage = TokenUsage {
+            total_tokens: estimated_total_tokens.max(0),
+            ..TokenUsage::default()
+        };
+        if let Some(model_context_window) = model_context_window {
+            info.model_context_window = Some(model_context_window);
+        }
+
+        let accepted_history_items = self.history.annotated_items().len();
+        let accepted_usage = info.last_token_usage.clone();
+        self.history.set_token_info_and_accepted_usage(
+            Some(info),
+            Some(AcceptedTokenUsage::fully_accounted(
+                accepted_usage,
+                accepted_history_items,
+            )),
         );
     }
 

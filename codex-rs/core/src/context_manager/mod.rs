@@ -4,6 +4,7 @@ mod normalize;
 mod sampling;
 pub(crate) mod updates;
 
+pub(crate) use history::AcceptedTokenUsage;
 pub(crate) use history::ContextManager;
 pub(crate) use history::HistoryReplacement;
 pub(crate) use history::estimate_image_reference_bytes;

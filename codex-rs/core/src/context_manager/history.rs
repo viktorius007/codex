@@ -133,6 +133,7 @@ pub(crate) struct ContextManager {
     /// Process-unique so resumed roots cannot match a worker's cached assistant evidence.
     guardian_review_context_revision: u64,
     token_info: Option<TokenUsageInfo>,
+    accepted_token_usage: Option<AcceptedTokenUsage>,
     /// History items at this index and later are estimated on top of the saved token count.
     /// Failed responses preserve this index. It is not saved in rollouts.
     last_server_reported_usage_item_count: usize,
@@ -152,6 +153,37 @@ pub(crate) struct ContextManager {
     /// World-state comparison checkpoint. After compaction this may contain only
     /// extension metadata, with model-visible context still awaiting reinjection.
     world_state_baseline: Option<WorldStateSnapshot>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct AcceptedTokenUsage {
+    usage: TokenUsage,
+    history_boundary: usize,
+    reasoning_accounting: AcceptedUsageReasoningAccounting,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum AcceptedUsageReasoningAccounting {
+    RequiresCompatibilityEstimate,
+    Included,
+}
+
+impl AcceptedTokenUsage {
+    pub(crate) fn server_reported(usage: TokenUsage, history_boundary: usize) -> Self {
+        Self {
+            usage,
+            history_boundary,
+            reasoning_accounting: AcceptedUsageReasoningAccounting::RequiresCompatibilityEstimate,
+        }
+    }
+
+    pub(crate) fn fully_accounted(usage: TokenUsage, history_boundary: usize) -> Self {
+        Self {
+            usage,
+            history_boundary,
+            reasoning_accounting: AcceptedUsageReasoningAccounting::Included,
+        }
+    }
 }
 
 impl std::fmt::Debug for ContextManager {
@@ -339,6 +371,7 @@ impl ContextManager {
             token_info: None,
             last_server_reported_usage_item_count: 0,
             last_model_output_item_count: None,
+            accepted_token_usage: None,
             reference_context_item: None,
             world_state_baseline: None,
         }
@@ -552,6 +585,20 @@ impl ContextManager {
         self.token_info = info;
     }
 
+    pub(crate) fn set_token_info_and_accepted_usage(
+        &mut self,
+        info: Option<TokenUsageInfo>,
+        accepted_usage: Option<AcceptedTokenUsage>,
+    ) {
+        debug_assert!(
+            accepted_usage
+                .as_ref()
+                .is_none_or(|accepted| accepted.history_boundary <= self.items.len())
+        );
+        self.token_info = info;
+        self.accepted_token_usage = accepted_usage;
+    }
+
     /// Install a context count together with the history it covers.
     pub(crate) fn set_token_info_with_boundary(
         &mut self,
@@ -612,6 +659,12 @@ impl ContextManager {
                 self.token_info = Some(TokenUsageInfo::full_context_window(context_window));
             }
         }
+        let usage = TokenUsage {
+            total_tokens: context_window,
+            ..TokenUsage::default()
+        };
+        self.accepted_token_usage =
+            Some(AcceptedTokenUsage::fully_accounted(usage, self.items.len()));
     }
 
     /// `items` is ordered from oldest to newest.
@@ -876,6 +929,7 @@ impl ContextManager {
             // its corresponding counterpart to keep the invariants intact without
             // running a full normalization pass.
             normalize::remove_corresponding_for(items, &removed.item);
+            self.accepted_token_usage = None;
             self.reset_last_usage_boundary();
             self.world_state_baseline = None;
         }
@@ -901,6 +955,7 @@ impl ContextManager {
             );
         }
         self.items = Arc::new(items);
+        self.accepted_token_usage = None;
         self.reset_last_usage_boundary();
         self.history_version = self.history_version.saturating_add(1);
         self.reset_version = self.history_version;
@@ -943,6 +998,7 @@ impl ContextManager {
             self.review_history = Some(retained);
         }
         self.items = Arc::new(items);
+        self.accepted_token_usage = None;
         self.reset_last_usage_boundary();
         self.history_version = self.history_version.saturating_add(1);
         if promoted {
@@ -1103,6 +1159,7 @@ impl ContextManager {
             "context history item counts"
         );
         self.set_token_info_with_boundary(Some(info), covered_item_count);
+        self.accepted_token_usage = Some(AcceptedTokenUsage::server_reported(usage.clone(), covered_item_count));
     }
 
     /// Align the context count after history changes or buffered model output is committed.
@@ -1118,7 +1175,12 @@ impl ContextManager {
     }
 
     fn get_non_last_reasoning_items_tokens(&self) -> i64 {
-        // Get reasoning items excluding all the ones after the last instruction boundary.
+        // Post-boundary reasoning is already included in the local item estimate below. Limit this
+        // server-compatibility adjustment to the accepted prefix so it is not counted twice.
+        let accepted_history_items = self
+            .accepted_token_usage
+            .as_ref()
+            .map_or(self.items.len(), |accepted| accepted.history_boundary);
         let Some(last_user_index) = self
             .items
             .iter()
@@ -1129,8 +1191,7 @@ impl ContextManager {
 
         self.items
             .iter()
-            // Reasoning after the usage boundary is already included in the tail estimate.
-            .take(last_user_index.min(self.last_server_reported_usage_item_count))
+            .take(last_user_index.min(accepted_history_items))
             .filter(|envelope| {
                 matches!(
                     &envelope.item,
@@ -1146,6 +1207,16 @@ impl ContextManager {
             .fold(0i64, i64::saturating_add)
     }
 
+    fn items_after_accepted_token_usage(
+        &self,
+    ) -> impl Clone + ExactSizeIterator<Item = &ResponseItem> + DoubleEndedIterator {
+        let start = self
+            .accepted_token_usage
+            .as_ref()
+            .map_or(0, |accepted| accepted.history_boundary);
+        self.items[start..].iter().map(|envelope| &envelope.item)
+    }
+
     // Keep failed or usage-less output in the estimate until a usable count covers it.
     fn items_since_last_usage(
         &self,
@@ -1157,21 +1228,26 @@ impl ContextManager {
 
     pub(crate) fn get_total_token_usage(&self) -> i64 {
         let last_tokens = self
-            .token_info
+            .accepted_token_usage
             .as_ref()
-            .map(|info| info.last_token_usage.total_tokens)
-            .unwrap_or(0);
-        let unreported_tokens = self.estimated_tokens_since_last_usage();
-        if self
-            .token_info
-            .as_ref()
-            .is_some_and(|info| info.last_usage_includes_reasoning == Some(true))
-        {
-            last_tokens.saturating_add(unreported_tokens)
-        } else {
+            .map_or(0, |accepted| accepted.usage.total_tokens);
+        let items_after_accepted_token_usage = self
+            .items_after_accepted_token_usage()
+            .map(estimate_item_token_count)
+            .fold(0i64, i64::saturating_add);
+        let requires_reasoning_compatibility_estimate =
+            self.accepted_token_usage.as_ref().is_some_and(|accepted| {
+                matches!(
+                    accepted.reasoning_accounting,
+                    AcceptedUsageReasoningAccounting::RequiresCompatibilityEstimate
+                )
+            });
+        if !self.token_info.as_ref().is_some_and(|info| info.last_usage_includes_reasoning == Some(true)) && requires_reasoning_compatibility_estimate {
             last_tokens
                 .saturating_add(self.get_non_last_reasoning_items_tokens())
-                .saturating_add(unreported_tokens)
+                .saturating_add(items_after_accepted_token_usage)
+        } else {
+            last_tokens.saturating_add(items_after_accepted_token_usage)
         }
     }
 

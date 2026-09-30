@@ -222,6 +222,7 @@ use tracing::info;
 use tracing::info_span;
 use tracing::instrument;
 use tracing::warn;
+
 use uuid::Uuid;
 
 use crate::client::ModelClient;
@@ -1793,6 +1794,16 @@ impl Session {
             InitialHistory::Resumed(resumed_history) => {
                 let turn_context = self.new_default_turn().await;
                 let rollout_items = resumed_history.history;
+                self.state.lock().await.last_tool_catalog_digest =
+                    rollout_items.iter().rev().find_map(|item| match item {
+                        RolloutItem::EventMsg(EventMsg::ToolCatalogChanged(event)) => {
+                            Some(crate::tools::router::ToolCatalogDigest {
+                                catalog: event.current_digest.clone(),
+                                by_tool: None,
+                            })
+                        }
+                        _ => None,
+                    });
                 if matches!(
                     rollout_items.iter().rev().find_map(|item| match item {
                         RolloutItem::EventMsg(event) => agent_status_from_event(event),
@@ -1967,6 +1978,7 @@ impl Session {
     ) -> Option<PreviousTurnSettings> {
         let rollout_reconstruction::RolloutReconstruction {
             mut history,
+            accepted_token_usage,
             rejected_audio_file_ids,
             retained_context,
             guardian_history,
@@ -2047,6 +2059,11 @@ impl Session {
         } else {
             None
         };
+        let fallback_base_instructions = if accepted_token_usage.is_none() {
+            Some(self.get_base_instructions().await)
+        } else {
+            None
+        };
         {
             let mut state = self.state.lock().await;
             state.replace_annotated_history(
@@ -2054,6 +2071,23 @@ impl Session {
                 reference_context_item,
                 HistoryReplacement::Reset,
             );
+            let accepted_token_usage = accepted_token_usage.or_else(|| {
+                let base_instructions = fallback_base_instructions.as_ref()?;
+                let estimated_total_tokens = state
+                    .history
+                    .estimate_token_count_with_base_instructions(base_instructions)?;
+                Some(crate::context_manager::AcceptedTokenUsage::fully_accounted(
+                    TokenUsage {
+                        total_tokens: estimated_total_tokens.max(0),
+                        ..TokenUsage::default()
+                    },
+                    state.history.annotated_items().len(),
+                ))
+            });
+            let token_info = state.token_info();
+            state
+                .history
+                .set_token_info_and_accepted_usage(token_info, accepted_token_usage);
             state.history.restored_through_sequence = state.history.input_sequence();
             state
                 .history
@@ -2887,6 +2921,17 @@ impl Session {
                 .cloned(),
             status,
             error_info,
+                    async_result_origin: turn_context
+                        .extension_data
+                        .get::<crate::agent::control::ParentAsyncResultOrigins>()
+                        .and_then(|origins| origins.drain().pop())
+                        .or_else(|| {
+                            self.services
+                                .thread_extension_data
+                                .get::<crate::agent::control::ParentAsyncResultOrigins>()
+                                .and_then(|origins| origins.drain().pop())
+                        })
+                        .unwrap_or_else(|| Arc::clone(&turn_context.extension_data)),
         };
         let host_outcome = if notify_native_parent {
             let host_outcome = reporter.is_some().then(|| outcome.clone());
@@ -4294,7 +4339,42 @@ impl Session {
             )
             .await?;
         self.set_last_known_step_context(&step_context).await;
+        self.record_tool_catalog_change(&step_context).await;
         Ok(step_context)
+    }
+
+    /// Persists a `ToolCatalogChanged` event when this step's model-visible
+    /// tool catalog differs from the previous step's.
+    ///
+    /// A changed catalog rewrites the serialized tools sent with every request
+    /// and invalidates the provider's cached prompt prefix; recording the
+    /// change in the rollout makes that cache loss attributable offline.
+    async fn record_tool_catalog_change(self: &Arc<Self>, step_context: &Arc<StepContext>) {
+        let digest = crate::tools::router::ToolCatalogDigest::new(
+            &step_context.tool_router.model_visible_specs(),
+        );
+        let previous = {
+            let mut state = self.state.lock().await;
+            state.last_tool_catalog_digest.replace(digest.clone())
+        };
+        let Some(previous) = previous else {
+            return;
+        };
+        if previous.catalog == digest.catalog {
+            return;
+        }
+        let (added, removed, changed) = digest.diff(&previous);
+        self.send_event(
+            &step_context.turn,
+            EventMsg::ToolCatalogChanged(codex_protocol::protocol::ToolCatalogChangedEvent {
+                previous_digest: previous.catalog,
+                current_digest: digest.catalog,
+                added,
+                removed,
+                changed,
+            }),
+        )
+        .await;
     }
 
     /// Prepares a candidate step without replacing the active turn's retained context.
@@ -5267,6 +5347,7 @@ impl Session {
         loop {
             let mut next_item = None;
             // Render the active mode after the usage hint so it can override that hint.
+            let mut initial_multi_agent_usage_hint = None;
             let mut initial_multi_agent_mode = None;
             let mut managed_developer_instructions = None;
             for update in context.by_ref() {
@@ -5296,13 +5377,13 @@ impl Session {
                     "developer"
                         if fragment.markers().0 == MultiAgentRoleInstructions::type_markers().0 =>
                     {
-                        separate_developer_messages.push(fragment.render_fragment().into());
+                        initial_multi_agent_usage_hint = Some(fragment);
                     }
                     "developer"
                         if update.placement == Placement::Standalone
                             && fragment.markers().0.is_empty() =>
                     {
-                        separate_developer_messages.push(fragment.render_fragment().into());
+                        initial_multi_agent_usage_hint = Some(fragment);
                     }
                     "developer" => developer_sections.push(fragment.render_fragment()),
                     "user" => contextual_user_sections.push(fragment.render_fragment()),
@@ -5330,6 +5411,21 @@ impl Session {
                 items.push(developer_message);
             }
             items.append(&mut separate_developer_messages);
+            if let Some(contextual_user_message) =
+                crate::context_manager::updates::build_rendered_message(std::mem::take(
+                    &mut contextual_user_sections,
+                ))
+            {
+                items.push(contextual_user_message);
+            }
+            if let Some(fragment) = initial_multi_agent_usage_hint
+                && let Some(message) =
+                    crate::context_manager::updates::build_rendered_message(vec![
+                        fragment.render_fragment(),
+                    ])
+            {
+                items.push(message);
+            }
             if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
                 && let Some(message) =
                     crate::context_manager::updates::build_rendered_message(vec![
@@ -5337,13 +5433,6 @@ impl Session {
                     ])
             {
                 items.push(message);
-            }
-            if let Some(contextual_user_message) =
-                crate::context_manager::updates::build_rendered_message(std::mem::take(
-                    &mut contextual_user_sections,
-                ))
-            {
-                items.push(contextual_user_message);
             }
             // Emit the guardian policy prompt as a separate developer item so the guardian
             // subagent sees a distinct, easy-to-audit instruction block.
@@ -5806,42 +5895,23 @@ impl Session {
     }
 
     pub(crate) async fn recompute_token_usage(&self, turn_context: &TurnContext) {
-        let history = self.clone_history().await;
         let base_instructions = self.get_base_instructions().await;
-        let Some(estimated_total_tokens) =
-            history.estimate_token_count_with_base_instructions(&base_instructions)
-        else {
-            return;
-        };
-        {
+        let estimated_total_tokens = {
             let mut state = self.state.lock().await;
-            let mut info = state.token_info().unwrap_or(TokenUsageInfo {
-                total_token_usage: TokenUsage::default(),
-                last_usage_includes_reasoning: None,
-                last_token_usage: TokenUsage::default(),
-                model_context_window: None,
-            });
-
-            info.last_token_usage = TokenUsage {
-                input_tokens: 0,
-                cached_input_tokens: 0,
-                cache_write_input_tokens: 0,
-                output_tokens: 0,
-                reasoning_output_tokens: 0,
-                total_tokens: estimated_total_tokens.max(0),
-                codex_rollout_budget_units: None,
-            };
-
-            if let Some(model_context_window) = turn_context.model_context_window() {
-                info.model_context_window = Some(model_context_window);
-            }
-
-            // The local estimate already includes every retained reasoning item.
-            info.last_usage_includes_reasoning = Some(true);
-            state
+            let Some(estimated_total_tokens) = state
                 .history
-                .set_token_info_with_boundary(Some(info), history.raw_items().len());
-        }
+                .estimate_token_count_with_base_instructions(&base_instructions)
+            else {
+                return;
+            };
+            state.set_recomputed_token_usage(
+                estimated_total_tokens,
+                turn_context.model_context_window(),
+            );
+            // The local estimate already includes every retained reasoning item.
+
+            estimated_total_tokens
+        };
         self.set_auto_compact_window_estimated_prefill_for_scope(
             turn_context,
             estimated_total_tokens,
@@ -6021,8 +6091,8 @@ impl Session {
         info!("interrupt received: abort current task, if any");
         let had_active_turn = self.active_turn.lock().await.is_some();
         self.abort_all_tasks(TurnAbortReason::Interrupted).await;
-        if !had_active_turn {
-            self.cancel_mcp_startup();
+        if !had_active_turn && self.cancel_mcp_startup() {
+            self.mark_mcp_runtime_dirty();
         }
     }
 
