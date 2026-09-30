@@ -915,6 +915,7 @@ impl UnifiedExecProcessManager {
         let _interaction_guard = locked_process.interaction_lock().lock_owned().await;
         // A queued write must observe strict review enabled while it was waiting.
         let strict_auto_review = context.step_context.turn.strict_auto_review_enabled();
+        let mut wake_on_exit = None;
         let approval = {
             let store = self.process_store.lock().await;
             let entry = store
@@ -922,6 +923,7 @@ impl UnifiedExecProcessManager {
                 .get(&process_id)
                 .filter(|entry| Arc::ptr_eq(&entry.process, locked_process))
                 .ok_or(UnifiedExecError::UnknownProcessId { process_id })?;
+            wake_on_exit = Some(Arc::clone(&entry.wake_on_exit));
             entry.stdin_approval(context, request.input, strict_auto_review)?
         };
         if let Some((approval, approval_reason)) = approval {
@@ -1146,6 +1148,10 @@ impl UnifiedExecProcessManager {
                 .await;
         }
 
+        if response.process_id.is_none() {
+            wake_on_exit.store(false, Ordering::Release);
+        }
+
         Ok(response)
     }
 
@@ -1194,6 +1200,7 @@ impl UnifiedExecProcessManager {
                 entry: Box::new(entry),
             }
         } else {
+            entry.wake_on_exit.store(true, Ordering::Release);
             ProcessStatus::Alive {
                 exit_code,
                 call_id: entry.call_id.clone(),
@@ -1262,6 +1269,7 @@ impl UnifiedExecProcessManager {
     ) {
         let plugin_metrics_sidecar =
             metrics_sidecar.map(|sidecar| Arc::new(std::sync::Mutex::new(Some(sidecar))));
+        let wake_on_exit = Arc::new(AtomicBool::new(false));
         let entry = ProcessEntry {
             process: Arc::clone(&process),
             plugin_metrics_sidecar: plugin_metrics_sidecar.clone(),
@@ -1269,6 +1277,7 @@ impl UnifiedExecProcessManager {
             process_id,
             cwd: cwd.clone(),
             initial_exec_command_active,
+            wake_on_exit: Arc::clone(&wake_on_exit),
             hook_command,
             tty,
             environment_id,
@@ -1294,6 +1303,7 @@ impl UnifiedExecProcessManager {
             started_at,
             network_denial_monitor,
             plugin_metrics_sidecar,
+            wake_on_exit,
         );
         // Install the watcher before cancellable cleanup, and outside the process-store lock.
         if let Some(pruned_entry) = pruned_entry {
