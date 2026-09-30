@@ -200,6 +200,7 @@ use tracing::info;
 use tracing::info_span;
 use tracing::instrument;
 use tracing::warn;
+
 use uuid::Uuid;
 
 use crate::client::ModelClient;
@@ -2464,6 +2465,17 @@ impl Session {
                         .initiating_agent_path()
                         .cloned(),
                     status,
+                    async_result_origin: turn_context
+                        .extension_data
+                        .get::<crate::agent::control::ParentAsyncResultOrigins>()
+                        .and_then(|origins| origins.drain().pop())
+                        .or_else(|| {
+                            self.services
+                                .thread_extension_data
+                                .get::<crate::agent::control::ParentAsyncResultOrigins>()
+                                .and_then(|origins| origins.drain().pop())
+                        })
+                        .unwrap_or_else(|| Arc::clone(&turn_context.extension_data)),
                 },
                 &self.services.rollout_thread_trace,
             )

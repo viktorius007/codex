@@ -776,6 +776,16 @@ impl LocalAgentControl {
             }
         };
         agent_metadata.agent_id = Some(new_thread.thread_id);
+        if let Some(origin) = options.parent_async_result_origin.clone() {
+            let origins =
+                new_thread
+                    .thread
+                    .session
+                    .services
+                    .thread_extension_data
+                    .get_or_init::<ParentAsyncResultOrigins>(ParentAsyncResultOrigins::default);
+            origins.insert(origin.parent_turn_id, origin.origin);
+        }
         let mut pending_spawn = PendingSpawn::new(Arc::clone(&state), new_thread.thread_id);
 
         if let Some(SessionSource::SubAgent(

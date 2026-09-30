@@ -32,6 +32,7 @@ use codex_protocol::protocol::TokenUsage;
 pub(crate) struct ActiveTurn {
     pub(crate) task: Option<RunningTask>,
     pub(crate) turn_state: Arc<Mutex<TurnState>>,
+    pub(crate) cancelled_before_start: bool,
 }
 
 /// Whether mailbox deliveries should still be folded into the current turn.
@@ -60,6 +61,7 @@ impl Default for ActiveTurn {
         Self {
             task: None,
             turn_state: Arc::new(Mutex::new(TurnState::default())),
+            cancelled_before_start: false,
         }
     }
 }

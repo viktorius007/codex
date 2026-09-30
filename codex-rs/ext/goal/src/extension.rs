@@ -4,6 +4,9 @@ use std::sync::Weak;
 use codex_analytics::AnalyticsEventsClient;
 use codex_core::ThreadManager;
 use codex_core::TurnStartOptions;
+use codex_extension_api::AsyncResultAdmissionContributor;
+use codex_extension_api::AsyncResultAdmissionDecision;
+use codex_extension_api::AsyncResultAdmissionInput;
 use codex_extension_api::ConfigContributor;
 use codex_extension_api::ExtensionData;
 use codex_extension_api::ExtensionEventSink;
@@ -54,6 +57,11 @@ use crate::tool::GoalToolExecutor;
 pub struct GoalExtensionConfig {
     pub enabled: bool,
     pub max_goal_token_budget: Option<i64>,
+}
+
+#[derive(Debug)]
+struct GoalAsyncResultOwner {
+    goal_id: String,
 }
 
 #[derive(Clone)]
@@ -221,6 +229,59 @@ where
     }
 }
 
+impl<C> AsyncResultAdmissionContributor for GoalExtension<C>
+where
+    C: Send + Sync + 'static,
+{
+    fn decide<'a>(
+        &'a self,
+        input: AsyncResultAdmissionInput<'a>,
+    ) -> ExtensionFuture<'a, AsyncResultAdmissionDecision> {
+        Box::pin(async move {
+            let Some(runtime) = goal_runtime_handle(input.thread_store) else {
+                return AsyncResultAdmissionDecision::default();
+            };
+            let owned = input
+                .candidates
+                .iter()
+                .filter_map(|candidate| {
+                    candidate
+                        .origin_turn_store
+                        .get::<GoalAsyncResultOwner>()
+                        .map(|owner| (candidate.id, owner.goal_id.clone()))
+                })
+                .collect::<Vec<_>>();
+            if owned.is_empty() {
+                return AsyncResultAdmissionDecision::default();
+            }
+            let Ok(permit) = runtime.owned_goal_state_permit().await else {
+                return AsyncResultAdmissionDecision {
+                    denied_ids: owned.into_iter().map(|(id, _)| id).collect(),
+                    permit: None,
+                };
+            };
+            let active_goal_id = self
+                .state_dbs
+                .thread_goals()
+                .get_thread_goal(runtime.thread_id())
+                .await
+                .ok()
+                .flatten()
+                .filter(|goal| goal.status == codex_state::ThreadGoalStatus::Active)
+                .map(|goal| goal.goal_id);
+            AsyncResultAdmissionDecision {
+                denied_ids: owned
+                    .into_iter()
+                    .filter_map(|(id, owner)| {
+                        (Some(owner.as_str()) != active_goal_id.as_deref()).then_some(id)
+                    })
+                    .collect(),
+                permit: Some(Box::new(permit)),
+            }
+        })
+    }
+}
+
 impl<C> TurnLifecycleContributor for GoalExtension<C>
 where
     C: Send + Sync + 'static,
@@ -276,6 +337,11 @@ where
                         | codex_state::ThreadGoalStatus::BudgetLimited
                 )
             {
+                if goal.status == codex_state::ThreadGoalStatus::Active {
+                    input.turn_store.insert(GoalAsyncResultOwner {
+                        goal_id: goal.goal_id.clone(),
+                    });
+                }
                 accounting.mark_turn_goal_active(input.turn_id, goal.goal_id);
             }
         })
@@ -468,6 +534,33 @@ where
                 input.outcome,
             );
             if input.tool_name.is_default_namespace()
+                && matches!(
+                    input.tool_name.name.as_str(),
+                    CREATE_GOAL_TOOL_NAME | UPDATE_GOAL_TOOL_NAME
+                )
+                && matches!(input.outcome, ToolCallOutcome::Completed { success: true })
+                && let Ok(_goal_state_permit) = runtime.goal_state_permit().await
+            {
+                match self
+                    .state_dbs
+                    .thread_goals()
+                    .get_thread_goal(runtime.thread_id())
+                    .await
+                {
+                    Ok(Some(goal)) if goal.status == codex_state::ThreadGoalStatus::Active => {
+                        input.turn_store.insert(GoalAsyncResultOwner {
+                            goal_id: goal.goal_id,
+                        });
+                    }
+                    Ok(_) => {
+                        input.turn_store.remove::<GoalAsyncResultOwner>();
+                    }
+                    Err(err) => {
+                        tracing::warn!("failed to resolve async-result Goal ownership: {err}");
+                    }
+                }
+            }
+            if input.tool_name.is_default_namespace()
                 && input.tool_name.name == CREATE_GOAL_TOOL_NAME
                 && matches!(input.outcome, ToolCallOutcome::Completed { success: true })
             {
@@ -605,6 +698,7 @@ pub fn install_with_backend<C>(
         goal_config,
     ));
     registry.thread_lifecycle_contributor(extension.clone());
+    registry.async_result_admission_contributor(extension.clone());
     registry.config_contributor(extension.clone());
     registry.turn_lifecycle_contributor(extension.clone());
     registry.token_usage_contributor(extension.clone());

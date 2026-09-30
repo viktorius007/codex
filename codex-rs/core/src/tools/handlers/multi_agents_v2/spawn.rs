@@ -20,6 +20,7 @@ use codex_prompts::ResolvedModelMessages;
 use codex_protocol::ThreadId;
 use codex_protocol::protocol::MultiAgentVersion;
 use codex_tools::ToolSpec;
+use std::sync::Arc;
 
 #[derive(Default)]
 pub(crate) struct Handler {
@@ -202,6 +203,10 @@ async fn handle_spawn_agent(
                 environments: Some(step_context.environments.clone()),
                 multi_agent_v2_usage_hints,
                 cyber_access_program: turn.cyber_access_program,
+                parent_async_result_origin: Some(crate::agent::control::ParentAsyncResultOrigin {
+                    parent_turn_id: turn.sub_id.clone(),
+                    origin: Arc::new(turn.extension_data.snapshot()),
+                }),
             },
         })
         .await

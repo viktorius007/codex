@@ -12,6 +12,7 @@ use crate::agent::api::SendRequest;
 use crate::agent::child_config::build_agent_resume_config;
 use crate::agent::types::MessageDeliveryMode;
 use crate::tools::context::FunctionToolOutput;
+use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -58,7 +59,32 @@ pub(super) async fn handle_message_string_tool(
     analytics.set_receiver(receiver_thread_id);
     let resume_config =
         build_agent_resume_config(&turn).map_err(FunctionCallError::RespondToModel)?;
-    let receipt = session
+    if mode == MessageDeliveryMode::TriggerTurn {
+        session
+            .services
+            .local_agent_runtime
+            .control(session.session_id())
+            .ensure_v2_agent_loaded(
+                resume_config.clone(),
+                receiver_thread_id,
+                /*parent*/ None,
+            )
+            .await
+            .map_err(|err| collab_v2_agent_error(receiver_thread_id, err))?;
+        session
+            .services
+            .local_agent_runtime
+            .set_parent_async_result_origin(
+                receiver_thread_id,
+                crate::agent::control::ParentAsyncResultOrigin {
+                    parent_turn_id: turn.sub_id.clone(),
+                    origin: Arc::new(turn.extension_data.snapshot()),
+                },
+            )
+            .await
+            .map_err(|err| collab_v2_agent_error(receiver_thread_id, err))?;
+    }
+    let result = session
         .services
         .agent_control
         .send(SendRequest {
@@ -78,8 +104,15 @@ pub(super) async fn handle_message_string_tool(
                 ..Default::default()
             },
         })
-        .await
-        .map_err(|err| collab_v2_agent_error(receiver_thread_id, err))?;
+        .await;
+    if result.is_err() && mode == MessageDeliveryMode::TriggerTurn {
+        let _ = session
+            .services
+            .local_agent_runtime
+            .clear_parent_async_result_origin(receiver_thread_id, &turn.sub_id)
+            .await;
+    }
+    let receipt = result.map_err(|err| collab_v2_agent_error(receiver_thread_id, err))?;
     let receiver_agent_path = receipt.metadata.agent_path.ok_or_else(|| {
         FunctionCallError::RespondToModel("target agent is missing an agent_path".to_string())
     })?;
