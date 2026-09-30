@@ -601,6 +601,8 @@ ignored = [
 ]
 
 [profile.dev]
+# Retain per-worktree compilation state to shorten the edit-build loop.
+incremental = true
 # The test profile inherits dev. Keep source locations in ordinary builds;
 # use CARGO_PROFILE_DEV_DEBUG=full (or CARGO_PROFILE_TEST_DEBUG=full) for locals.
 debug = "line-tables-only"
