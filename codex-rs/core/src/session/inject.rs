@@ -2,13 +2,44 @@ use super::TurnInput as PendingTurnInput;
 use super::session::Session;
 use super::turn_context::TurnContext;
 use codex_analytics::ImagePreparationMetadata;
+use codex_extension_api::ExtensionData;
 use codex_features::Feature;
 use codex_history::CodexHarnessMetadata;
 use codex_history::ResponseItemEnvelope;
 use codex_protocol::models::ResponseItem;
 use codex_protocol::openai_models::ModelInfo;
+use std::sync::Arc;
 
 impl Session {
+    pub(crate) async fn enqueue_async_result(
+        self: &Arc<Self>,
+        input: PendingTurnInput,
+        origin_turn_store: Arc<ExtensionData>,
+        sub_id: String,
+    ) {
+        self.input_queue
+            .enqueue_async_result(vec![input], origin_turn_store)
+            .await;
+        self.maybe_start_turn_for_pending_work_with_sub_id(sub_id)
+            .await;
+    }
+
+    /// Retains model input and starts a turn when the session is idle.
+    pub(crate) async fn inject_or_start(
+        self: &Arc<Self>,
+        input: Vec<ResponseItem>,
+        origin_turn_store: Arc<ExtensionData>,
+    ) {
+        let input = input
+            .into_iter()
+            .map(ResponseItemEnvelope::new)
+            .map(PendingTurnInput::ResponseItem)
+            .collect::<Vec<_>>();
+        self.input_queue
+            .enqueue_async_result(input, origin_turn_store)
+            .await;
+        self.maybe_start_turn_for_pending_work().await;
+    }
     /// Returns the input if there is no active turn to inject into.
     #[expect(
         clippy::await_holding_invalid_type,

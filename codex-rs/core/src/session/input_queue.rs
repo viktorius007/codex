@@ -4,6 +4,7 @@ use crate::state::ActiveTurn;
 use crate::state::MailboxDeliveryPhase;
 use crate::state::TurnState;
 use codex_diagnostics::GaugeGuard;
+use codex_extension_api::ExtensionData;
 use codex_history::ResponseItemEnvelope;
 use codex_protocol::ThreadId;
 use codex_protocol::models::ResponseItem;
@@ -14,10 +15,14 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 use tokio::sync::Mutex;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::AbortOnDropHandle;
+
+const MAX_ASYNC_RESULTS_PER_TURN: usize = 8;
 
 /// Host capture metadata belonging to one input, including steers within another turn.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,12 +101,21 @@ pub(crate) struct InputQueue {
     activity_tx: watch::Sender<InputQueueActivity>,
     controller: Option<(ThreadId, Arc<dyn AgentControl>, watch::Receiver<bool>)>,
     mailbox_pending_mails: Mutex<VecDeque<PendingMailboxCommunication>>,
+    next_async_result_id: AtomicU64,
+    pending_async_results: Mutex<VecDeque<PendingAsyncResult>>,
+}
+
+pub(crate) struct PendingAsyncResult {
+    id: u64,
+    input: Vec<TurnInput>,
+    origin_turn_store: Arc<ExtensionData>,
 }
 
 pub(crate) struct PendingMailboxCommunication {
     pub(crate) communication: InterAgentCommunication,
     start_options: TurnStartOptions,
     _diagnostics_guard: GaugeGuard,
+    async_result_origin: Option<Arc<ExtensionData>>,
 }
 
 impl InputQueue {
@@ -111,6 +125,8 @@ impl InputQueue {
             activity_tx,
             controller: None,
             mailbox_pending_mails: Mutex::new(VecDeque::new()),
+            next_async_result_id: AtomicU64::new(0),
+            pending_async_results: Mutex::new(VecDeque::new()),
         }
     }
 
@@ -141,10 +157,72 @@ impl InputQueue {
                     .map(|communication| PendingMailboxCommunication {
                         communication,
                         start_options: TurnStartOptions::default(),
+                        async_result_origin: None,
                         _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
                     }),
             );
         }
+    }
+
+    pub(crate) async fn enqueue_async_result(
+        &self,
+        input: Vec<TurnInput>,
+        origin_turn_store: Arc<ExtensionData>,
+    ) {
+        let id = self.next_async_result_id.fetch_add(1, Ordering::Relaxed);
+        self.pending_async_results
+            .lock()
+            .await
+            .push_back(PendingAsyncResult {
+                id,
+                input,
+                origin_turn_store,
+            });
+        self.activity_tx.send_replace(InputQueueActivity::Steer);
+    }
+
+    pub(crate) async fn pending_async_result_origins(&self) -> Vec<(u64, Arc<ExtensionData>)> {
+        self.pending_async_results
+            .lock()
+            .await
+            .iter()
+            .map(|result| (result.id, Arc::clone(&result.origin_turn_store)))
+            .collect()
+    }
+
+    pub(crate) async fn claim_async_results(
+        &self,
+        admitted_ids: &[u64],
+    ) -> Vec<PendingAsyncResult> {
+        let mut pending = self.pending_async_results.lock().await;
+        let mut retained = VecDeque::with_capacity(pending.len());
+        let mut admitted = Vec::new();
+        while let Some(result) = pending.pop_front() {
+            if admitted_ids.contains(&result.id) {
+                admitted.push(result);
+            } else {
+                retained.push_back(result);
+            }
+        }
+        *pending = retained;
+        admitted
+    }
+
+    pub(crate) async fn restore_async_results(&self, mut results: Vec<PendingAsyncResult>) {
+        let mut pending = self.pending_async_results.lock().await;
+        while let Some(result) = results.pop() {
+            pending.push_front(result);
+        }
+        self.activity_tx.send_replace(InputQueueActivity::Steer);
+    }
+
+    pub(crate) async fn drain_next_async_results(&self) -> Vec<TurnInput> {
+        let mut pending = self.pending_async_results.lock().await;
+        let count = pending.len().min(MAX_ASYNC_RESULTS_PER_TURN);
+        pending
+            .drain(..count)
+            .flat_map(|result| result.input)
+            .collect()
     }
 
     pub(crate) async fn subscribe_activity(
@@ -162,6 +240,8 @@ impl InputQueue {
         };
         let pending_activity = if let Some(activity) = turn_activity {
             Some(activity)
+        } else if turn_state.is_some() && !self.pending_async_results.lock().await.is_empty() {
+            Some(InputQueueActivity::Steer)
         } else if self.has_pending_mailbox_items().await {
             Some(InputQueueActivity::Mailbox)
         } else {
@@ -202,19 +282,30 @@ impl InputQueue {
         true
     }
 
+    #[cfg(test)]
     pub(crate) async fn enqueue_mailbox_communication(
         &self,
         communication: InterAgentCommunication,
         start_options: TurnStartOptions,
     ) {
+        self.enqueue_mailbox_communication_with_origin(communication, start_options, None)
+            .await;
+    }
+
+    pub(crate) async fn enqueue_mailbox_communication_with_origin(
+        &self,
+        communication: InterAgentCommunication,
+        start_options: TurnStartOptions,
+        async_result_origin: Option<Arc<ExtensionData>>,
+    ) {
         let mut pending = self.mailbox_pending_mails.lock().await;
-        // Mail retained while unloaded precedes new submissions to the loaded session.
         self.read_mailbox(&mut pending);
         pending.push_back(PendingMailboxCommunication {
-            communication,
-            start_options,
-            _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
-        });
+                communication,
+                start_options,
+                _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
+                async_result_origin,
+            });
         self.activity_tx.send_replace(InputQueueActivity::Mailbox);
     }
 
@@ -240,7 +331,19 @@ impl InputQueue {
         pending.drain(..).collect()
     }
 
+    #[cfg(test)]
     pub(crate) async fn drain_mailbox_input_items(&self) -> (Vec<TurnInput>, TurnStartOptions) {
+        let (items, options, _) = self.drain_mailbox_input_items_with_origins().await;
+        (items, options)
+    }
+
+    pub(crate) async fn drain_mailbox_input_items_with_origins(
+        &self,
+    ) -> (
+        Vec<TurnInput>,
+        TurnStartOptions,
+        Vec<Option<Arc<ExtensionData>>>,
+    ) {
         let pending_mails = self.drain_mailbox().await;
         // A later follow-up supersedes the earlier choice, including an omitted choice.
         let mut start_options = pending_mails
@@ -267,11 +370,15 @@ impl InputQueue {
                     .filter(|id| !id.trim().is_empty())
             })
             .map(str::to_string);
+        let origins = pending_mails
+            .iter()
+            .map(|mail| mail.async_result_origin.as_ref().map(Arc::clone))
+            .collect();
         let items = pending_mails
             .into_iter()
             .map(|mail| TurnInput::InterAgentCommunication(mail.communication))
             .collect();
-        (items, start_options)
+        (items, start_options, origins)
     }
 
     pub(crate) async fn turn_state_for_sub_id(
@@ -400,7 +507,11 @@ impl InputQueue {
     pub(crate) async fn get_pending_input(
         &self,
         active_turn: &Mutex<Option<ActiveTurn>>,
-    ) -> (Vec<TurnInput>, TurnStartOptions) {
+    ) -> (
+        Vec<TurnInput>,
+        TurnStartOptions,
+        Vec<Option<Arc<ExtensionData>>>,
+    ) {
         let (pending_input, accepts_mailbox_delivery) = {
             let mut active = active_turn.lock().await;
             match active.as_mut() {
@@ -408,26 +519,30 @@ impl InputQueue {
                     let mut turn_state = active_turn.turn_state.lock().await;
                     let accepts_mailbox_delivery =
                         turn_state.accepts_mailbox_delivery_for_current_turn();
-                    let pending_input = if accepts_mailbox_delivery {
+                    let mut pending_input = if accepts_mailbox_delivery {
                         turn_state.pending_input.items.split_off(0)
                     } else {
                         Vec::new()
                     };
+                    if accepts_mailbox_delivery && active_turn.task.is_some() {
+                        pending_input.extend(self.drain_next_async_results().await);
+                    }
                     (pending_input, accepts_mailbox_delivery)
                 }
                 None => (Vec::new(), true),
             }
         };
         if !accepts_mailbox_delivery {
-            return (pending_input, TurnStartOptions::default());
+            return (pending_input, TurnStartOptions::default(), Vec::new());
         }
-        let (mailbox_items, start_options) = self.drain_mailbox_input_items().await;
+        let (mailbox_items, start_options, origins) =
+            self.drain_mailbox_input_items_with_origins().await;
         if pending_input.is_empty() {
-            (mailbox_items, start_options)
+            (mailbox_items, start_options, origins)
         } else {
             let mut pending_input = pending_input;
             pending_input.extend(mailbox_items);
-            (pending_input, start_options)
+            (pending_input, start_options, origins)
         }
     }
 
@@ -442,7 +557,9 @@ impl InputQueue {
                 Some(active_turn) => {
                     let turn_state = active_turn.turn_state.lock().await;
                     (
-                        !turn_state.pending_input.is_empty(),
+                        !turn_state.pending_input.items.is_empty()
+                            || (active_turn.task.is_some()
+                                && !self.pending_async_results.lock().await.is_empty()),
                         turn_state.accepts_mailbox_delivery_for_current_turn(),
                     )
                 }
@@ -456,6 +573,12 @@ impl InputQueue {
             return true;
         }
         self.has_pending_mailbox_items().await
+    }
+}
+
+impl PendingAsyncResult {
+    pub(crate) fn input(&self) -> &[TurnInput] {
+        &self.input
     }
 }
 
