@@ -1,0 +1,68 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.50s
+────────────
+ Nextest run ID 70364ff0-9118-4179-8c22-d39c48b27c89 with nextest profile: local
+    Starting 1 test across 3 binaries (4636 tests skipped)
+  TRY 1 FAIL [   1.299s] (───) codex-core agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction
+  stdout ───
+
+    running 1 test
+    test agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction ... FAILED
+
+    failures:
+
+    failures:
+        agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2597 filtered out; finished in 1.28s
+
+  stderr ───
+
+    thread 'agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction' (324187439) panicked at core/src/agent/control/residency_tests.rs:120:5:
+    assertion failed: `(left == right)`: the loaded owner must occupy capacity during eviction and after cancellation
+
+    Diff < left / right > :
+     (
+    <    true,
+    <    0,
+    >    false,
+    >    1,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.463s] (1/1) codex-core agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction
+  stdout ───
+
+    running 1 test
+    test agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction ... FAILED
+
+    failures:
+
+    failures:
+        agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2597 filtered out; finished in 0.45s
+
+  stderr ───
+
+    thread 'agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction' (324187660) panicked at core/src/agent/control/residency_tests.rs:120:5:
+    assertion failed: `(left == right)`: the loaded owner must occupy capacity during eviction and after cancellation
+
+    Diff < left / right > :
+     (
+    <    true,
+    <    0,
+    >    false,
+    >    1,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   1.795s] 1 test run: 0 passed, 1 failed, 4636 skipped
+  TRY 2 FAIL [   0.463s] (1/1) codex-core agent::control::residency::tests::residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction
+error: test run failed
+error: recipe `test` failed on line 88 with exit code 100
