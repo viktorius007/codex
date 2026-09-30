@@ -2123,7 +2123,6 @@ impl ResponsesHttpExecutor<'_> {
                         Arc::clone(&self.client.state.provider),
                         interceptors,
                         cache_diagnostic_attempt,
-                        interceptors,
                     );
                     return Ok(stream);
                 }
@@ -2511,7 +2510,6 @@ impl ModelClientSession {
                 Arc::clone(&self.client.state.provider),
                 interceptors,
                 cache_diagnostic_attempt,
-                interceptors,
             );
             self.websocket_session.last_response_rx = Some(last_request_rx);
             return Ok(WebsocketStreamOutcome::Stream(stream));
