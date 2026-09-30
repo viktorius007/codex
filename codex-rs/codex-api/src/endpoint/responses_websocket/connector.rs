@@ -3,6 +3,7 @@
 
 use super::ResponsesWebsocketClient;
 use super::ResponsesWebsocketConnection;
+use super::WebsocketObservationState;
 use super::connect_websocket;
 use super::merge_request_headers;
 use crate::ApiError;
@@ -35,6 +36,7 @@ impl ResponsesWebsocketClient {
             .map_err(|err| ApiError::Stream(format!("failed to build websocket URL: {err}")))?;
         let mut headers =
             merge_request_headers(&self.provider.headers, extra_headers, default_headers);
+        let request_observation = Arc::new(WebsocketObservationState::new(&headers, self.endpoint));
         self.auth.add_auth_headers(&mut headers);
         let (stream, _status, server_reasoning_included, server_model) =
             connect_websocket(ws_url, headers, connector, turn_state).await?;
@@ -44,6 +46,8 @@ impl ResponsesWebsocketClient {
             server_reasoning_included,
             server_model,
             telemetry,
+            request_observation,
+            self.request_observer.clone(),
         ))
     }
 }
