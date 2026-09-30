@@ -59,11 +59,19 @@ use codex_http_client::ClientRouteClass;
 use codex_http_client::HttpClientFactory;
 use codex_http_client::OutboundProxyPolicy;
 use codex_http_client::RouteAwareClientPool;
+use codex_login::AuthManager;
 use codex_login::CodexAuth;
 use codex_login::auth::AgentIdentityAuthPolicy;
 use codex_model_provider::create_model_provider;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::built_in_model_providers;
+use codex_models_manager::ModelsManagerConfig;
+use codex_models_manager::bundled_models_response;
+use codex_models_manager::manager::ModelsManager;
+use codex_models_manager::manager::ModelsManagerFuture;
+use codex_models_manager::manager::RefreshStrategy;
+use codex_models_manager::manager::SharedModelsManager;
+use codex_models_manager::manager::StaticModelsManager;
 use codex_models_manager::model_info;
 use codex_models_manager::test_support::construct_model_info_offline_for_tests;
 use codex_models_manager::test_support::get_model_offline_for_tests;
@@ -72,6 +80,7 @@ use codex_protocol::AgentPath;
 use codex_protocol::ResponseItemId;
 use codex_protocol::SessionId;
 use codex_protocol::ThreadId;
+use codex_protocol::config_types::CollaborationModeMask;
 use codex_protocol::config_types::SERVICE_TIER_DEFAULT_REQUEST_VALUE;
 use codex_protocol::config_types::ServiceTier;
 use codex_protocol::config_types::TrustLevel;
@@ -86,6 +95,8 @@ use codex_protocol::models::ImageReference;
 use codex_protocol::models::PermissionProfile;
 use codex_protocol::models::SandboxEnforcement;
 use codex_protocol::openai_models::ModelServiceTier;
+use codex_protocol::openai_models::ModelVisibility;
+use codex_protocol::openai_models::ModelsResponse;
 use codex_protocol::openai_models::ToolMode;
 use codex_protocol::permissions::FileSystemAccessMode;
 use codex_protocol::permissions::FileSystemPath;
@@ -222,7 +233,9 @@ use std::path::Path;
 use std::time::Duration;
 use test_case::test_case;
 use tokio::sync::Notify;
+use tokio::sync::RwLock;
 use tokio::sync::Semaphore;
+use tokio::sync::TryLockError;
 use tokio::time::sleep;
 use tokio::time::timeout;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -13097,4 +13110,298 @@ async fn session_start_hooks_require_project_trust_without_config_toml() -> std:
     }
 
     Ok(())
+}
+
+#[derive(Debug)]
+struct MutableCatalogModelsManager {
+    models: RwLock<Vec<ModelInfo>>,
+    metadata: StaticModelsManager,
+}
+
+impl MutableCatalogModelsManager {
+    fn new(models: Vec<ModelInfo>) -> Self {
+        Self {
+            models: RwLock::new(models),
+            metadata: StaticModelsManager::new(
+                /*auth_manager*/ None,
+                bundled_models_response().expect("bundled models"),
+            ),
+        }
+    }
+}
+
+impl ModelsManager for MutableCatalogModelsManager {
+    fn raw_model_catalog(
+        &self,
+        _refresh_strategy: RefreshStrategy,
+        _http_client_factory: HttpClientFactory,
+    ) -> ModelsManagerFuture<'_, ModelsResponse> {
+        Box::pin(async move {
+            ModelsResponse {
+                models: self.models.read().await.clone(),
+            }
+        })
+    }
+
+    fn get_remote_models(&self) -> ModelsManagerFuture<'_, Vec<ModelInfo>> {
+        Box::pin(async move { self.models.read().await.clone() })
+    }
+
+    fn try_get_remote_models(&self) -> Result<Vec<ModelInfo>, TryLockError> {
+        Ok(self.models.try_read()?.clone())
+    }
+
+    fn auth_manager(&self) -> Option<&AuthManager> {
+        self.metadata.auth_manager()
+    }
+
+    fn list_collaboration_modes(&self) -> Vec<CollaborationModeMask> {
+        self.metadata.list_collaboration_modes()
+    }
+
+    fn get_model_info<'a>(
+        &'a self,
+        model: &'a str,
+        config: &'a ModelsManagerConfig,
+    ) -> ModelsManagerFuture<'a, ModelInfo> {
+        self.metadata.get_model_info(model, config)
+    }
+
+    fn refresh_if_new_etag(
+        &self,
+        _etag: String,
+        _http_client_factory: HttpClientFactory,
+    ) -> ModelsManagerFuture<'_, ()> {
+        Box::pin(async {})
+    }
+}
+
+async fn make_collaboration_snapshot_session(
+    models_manager: Option<SharedModelsManager>,
+    configure: impl FnOnce(&mut Config),
+) -> Arc<Session> {
+    if let Some(models_manager) = models_manager {
+        let (mut session, _turn_context) = make_session_and_context().await;
+        session.services.models_manager = models_manager;
+        {
+            let mut state = session.state.lock().await;
+            let mut config = (*state.session_configuration.original_config_do_not_use).clone();
+            configure(&mut config);
+            state.session_configuration.original_config_do_not_use = Arc::new(config);
+        }
+        return Arc::new(session);
+    }
+
+    let session = make_session_with_config(|config| {
+        config
+            .features
+            .enable(Feature::Collab)
+            .expect("enable collaboration");
+        config
+            .features
+            .enable(Feature::MultiAgentV2)
+            .expect("enable multi-agent v2");
+        config.multi_agent_v2.hide_spawn_agent_metadata = false;
+        config.multi_agent_v2.expose_spawn_agent_model_overrides = true;
+        configure(config);
+    })
+    .await
+    .expect("build collaboration test session");
+    session
+}
+
+fn prepare_collaboration_turn(turn: &mut Arc<TurnContext>) {
+    let turn = Arc::get_mut(turn).expect("new turn context should be uniquely owned");
+    turn.multi_agent_version = MultiAgentVersion::V2;
+    let config = Arc::make_mut(&mut turn.config);
+    config
+        .features
+        .enable(Feature::MultiAgentV2)
+        .expect("enable multi-agent v2");
+    config.multi_agent_v2.hide_spawn_agent_metadata = false;
+    config.multi_agent_v2.expose_spawn_agent_model_overrides = true;
+}
+
+fn collaboration_tool_specs(session: &Session, turn: &Arc<TurnContext>) -> Vec<ToolSpec> {
+    let step_context = StepContext::for_test(Arc::clone(turn));
+    let router = crate::tools::spec_plan::build_tool_router(
+        session,
+        step_context.turn.as_ref(),
+        &step_context.settings.model_info,
+        &step_context.environments,
+        &step_context.mcp,
+        /*apps_enabled*/ false,
+        &turn.extension_data,
+        /*tool_suggest_candidates*/ None,
+    )
+    .expect("build collaboration tool router");
+    let specs = router
+        .model_visible_specs()
+        .iter()
+        .filter(|spec| {
+            matches!(
+                spec.name(),
+                "collaboration"
+                    | "multi_agent_v1"
+                    | "spawn_agent"
+                    | "send_message"
+                    | "followup_task"
+                    | "interrupt_agent"
+                    | "list_agents"
+            )
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(
+        !specs.is_empty(),
+        "expected model-visible collaboration tools"
+    );
+    specs
+}
+
+fn catalog_model(slug: &str) -> ModelInfo {
+    let mut model = model_info::model_info_from_slug("gpt-5.5");
+    model.slug = slug.to_string();
+    model.display_name = slug.to_string();
+    model.description = Some(format!("{slug} catalog entry"));
+    model.visibility = ModelVisibility::List;
+    model.supported_in_api = true;
+    model.priority = 0;
+    model
+}
+
+#[tokio::test]
+async fn model_catalog_snapshot_is_frozen_for_thread_lifetime() {
+    let manager = Arc::new(MutableCatalogModelsManager::new(vec![catalog_model(
+        "catalog-alpha",
+    )]));
+    let session = make_collaboration_snapshot_session(
+        Some(Arc::clone(&manager) as SharedModelsManager),
+        |_| {},
+    )
+    .await;
+    let mut initial_turn = session.new_default_turn().await;
+    prepare_collaboration_turn(&mut initial_turn);
+    let initial_specs = collaboration_tool_specs(&session, &initial_turn);
+    assert!(
+        serde_json::to_string(&initial_specs)
+            .expect("serialize initial collaboration specs")
+            .contains("catalog-alpha"),
+        "initial specs should expose the initial catalog"
+    );
+
+    *manager.models.write().await = vec![catalog_model("catalog-beta")];
+    let contention = manager.models.write().await;
+    let mut review_turn = session
+        .new_turn_with_default_settings("review-probe".to_string(), Default::default())
+        .await;
+    prepare_collaboration_turn(&mut review_turn);
+    let review_specs = collaboration_tool_specs(&session, &review_turn);
+    assert_eq!(
+        review_specs, initial_specs,
+        "review turn construction under catalog lock contention must reuse the thread snapshot"
+    );
+    drop(contention);
+
+    let mut switched_turn = Arc::new(
+        initial_turn
+            .with_model(
+                initial_turn.model_info().slug.clone(),
+                &session.services.models_manager,
+            )
+            .await,
+    );
+    prepare_collaboration_turn(&mut switched_turn);
+    assert_eq!(
+        collaboration_tool_specs(&session, &switched_turn),
+        initial_specs,
+        "with_model must preserve the thread's collaboration tool specs after a refresh"
+    );
+
+    let fresh_session = make_collaboration_snapshot_session(
+        Some(Arc::clone(&manager) as SharedModelsManager),
+        |_| {},
+    )
+    .await;
+    let mut fresh_turn = fresh_session.new_default_turn().await;
+    prepare_collaboration_turn(&mut fresh_turn);
+    let fresh_specs = collaboration_tool_specs(&fresh_session, &fresh_turn);
+    assert_ne!(
+        fresh_specs, initial_specs,
+        "a new thread should observe the refreshed model catalog"
+    );
+    assert!(
+        serde_json::to_string(&fresh_specs)
+            .expect("serialize fresh collaboration specs")
+            .contains("catalog-beta"),
+        "fresh thread specs should expose the refreshed catalog"
+    );
+}
+
+#[tokio::test]
+async fn spawn_role_spec_is_stable_across_role_file_changes() {
+    let role_dir = tempfile::tempdir().expect("create temp dir");
+    let role_file = role_dir.path().join("pinned.toml");
+    std::fs::write(&role_file, "model = \"gpt-5.4\"\n").expect("write initial role file");
+    let roles = BTreeMap::from([(
+        "pinned".to_string(),
+        crate::config::AgentRoleConfig {
+            description: Some("Pinned-model role.".to_string()),
+            config_file: Some(role_file.clone()),
+            nickname_candidates: None,
+        },
+    )]);
+    let session =
+        make_collaboration_snapshot_session(None, |config| config.agent_roles = roles.clone())
+            .await;
+    let mut initial_turn = session.new_default_turn().await;
+    prepare_collaboration_turn(&mut initial_turn);
+    let initial_specs = collaboration_tool_specs(&session, &initial_turn);
+    assert!(
+        serde_json::to_string(&initial_specs)
+            .expect("serialize initial collaboration specs")
+            .contains("gpt-5.4"),
+        "initial specs should expose the initial role-file model"
+    );
+
+    std::fs::write(&role_file, "model = \"gpt-5.2\"\n").expect("edit role file");
+    let mut review_turn = session
+        .new_turn_with_default_settings("review-probe".to_string(), Default::default())
+        .await;
+    prepare_collaboration_turn(&mut review_turn);
+    assert_eq!(
+        collaboration_tool_specs(&session, &review_turn),
+        initial_specs,
+        "review turn construction must not reread role files for an existing thread"
+    );
+    let mut switched_turn = Arc::new(
+        initial_turn
+            .with_model(
+                initial_turn.model_info().slug.clone(),
+                &session.services.models_manager,
+            )
+            .await,
+    );
+    prepare_collaboration_turn(&mut switched_turn);
+    assert_eq!(
+        collaboration_tool_specs(&session, &switched_turn),
+        initial_specs,
+        "with_model must not reread role files for an existing thread"
+    );
+
+    let fresh_session =
+        make_collaboration_snapshot_session(None, |config| config.agent_roles = roles).await;
+    let mut fresh_turn = fresh_session.new_default_turn().await;
+    prepare_collaboration_turn(&mut fresh_turn);
+    let fresh_specs = collaboration_tool_specs(&fresh_session, &fresh_turn);
+    assert_ne!(
+        fresh_specs, initial_specs,
+        "a new thread should observe the edited role file"
+    );
+    assert!(
+        serde_json::to_string(&fresh_specs)
+            .expect("serialize fresh collaboration specs")
+            .contains("gpt-5.2"),
+        "fresh thread specs should expose the edited role-file model"
+    );
 }
