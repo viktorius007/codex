@@ -6,6 +6,8 @@ use super::TRAILING_OUTPUT_GRACE;
 use super::spawn_exit_watcher;
 use super::start_streaming_output;
 use super::utf8_boundary;
+use crate::context::ContextualUserFragment;
+use crate::context::ExecCompletion;
 use crate::session::tests::make_session_and_context_with_rx;
 use crate::unified_exec::UnifiedExecContext;
 use crate::unified_exec::UnifiedExecProcessManager;
@@ -19,6 +21,7 @@ use codex_protocol::protocol::EventMsg;
 use codex_protocol::protocol::ExecCommandOutputDeltaEvent;
 use codex_protocol::protocol::ExecOutputStream;
 use codex_sandboxing::SandboxType;
+use codex_utils_output_truncation::approx_token_count;
 
 use pretty_assertions::assert_eq;
 use tokio::time::Duration;
@@ -430,4 +433,45 @@ async fn streaming_output_bounds_invalid_bytes() {
             b"\xf0\x9f\x98\x80\xff\xff\xff".to_vec(),
         ]
     );
+}
+
+#[test]
+fn completion_preserves_small_result() {
+    let completion = ExecCompletion::new(
+        "call-1",
+        /*process_id*/ 42,
+        &["echo".into(), "done".into()],
+        /*exit_code*/ 0,
+        "done",
+    );
+    assert_eq!(
+        completion.body(),
+        "<exec-command-completed call-id=\"call-1\" process-id=\"42\" exit-code=\"0\">\n<command>echo done</command>\n<output>\ndone\n</output>\n</exec-command-completed>"
+    );
+}
+
+#[test]
+fn completion_bounds_command_and_output_together() {
+    for (command, output) in [
+        ("x".repeat(16_000), "done".into()),
+        ("echo".into(), "x".repeat(16_000)),
+    ] {
+        let body = ExecCompletion::new(
+            "call-1",
+            /*process_id*/ 42,
+            &[command],
+            /*exit_code*/ 7,
+            &output,
+        )
+        .body();
+        assert!(
+            approx_token_count(&body) <= 1_000,
+            "entire command, metadata, output, and truncation envelope must fit the context limit"
+        );
+        assert!(body.starts_with(
+            "<exec-command-completed call-id=\"call-1\" process-id=\"42\" exit-code=\"7\">"
+        ));
+        assert!(body.ends_with("</output>\n</exec-command-completed>"));
+        assert!(body.contains("tokens truncated"));
+    }
 }
