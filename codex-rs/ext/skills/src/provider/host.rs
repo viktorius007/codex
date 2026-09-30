@@ -242,7 +242,8 @@ fn plugin_skill_locator(
     let plugin_id = skill.plugin_id.as_deref()?;
     let root = outcome.skill_root_for_path(&skill.path_to_skills_md)?;
     let root = PathUri::from_abs_path(root);
-    let directory = skill.path_to_skills_md.parent()?;
+    let discovery_path = outcome.skill_discovery_path_for_path(&skill.path_to_skills_md)?;
+    let directory = discovery_path.parent()?;
     let relative_directory = directory.relative_path_from(&root)?;
     let package = if relative_directory.is_empty() {
         format!("skill://{plugin_id}")
