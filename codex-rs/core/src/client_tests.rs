@@ -939,7 +939,7 @@ fn websocket_incremental_reuse_tracks_raw_result_metadata() -> anyhow::Result<()
             })
             .unwrap();
         session.websocket_session.last_response_rx = Some(receiver);
-        let continuation = session.prepare_websocket_request(&current);
+        let (continuation, _report) = session.prepare_websocket_request(&current);
         assert_eq!(
             continuation.map(|continuation| (
                 continuation.response_id,
@@ -983,14 +983,14 @@ fn websocket_continuation_reports_unavailable_response_state() {
     let mut session = client.new_session();
     session.websocket_session.last_request = Some(request.clone());
     assert_eq!(
-        session.prepare_websocket_request(&request).err(),
+        session.prepare_websocket_request(&request).0.err(),
         Some(NonIncrementalReason::NoPreviousResponse),
     );
 
     let (sender, receiver) = tokio::sync::oneshot::channel();
     session.websocket_session.last_response_rx = Some(receiver);
     assert_eq!(
-        session.prepare_websocket_request(&request).err(),
+        session.prepare_websocket_request(&request).0.err(),
         Some(NonIncrementalReason::NoPreviousResponse),
     );
     drop(sender);
@@ -999,7 +999,7 @@ fn websocket_continuation_reports_unavailable_response_state() {
     drop(sender);
     session.websocket_session.last_response_rx = Some(receiver);
     assert_eq!(
-        session.prepare_websocket_request(&request).err(),
+        session.prepare_websocket_request(&request).0.err(),
         Some(NonIncrementalReason::NoPreviousResponse),
     );
 
@@ -1012,7 +1012,7 @@ fn websocket_continuation_reports_unavailable_response_state() {
         .unwrap();
     session.websocket_session.last_response_rx = Some(receiver);
     assert_eq!(
-        session.prepare_websocket_request(&request).err(),
+        session.prepare_websocket_request(&request).0.err(),
         Some(NonIncrementalReason::NoPreviousResponseId),
     );
 }
