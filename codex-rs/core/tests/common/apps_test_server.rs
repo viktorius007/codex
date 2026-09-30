@@ -18,6 +18,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc;
+use tokio::sync::Notify;
 use wiremock::Mock;
 use wiremock::MockServer;
 use wiremock::Request;
@@ -98,6 +99,7 @@ pub struct AppsTestServer {
 #[derive(Clone)]
 pub struct AppsTestServerStartupControl {
     initialize_attempts: Arc<AtomicUsize>,
+    initialize_attempted: Arc<Notify>,
     remaining_initialize_failures: Arc<AtomicUsize>,
     successful_initialize_gate: AppsStartupInitializeGate,
 }
@@ -110,6 +112,16 @@ impl AppsTestServerStartupControl {
 
     pub fn initialize_attempts(&self) -> usize {
         self.initialize_attempts.load(Ordering::SeqCst)
+    }
+
+    pub async fn wait_for_initialize_attempts(&self, attempts: usize) {
+        loop {
+            let initialize_attempted = self.initialize_attempted.notified();
+            if self.initialize_attempts() >= attempts {
+                return;
+            }
+            initialize_attempted.await;
+        }
     }
 
     /// Holds one successful startup without turning recovery into a fresh runtime refresh.
@@ -225,6 +237,7 @@ impl AppsTestServer {
         mount_connectors_directory(server).await;
         let control = AppsTestServerStartupControl {
             initialize_attempts: Arc::new(AtomicUsize::new(0)),
+            initialize_attempted: Arc::new(Notify::new()),
             remaining_initialize_failures: Arc::new(AtomicUsize::new(0)),
             successful_initialize_gate: Arc::new(Mutex::new(VecDeque::new())),
         };
@@ -237,6 +250,7 @@ impl AppsTestServer {
             /*include_app_only_tool*/ false,
             AppsTestToolsListBehavior::AlwaysAvailable,
             Some(Arc::clone(&control.initialize_attempts)),
+            Some(Arc::clone(&control.initialize_attempted)),
             Some(Arc::clone(&control.remaining_initialize_failures)),
             Some(Arc::clone(&control.successful_initialize_gate)),
         )
@@ -470,6 +484,7 @@ async fn mount_streamable_http_json_rpc_at_path(
         include_app_only_tool,
         tools_list_behavior,
         /*initialize_attempts*/ None,
+        /*initialize_attempted*/ None,
         /*remaining_initialize_failures*/ None,
         /*successful_initialize_gate*/ None,
     )
@@ -486,6 +501,7 @@ async fn mount_streamable_http_json_rpc_with_startup_control(
     include_app_only_tool: bool,
     tools_list_behavior: AppsTestToolsListBehavior,
     initialize_attempts: Option<Arc<AtomicUsize>>,
+    initialize_attempted: Option<Arc<Notify>>,
     remaining_initialize_failures: Option<Arc<AtomicUsize>>,
     successful_initialize_gate: Option<AppsStartupInitializeGate>,
 ) {
@@ -498,6 +514,7 @@ async fn mount_streamable_http_json_rpc_with_startup_control(
             include_app_only_tool,
             tools_list_behavior,
             initialize_attempts,
+            initialize_attempted,
             remaining_initialize_failures,
             successful_initialize_gate,
         })
@@ -512,6 +529,7 @@ struct CodexAppsJsonRpcResponder {
     include_app_only_tool: bool,
     tools_list_behavior: AppsTestToolsListBehavior,
     initialize_attempts: Option<Arc<AtomicUsize>>,
+    initialize_attempted: Option<Arc<Notify>>,
     remaining_initialize_failures: Option<Arc<AtomicUsize>>,
     successful_initialize_gate: Option<AppsStartupInitializeGate>,
 }
@@ -537,6 +555,9 @@ impl Respond for CodexAppsJsonRpcResponder {
             "initialize" => {
                 if let Some(initialize_attempts) = &self.initialize_attempts {
                     initialize_attempts.fetch_add(1, Ordering::SeqCst);
+                }
+                if let Some(initialize_attempted) = &self.initialize_attempted {
+                    initialize_attempted.notify_waiters();
                 }
                 if self
                     .remaining_initialize_failures
