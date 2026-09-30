@@ -138,6 +138,7 @@ async fn handle_spawn_agent(
                 multi_agent_v2_usage_hints: None,
                 cyber_access_program: explicit_program_for_spawn(turn),
                 cyber_access_program_source: SpawnProgramSource::ParentTurn,
+                parent_async_result_origin: None,
             },
         })
         .await

@@ -47,6 +47,7 @@ pub struct SpawnAgentOptions {
     pub disabled_plugin_ids: Option<Vec<String>>,
     pub multi_agent_v2_usage_hints: Option<ResolvedMultiAgentV2UsageHints>,
     pub cyber_access_program: Option<CyberAccessProgram>,
+    pub(crate) parent_async_result_origin: Option<crate::agent::control::ParentAsyncResultOrigin>,
     /// Parent selections apply to the first turn and may need adapting to the child's model.
     pub cyber_access_program_source: SpawnProgramSource,
 }

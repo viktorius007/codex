@@ -897,9 +897,24 @@ impl LocalAgentControl {
             .map_err(|err| err.with_agent_context(AgentErrorContext::ChildStartup))?;
         let child_create = child_create_started_at.elapsed();
         agent_metadata.agent_id = Some(new_thread.thread_id);
-        if let Some(SessionSource::SubAgent(SubAgentSource::ThreadSpawn {
-            parent_thread_id, ..
-        })) = notification_source.as_ref()
+        if let Some(origin) = options.parent_async_result_origin.clone() {
+            let origins =
+                new_thread
+                    .thread
+                    .session
+                    .services
+                    .thread_extension_data
+                    .get_or_init::<ParentAsyncResultOrigins>(ParentAsyncResultOrigins::default);
+            origins.insert(origin.parent_turn_id, origin.origin);
+        }
+        let mut pending_spawn =
+            PendingSpawn::new(Arc::clone(&state), new_thread.thread_id, membership);
+
+        if let Some(SessionSource::SubAgent(
+            subagent_source @ SubAgentSource::ThreadSpawn {
+                parent_thread_id, ..
+            },
+        )) = notification_source.as_ref()
         {
             let client_metadata = match state.get_thread(*parent_thread_id).await {
                 Ok(parent_thread) => parent_thread.session.app_server_client_metadata().await,

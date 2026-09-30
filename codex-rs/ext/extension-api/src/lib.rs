@@ -1,3 +1,4 @@
+mod async_result_admission;
 mod capabilities;
 mod catalog_refresh;
 mod contributors;
@@ -14,6 +15,11 @@ pub use message_lifecycle::MessageLifecycleInput;
 pub use session_isolation::IsolatedSessionExtensions;
 pub use session_isolation::SessionIsolation;
 pub use tool_policy::ToolPolicy;
+
+pub use async_result_admission::AsyncResultAdmissionCandidate;
+pub use async_result_admission::AsyncResultAdmissionContributor;
+pub use async_result_admission::AsyncResultAdmissionDecision;
+pub use async_result_admission::AsyncResultAdmissionInput;
 
 pub use capabilities::ConversationHistorySnapshot;
 pub use capabilities::ExtensionEventSink;

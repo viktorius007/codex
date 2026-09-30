@@ -40,6 +40,7 @@ pub(crate) struct ActiveTurn {
     /// Reservations that have not started still accept inputs.
     pub(crate) finishing: Option<CancellationToken>,
     pub(crate) turn_state: Arc<Mutex<TurnState>>,
+    pub(crate) cancelled_before_start: bool,
 }
 
 /// Whether mailbox deliveries should still be folded into the current turn.
@@ -68,6 +69,7 @@ impl Default for ActiveTurn {
             task: None,
             finishing: None,
             turn_state: Arc::new(Mutex::new(TurnState::default())),
+            cancelled_before_start: false,
         }
     }
 }
