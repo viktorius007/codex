@@ -144,8 +144,8 @@ mod tests {
 
     #[test]
     fn sanitize_metric_tag_value_replaces_invalid_chars() {
-        let msg = "bad value!";
-        assert_eq!(sanitize_metric_tag_value(msg), "bad_value");
+        let msg = "bad 1.2.3+local.1!";
+        assert_eq!(sanitize_metric_tag_value(msg), "bad_1.2.3+local.1");
     }
 
     #[test]
