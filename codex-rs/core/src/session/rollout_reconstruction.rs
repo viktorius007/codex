@@ -1,5 +1,6 @@
 use super::*;
 use crate::context::world_state::WorldStateSnapshot;
+use crate::context_manager::AcceptedTokenUsage;
 use crate::context_manager::is_user_turn_boundary;
 use codex_history::ResponseItemEnvelope;
 use codex_history::TurnAttribution;
@@ -13,6 +14,7 @@ use uuid::Uuid;
 #[derive(Debug, PartialEq)]
 pub(crate) struct RolloutReconstruction {
     pub(super) history: Vec<ResponseItemEnvelope>,
+    pub(super) accepted_token_usage: Option<AcceptedTokenUsage>,
     pub(crate) retained_context: codex_history::RetainedContext,
     pub(super) guardian_history: Option<codex_history::GuardianHistoryCheckpoint>,
     pub(super) last_started_turn_id: Option<String>,
@@ -490,6 +492,7 @@ impl ContextManager {
         .unwrap_or(u64::MAX);
 
         // Build model-visible history from the selected compaction and its newer suffix.
+        let mut accepted_token_usage = None;
         let mut saw_legacy_compaction_without_replacement_history = false;
         if let Some(checkpoint) = history_checkpoint
             && let Some(items) = &checkpoint.compacted.replacement_history
@@ -542,17 +545,28 @@ impl ContextManager {
                         let retained_context = history.retained_context().clone();
                         history.replace_annotated(rebuilt);
                         history.restore_retained_context(Some(&retained_context));
+                        accepted_token_usage = None;
                     }
                 }
                 RolloutItem::EventMsg(EventMsg::ThreadRolledBack(rollback)) => {
                     history.drop_last_n_user_turns(rollback.num_turns);
+                    if rollback.num_turns > 0 {
+                        accepted_token_usage = None;
+                    }
+                }
+                RolloutItem::TokenUsageRecord(record) => {
+                    // The record's rollout position proves exactly which reconstructed items its
+                    // numeric usage covers.
+                    accepted_token_usage = Some(AcceptedTokenUsage::server_reported(
+                        record.usage.clone(),
+                        history.annotated_items().len(),
+                    ));
                 }
                 RolloutItem::EventMsg(_)
                 | RolloutItem::TurnContext(_)
                 | RolloutItem::RealtimeItem(_)
                 | RolloutItem::WorldState(_)
                 | RolloutItem::SecurityRiskScore(_)
-                | RolloutItem::TokenUsageRecord(_)
                 | RolloutItem::SessionMeta(_) => {}
             }
         }
@@ -612,6 +626,7 @@ impl ContextManager {
             guardian_history: history.guardian_history_checkpoint(),
             last_started_turn_id,
             history: history.into_annotated_items(),
+            accepted_token_usage,
             previous_turn_settings,
             reference_context_item,
             turn_attribution,
