@@ -142,7 +142,7 @@ pub(crate) fn build_tool_router(
             std::cell::Cell::new(default_agent_type_spec.role_file_read_failures);
         Arc::new(crate::agent::role::spawn_tool_spec::SpawnToolSpecBuild {
             text: agent_type_description(
-            turn_context,
+                turn_context,
                 &default_agent_type_spec.text,
                 &role_file_read_failures,
             ),
