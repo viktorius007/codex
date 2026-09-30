@@ -15,7 +15,8 @@ pub(crate) fn create_wait_tool(
         (
             "yield_time_ms".to_string(),
             JsonSchema::number(Some(
-                "Wait before yielding more output. Defaults to 10000 ms.".to_string(),
+                "Requested upper bound for each internal output observation. Defaults to 10000 ms; shorter slices may be used to react to new input."
+                    .to_string(),
             )),
         ),
         (
@@ -111,7 +112,7 @@ mod tests {
                         (
                             "yield_time_ms".to_string(),
                             JsonSchema::number(Some(
-                                "Wait before yielding more output. Defaults to 10000 ms."
+                                "Requested upper bound for each internal output observation. Defaults to 10000 ms; shorter slices may be used to react to new input."
                                     .to_string(),
                             )),
                         ),
