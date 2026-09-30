@@ -135,6 +135,7 @@ pub(super) async fn spawn_review_thread(
         per_turn_config,
         step_settings,
         available_models,
+        available_models_lock_contention_fallback: false,
         unified_exec_shell_mode,
         turn_metadata_state,
     );

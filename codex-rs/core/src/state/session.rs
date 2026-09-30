@@ -103,6 +103,9 @@ pub(crate) struct SessionState {
     pub(crate) active_connector_selection: HashSet<String>,
     pub(crate) pending_session_start_sources: VecDeque<codex_hooks::SessionStartSource>,
     next_turn_is_first: bool,
+    /// Digest of the last model-visible tool catalog, for mid-thread
+    /// catalog-change detection (a changed catalog busts the cached prefix).
+    pub(crate) last_tool_catalog_digest: Option<crate::tools::router::ToolCatalogDigest>,
 }
 
 impl SessionState {
@@ -144,6 +147,7 @@ impl SessionState {
             active_connector_selection: HashSet::new(),
             pending_session_start_sources: VecDeque::new(),
             next_turn_is_first: true,
+            last_tool_catalog_digest: None,
         }
     }
 

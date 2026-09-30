@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::Prompt;
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client_common::ResponseEvent;
 use crate::context::BaseInstructionsFragment;
@@ -56,6 +57,7 @@ use codex_utils_output_truncation::TruncationPolicy;
 use codex_utils_output_truncation::approx_token_count;
 use codex_utils_output_truncation::truncate_text;
 use futures::prelude::*;
+use tokio_util::sync::CancellationToken;
 use tracing::error;
 
 pub use codex_prompts::SUMMARIZATION_PROMPT;
@@ -115,9 +117,11 @@ pub(crate) async fn run_inline_auto_compact_task(
     turn_context: Arc<TurnContext>,
     replacement_step_context: Arc<StepContext>,
     world_state: Arc<WorldState>,
+    step_context: Arc<StepContext>,
     reason: CompactionReason,
     phase: CompactionPhase,
 ) -> CodexResult<()> {
+    let turn_context = &turn_context;
     let prompt = turn_context
         .config
         .compact_prompt
@@ -134,6 +138,7 @@ pub(crate) async fn run_inline_auto_compact_task(
         sess,
         turn_context,
         replacement_step_context,
+        step_context,
         input,
         world_state,
         CompactionTurnMetadata::new(
@@ -156,6 +161,7 @@ pub(crate) async fn run_compact_task(
     run_compact_task_inner(
         sess.clone(),
         Arc::clone(&step_context.turn),
+        Arc::clone(&step_context),
         step_context,
         input,
         world_state,
@@ -174,6 +180,7 @@ async fn run_compact_task_inner(
     sess: Arc<Session>,
     turn_context: Arc<TurnContext>,
     replacement_step_context: Arc<StepContext>,
+    step_context: Arc<StepContext>,
     input: Vec<UserInput>,
     world_state: Arc<WorldState>,
     compaction_metadata: CompactionTurnMetadata,
@@ -210,6 +217,7 @@ async fn run_compact_task_inner(
         Arc::clone(&sess),
         Arc::clone(&turn_context),
         replacement_step_context,
+        step_context,
         input,
         world_state,
         compaction_metadata,
@@ -260,6 +268,7 @@ async fn run_compact_task_inner_impl(
     sess: Arc<Session>,
     turn_context: Arc<TurnContext>,
     replacement_step_context: Arc<StepContext>,
+    step_context: Arc<StepContext>,
     input: Vec<UserInput>,
     world_state: Arc<WorldState>,
     compaction_metadata: CompactionTurnMetadata,
@@ -281,6 +290,10 @@ async fn run_compact_task_inner_impl(
     // Reuse one client session so turn-scoped state (sticky routing and websocket incremental
     // request tracking) survives retries within this compact turn.
     let mut client_session = sess.services.model_client.new_session();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
+    let responses_metadata = sess
+        .compaction_responses_metadata(turn_context.as_ref(), compaction_metadata)
+        .await;
     let compaction_response = loop {
         // Clone is required because of the loop
         let mut turn_input = history
@@ -304,12 +317,12 @@ async fn run_compact_task_inner_impl(
         let prompt = Prompt {
             input: turn_input,
             base_instructions,
+            tools: step_context.tool_router.model_visible_specs(),
+            parallel_tool_calls: true,
             cyber_access_program: turn_context.cyber_access_program,
+            tool_build_provenance: Some(step_context.tool_router.tool_build_provenance().clone()),
             ..Default::default()
         };
-        let responses_metadata = sess
-            .compaction_responses_metadata(turn_context.as_ref(), compaction_metadata)
-            .await;
         let attempt_result = drain_to_completed(
             &sess,
             turn_context.as_ref(),
@@ -317,6 +330,7 @@ async fn run_compact_task_inner_impl(
             &responses_metadata,
             &prompt,
             compaction_metadata.phase(),
+            &diagnostic_attempts,
         )
         .await;
 
@@ -775,9 +789,10 @@ async fn drain_to_completed(
     responses_metadata: &CodexResponsesMetadata,
     prompt: &Prompt,
     phase: CompactionPhase,
+    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
 ) -> CodexResult<CompactionResponse> {
     let mut stream = client_session
-        .stream(
+        .stream_with_diagnostic_attempts(
             prompt,
             turn_context.model_info(),
             &turn_context.session_telemetry,
@@ -792,6 +807,7 @@ async fn drain_to_completed(
             // Rollout tracing currently models remote compaction only; local compaction streams
             // are left untraced until the reducer has a first-class local compaction lifecycle.
             &InferenceTraceContext::disabled(),
+            diagnostic_attempts,
         )
         .await?;
     let mut output = Vec::new();
