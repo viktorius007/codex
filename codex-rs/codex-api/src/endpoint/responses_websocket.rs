@@ -6,6 +6,7 @@ use crate::common::ResponseStream;
 use crate::common::ResponsesWsRequest;
 use crate::common::SafetyBufferingTreatment;
 use crate::common::WS_REQUEST_HEADER_TRACEPARENT_CLIENT_METADATA_KEY;
+use crate::endpoint::responses::ResponsesEndpoint;
 use crate::endpoint::responses_websocket_probe::ResponsesWebsocketClose;
 use crate::endpoint::responses_websocket_probe::ResponsesWebsocketProbe;
 use crate::endpoint::responses_websocket_probe::ResponsesWebsocketProbeError;
@@ -13,6 +14,11 @@ use crate::endpoint::responses_websocket_probe::ResponsesWebsocketProbeFailureSt
 use crate::error::ApiError;
 use crate::provider::Provider;
 use crate::rate_limits::parse_rate_limit_event;
+use crate::request_observer::PreparedWebsocketRequest;
+use crate::request_observer::ResponsesRequestObserver;
+use crate::request_observer::WS_REQUEST_HEADER_RESPONSES_LITE_CLIENT_METADATA_KEY;
+use crate::request_observer::WebsocketObservationState;
+use crate::request_observer::WebsocketRequestObservation;
 use crate::responses_headers::json_headers_to_http_headers;
 use crate::safety_buffering::treatment_from_headers;
 use crate::sse::ResponsesStreamEvent;
@@ -242,6 +248,8 @@ pub struct ResponsesWebsocketConnection {
     server_reasoning_included: bool,
     server_model: Option<String>,
     telemetry: Option<Arc<dyn WebsocketTelemetry>>,
+    request_observation: Arc<WebsocketObservationState>,
+    request_observer: Option<Arc<dyn ResponsesRequestObserver>>,
 }
 
 impl std::fmt::Debug for ResponsesWebsocketConnection {
@@ -263,6 +271,8 @@ impl ResponsesWebsocketConnection {
         server_reasoning_included: bool,
         server_model: Option<String>,
         telemetry: Option<Arc<dyn WebsocketTelemetry>>,
+        request_observation: Arc<WebsocketObservationState>,
+        request_observer: Option<Arc<dyn ResponsesRequestObserver>>,
     ) -> Self {
         let routing_affinity = stream.routing_affinity.take();
         Self {
@@ -271,6 +281,8 @@ impl ResponsesWebsocketConnection {
             server_reasoning_included,
             server_model,
             telemetry,
+            request_observation,
+            request_observer,
             routing_affinity,
         }
     }
@@ -294,6 +306,34 @@ impl ResponsesWebsocketConnection {
         request: ResponsesWsRequest<'_>,
         connection_reused: bool,
         turn_state: Option<Arc<OnceLock<String>>>,
+    ) -> Result<ResponseStream, ApiError> {
+        self.stream_request_with_observer(
+            request,
+            connection_reused,
+            turn_state,
+            self.request_observer.clone(),
+        )
+        .await
+    }
+
+    /// Streams one request with an observer scoped to this send.
+    pub async fn stream_request_observed(
+        &self,
+        request: ResponsesWsRequest<'_>,
+        connection_reused: bool,
+        turn_state: Option<Arc<OnceLock<String>>>,
+        observer: Arc<dyn ResponsesRequestObserver>,
+    ) -> Result<ResponseStream, ApiError> {
+        self.stream_request_with_observer(request, connection_reused, turn_state, Some(observer))
+            .await
+    }
+
+    async fn stream_request_with_observer(
+        &self,
+        request: ResponsesWsRequest<'_>,
+        connection_reused: bool,
+        turn_state: Option<Arc<OnceLock<String>>>,
+        observer: Option<Arc<dyn ResponsesRequestObserver>>,
     ) -> Result<ResponseStream, ApiError> {
         let (tx_event, rx_event) =
             mpsc::channel::<std::result::Result<ResponseEvent, ApiError>>(1600);
@@ -329,6 +369,18 @@ impl ResponsesWebsocketConnection {
             connection_reused,
         };
         let request_text = serialize_websocket_request(&request)?;
+        let prepared_request = PreparedWebsocketRequest {
+            text: request_text,
+            observation: Arc::clone(&self.request_observation),
+            observer,
+            responses_lite: client_metadata
+                .and_then(|metadata| {
+                    metadata.get(WS_REQUEST_HEADER_RESPONSES_LITE_CLIENT_METADATA_KEY)
+                })
+                .cloned(),
+            previous_response_id: ws_request.previous_response_id.clone(),
+            connection_reused,
+        };
 
         let current_span = Span::current();
         tokio::spawn(
@@ -460,12 +512,31 @@ mod connector;
 pub struct ResponsesWebsocketClient {
     provider: Provider,
     auth: SharedAuthProvider,
+    endpoint: ResponsesEndpoint,
+    request_observer: Option<Arc<dyn ResponsesRequestObserver>>,
 }
 
 impl ResponsesWebsocketClient {
     /// Creates a Responses WebSocket client for an already-resolved provider and auth source.
     pub fn new(provider: Provider, auth: SharedAuthProvider) -> Self {
-        Self { provider, auth }
+        Self {
+            provider,
+            auth,
+            endpoint: ResponsesEndpoint::Responses,
+            request_observer: None,
+        }
+    }
+
+    /// Selects the logical route reported to request observers for subsequent connections.
+    pub fn with_endpoint(mut self, endpoint: ResponsesEndpoint) -> Self {
+        self.endpoint = endpoint;
+        self
+    }
+
+    /// Attaches an observer to every connection created by this client.
+    pub fn with_request_observer(mut self, observer: Arc<dyn ResponsesRequestObserver>) -> Self {
+        self.request_observer = Some(observer);
+        self
     }
 
     pub async fn connect(
@@ -827,7 +898,7 @@ fn is_websocket_receive_failure(
 async fn run_websocket_response_stream(
     ws_stream: &mut WsStream,
     tx_event: mpsc::Sender<std::result::Result<ResponseEvent, ApiError>>,
-    request_text: String,
+    request: PreparedWebsocketRequest,
     idle_timeout: Duration,
     telemetry: Option<Arc<dyn WebsocketTelemetry>>,
     turn_state: Option<&OnceLock<String>>,
@@ -844,14 +915,7 @@ async fn run_websocket_response_stream(
         // No request reached the backend, so this socket is still reusable.
         return Ok(());
     }
-    send_websocket_request(
-        ws_stream,
-        request_text,
-        idle_timeout,
-        telemetry.as_ref(),
-        timing_log_context.connection_reused,
-    )
-    .await?;
+    send_websocket_request(ws_stream, request, idle_timeout, telemetry.as_ref()).await?;
 
     // A response owns its interrupt, and create must be sent before interrupt.
     let mut interrupt_request = interrupt.clone().fuse();
@@ -867,18 +931,18 @@ async fn run_websocket_response_stream(
             }
             request = &mut interrupt_request, if response_id.is_some() => {
                 interruption = Some(request);
-                send_websocket_request(
-                    ws_stream,
-                    serde_json::json!({
+                let request_text = serde_json::json!({
                         "type": "response.interrupt",
                         "response_id": response_id,
                         "mode": "discard_partial_items",
-                    }).to_string(),
+                    }).to_string();
+                tokio::time::timeout(
                     idle_timeout,
-                    /*telemetry*/ None,
-                    timing_log_context.connection_reused,
+                    ws_stream.send(Message::Text(request_text.into())),
                 )
-                .await?;
+                .await
+                .map_err(|_| ApiError::Stream("idle timeout sending websocket request".into()))?
+                .map_err(map_ws_stream_error)?;
                 awaiting_interrupt_ack = matches!(request, ResponseInterrupt::Cancel { .. });
                 continue;
             }
@@ -1104,10 +1168,9 @@ fn safety_buffering_for_event(
 
 async fn send_websocket_request(
     ws_stream: &mut WsStream,
-    request_text: String,
+    request: PreparedWebsocketRequest,
     idle_timeout: Duration,
     telemetry: Option<&Arc<dyn WebsocketTelemetry>>,
-    connection_reused: bool,
 ) -> Result<(), ApiError> {
     if ws_stream
         .max_message_bytes
@@ -1116,9 +1179,22 @@ async fn send_websocket_request(
         return Err(ApiError::WebsocketMessageTooLarge);
     }
     let request_start = Instant::now();
+    if let Some(observer) = request.observer.as_deref() {
+        let observation = request.observation.as_ref();
+        let mut identity = observation.identity();
+        identity.responses_lite = request.responses_lite.as_deref().map(str::as_bytes);
+        identity.previous_response_id = request.previous_response_id.as_deref().map(str::as_bytes);
+        observer.observe_websocket(WebsocketRequestObservation {
+            wire_json: request.text.as_bytes(),
+            endpoint: observation.endpoint,
+            identity,
+            connection_reused: request.connection_reused,
+            incremental: request.previous_response_id.is_some(),
+        });
+    }
     let result = tokio::time::timeout(
         idle_timeout,
-        ws_stream.send(Message::Text(request_text.into())),
+        ws_stream.send(Message::Text(request.text.into())),
     )
     .await
     .map_err(|_| ApiError::Stream("idle timeout sending websocket request".into()))
@@ -1128,7 +1204,7 @@ async fn send_websocket_request(
         t.on_ws_request(
             request_start.elapsed(),
             result.as_ref().err(),
-            connection_reused,
+            request.connection_reused,
         );
     }
 
