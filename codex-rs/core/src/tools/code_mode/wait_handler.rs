@@ -248,3 +248,7 @@ impl CoreToolRuntime for CodeModeWaitHandler {
         None
     }
 }
+
+#[cfg(test)]
+#[path = "wait_handler_tests.rs"]
+mod tests;
