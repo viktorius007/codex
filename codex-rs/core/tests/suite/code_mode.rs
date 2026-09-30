@@ -1768,7 +1768,7 @@ async fn code_mode_wait_id_stays_known_after_compaction(
                 ev_custom_tool_call(
                     "call-exec",
                     "exec",
-                    r#"await tools.test_sync_tool({}); text("started"); yield_control(); await new Promise(() => {});"#,
+                    r#"await tools.test_sync_tool({}); text("started"); yield_control(); text("checkpoint"); yield_control(); await new Promise(() => {});"#,
                 ),
                 ev_completed("resp-start"),
             ]),
@@ -1810,6 +1810,7 @@ async fn code_mode_wait_id_stays_known_after_compaction(
         extract_running_cell_id(text_item(&yielded_items, /*index*/ 0)),
         cell_id,
     );
+    assert_eq!(text_item(&yielded_items, /*index*/ 1), "checkpoint");
 
     let compact = responses::mount_sse_once(
         &server,
@@ -2856,12 +2857,13 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
     });
     let code = format!(
         "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
-         const pending = tools[tool.name]({arguments}); yield_control(); await pending; \
+         const pending = tools[tool.name]({arguments}); text(\"pending\"); yield_control(); await pending; \
          await tools[tool.name]({arguments}); text(\"done\");"
     );
     let (test, follow_up) =
         run_code_mode_turn_with_builder(&server, "Search a connected app", &code, builder).await?;
-    let first_items = custom_tool_output_items(&follow_up.single_request(), "call-1");
+    let first_request = follow_up.single_request();
+    let first_items = custom_tool_output_items(&first_request, "call-1");
     assert!(
         text_item(&first_items, /*index*/ 0).starts_with("Script running with cell ID "),
         "expected the held call to yield: {first_items:?}",
@@ -2869,31 +2871,12 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
     let cell_id = extract_running_cell_id(text_item(&first_items, /*index*/ 0));
     tokio::time::timeout(Duration::from_secs(10), reached_rx).await??;
 
-    // Yield may precede call admission. Drain inventory after the lifecycle gate is reached;
-    // the short wait is only a poll budget while the gate keeps acceptance blocked.
-    let held_wait = responses::mount_function_call_agent_response(
-        &server,
-        "call-2",
-        &serde_json::to_string(&serde_json::json!({
-            "cell_id": cell_id,
-            "yield_time_ms": 1,
-        }))?,
-        "wait",
-    )
-    .await;
-    test.submit_turn("Read the pending call inventory").await?;
-    let held_request = held_wait.completion.single_request();
-    let held_items = function_tool_output_items(&held_request, "call-2");
-    assert_eq!(
-        extract_running_cell_id(text_item(&held_items, /*index*/ 0)),
-        cell_id
-    );
-    let held_input = held_request.input();
-    let emitted_calls = result_metadata_fixture_calls(&held_input).collect::<Vec<_>>();
+    let first_input = first_request.input();
+    let emitted_calls = result_metadata_fixture_calls(&first_input).collect::<Vec<_>>();
     assert_eq!(
         emitted_calls.len(),
         1,
-        "held wait must not duplicate inventory"
+        "initial yield must expose the prepared call once"
     );
     let original_output = emitted_calls[0];
     assert_result_metadata_call(original_output, &arguments, /*expected_metadata*/ None);
@@ -2914,7 +2897,7 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
     release_tx.send(()).unwrap();
     let wait = responses::mount_function_call_agent_response(
         &server,
-        "call-3",
+        "call-2",
         &serde_json::to_string(&serde_json::json!({
             "cell_id": cell_id,
             "yield_time_ms": 10_000,
@@ -2948,7 +2931,7 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
             original_output["type"].as_str().unwrap(),
             expected_metadata,
         ),
-        ("call-3", "function_call_output", None),
+        ("call-2", "function_call_output", None),
     ] {
         let output = request.call_output(call_id, call_type);
         assert_result_metadata_call(&output, &arguments, /*expected_metadata*/ None);
@@ -2960,7 +2943,7 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
             .expect("captured tool output");
         assert_result_metadata_call(captured_output, &arguments, expected_metadata);
     }
-    let terminal_output = request.function_call_output("call-3");
+    let terminal_output = request.function_call_output("call-2");
     assert_eq!(
         terminal_output["internal_chat_message_metadata_passthrough"]["tool_calls_complete"],
         true
@@ -3004,13 +2987,14 @@ async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
     let later_arguments = serde_json::json!({ "query": "later" });
     let code = format!(
         "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
-         const pending = tools[tool.name]({arguments}); yield_control(); await pending; \
+         const pending = tools[tool.name]({arguments}); text(\"pending\"); yield_control(); await pending; \
          await tools[tool.name]({later_arguments}); text(\"accepted\"); \
          yield_control(); await new Promise(() => {{}});"
     );
     let (test, first_response) =
         run_code_mode_turn_with_builder(&server, "Search a connected app", &code, builder).await?;
-    let first_items = custom_tool_output_items(&first_response.single_request(), "call-1");
+    let first_request = first_response.single_request();
+    let first_items = custom_tool_output_items(&first_request, "call-1");
     assert!(
         text_item(&first_items, /*index*/ 0).starts_with("Script running with cell ID "),
         "expected a running cell: {first_items:?}"
@@ -3020,21 +3004,10 @@ async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
         .await
         .context("first call did not reach the result gate")??;
 
-    // The call may be dispatched after the first yield. Wait while its result is held so
-    // the request has already recorded the truncated call before accepting its metadata.
-    let held = responses::mount_function_call_agent_response(
-        &server,
-        "call-2",
-        &serde_json::json!({"cell_id": cell_id, "yield_time_ms": 1}).to_string(),
-        "wait",
-    )
-    .await;
-    test.submit_turn("Read the pending call inventory").await?;
-    let held_request = held.completion.single_request();
-    let held_input = held_request.input();
-    let held_calls = result_metadata_fixture_calls(&held_input).collect::<Vec<_>>();
-    assert_eq!(held_calls.len(), 1);
-    let original_output = held_calls[0];
+    let first_input = first_request.input();
+    let initial_calls = result_metadata_fixture_calls(&first_input).collect::<Vec<_>>();
+    assert_eq!(initial_calls.len(), 1);
+    let original_output = initial_calls[0];
     let original_id = original_output["call_id"].as_str().unwrap().to_string();
     let original_type = original_output["type"].as_str().unwrap().to_string();
     let truncated =
@@ -3051,7 +3024,7 @@ async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
     release_tx.send(()).unwrap();
     let resumed = responses::mount_function_call_agent_response(
         &server,
-        "call-3",
+        "call-2",
         &serde_json::json!({"cell_id": cell_id, "yield_time_ms": 10_000}).to_string(),
         "wait",
     )
@@ -3059,7 +3032,7 @@ async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
     test.submit_turn("Wait for the accepted results").await?;
     let resumed_request = resumed.completion.single_request();
     assert!(
-        function_tool_output_items(&resumed_request, "call-3")
+        function_tool_output_items(&resumed_request, "call-2")
             .iter()
             .any(|item| item["text"] == "accepted")
     );
@@ -3070,7 +3043,7 @@ async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
     let resumed_input = resumed_request.input();
     assert_eq!(result_metadata_fixture_calls(&resumed_input).count(), 2);
     assert_result_metadata_call(
-        &resumed_request.function_call_output("call-3"),
+        &resumed_request.function_call_output("call-2"),
         &later_arguments,
         /*expected_metadata*/ None,
     );
@@ -3099,13 +3072,13 @@ async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
             .as_array()
             .unwrap()
             .iter()
-            .find(|item| item["type"] == "function_call_output" && item["call_id"] == "call-3")
+            .find(|item| item["type"] == "function_call_output" && item["call_id"] == "call-2")
             .expect("captured later wait output");
         assert_result_metadata_call(later_output, &later_arguments, Some(metadata.clone()));
         if phase == 0 {
             let terminal = responses::mount_function_call_agent_response(
                 &server,
-                "call-4",
+                "call-3",
                 &serde_json::json!({"cell_id": cell_id, "terminate": true}).to_string(),
                 "wait",
             )
@@ -4665,6 +4638,117 @@ async fn code_mode_wait_timeout_reconnects_on_next_exec() -> Result<()> {
     Ok(())
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn code_mode_empty_wait_yields_once_for_user_steering() -> Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let server = responses::start_mock_server().await;
+    let mut builder = test_codex().with_config(|config| {
+        config
+            .features
+            .enable(Feature::CodeMode)
+            .expect("code mode should be enabled");
+    });
+    let test = builder.build_with_auto_env(&server).await?;
+    let started = responses::mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-start"),
+                ev_custom_tool_call(
+                    "call-exec",
+                    "exec",
+                    "yield_control(); await new Promise(() => {});",
+                ),
+                ev_completed("resp-start"),
+            ]),
+            sse(vec![
+                ev_assistant_message("msg-start", "running"),
+                ev_completed("resp-start-complete"),
+            ]),
+        ],
+    )
+    .await;
+    test.submit_turn("start a silent cell").await?;
+    let started_request = started
+        .last_request()
+        .expect("initial exec should return to the model");
+    let cell_id = extract_running_cell_id(text_item(
+        &custom_tool_output_items(&started_request, "call-exec"),
+        /*index*/ 0,
+    ));
+
+    let wait_turn = responses::mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-wait"),
+                responses::ev_function_call(
+                    "call-wait",
+                    "wait",
+                    &serde_json::to_string(&serde_json::json!({
+                        "cell_id": cell_id,
+                        "yield_time_ms": 1,
+                    }))?,
+                ),
+                ev_completed("resp-wait"),
+            ]),
+            sse(vec![
+                ev_assistant_message("msg-steered", "steering received"),
+                ev_completed("resp-steered"),
+            ]),
+        ],
+    )
+    .await;
+    test.codex
+        .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+            text: "wait on the silent cell".to_string(),
+            text_elements: Vec::new(),
+        }]))
+        .await?;
+    wait_for_event_match(&test.codex, |event| match event {
+        EventMsg::RawResponseItem(raw) => match &raw.item {
+            ResponseItem::FunctionCall { call_id, .. } if call_id == "call-wait" => Some(()),
+            _ => None,
+        },
+        _ => None,
+    })
+    .await;
+
+    test.codex
+        .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+            text: "stop waiting and handle this".to_string(),
+            text_elements: Vec::new(),
+        }]))
+        .await?;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+
+    let requests = wait_turn.requests();
+    assert_eq!(requests.len(), 2);
+    let follow_up = &requests[1];
+    let wait_outputs = follow_up
+        .input()
+        .iter()
+        .filter(|item| item["type"] == "function_call_output" && item["call_id"] == "call-wait")
+        .count();
+    assert_eq!(wait_outputs, 1);
+    assert!(
+        follow_up
+            .function_call_output_text("call-wait")
+            .is_some_and(|output| output.contains("Script running with cell ID"))
+    );
+    assert!(
+        follow_up
+            .message_input_texts("user")
+            .iter()
+            .any(|text| text == "stop waiting and handle this")
+    );
+    Ok(())
+}
+
 #[derive(Default)]
 struct ResponseIdObserver {
     response_ids: Mutex<Vec<(String, Option<String>)>>,
@@ -5568,6 +5652,8 @@ await tools.exec_command({{ cmd: {session_a_done_command:?} }});
         r#"
 text("session b start");
 yield_control();
+text("session b checkpoint");
+yield_control();
 {session_b_wait}
 text("session b done");
 "#
@@ -5655,7 +5741,7 @@ text("session b done");
 
     let third_request = third_completion.single_request();
     let third_items = function_tool_output_items(&third_request, "call-3");
-    assert_eq!(third_items.len(), 1);
+    assert_eq!(third_items.len(), 2);
     assert_regex_match(
         concat!(
             r"(?s)\A",
@@ -5667,6 +5753,7 @@ text("session b done");
         extract_running_cell_id(text_item(&third_items, /*index*/ 0)),
         session_b_id
     );
+    assert_eq!(text_item(&third_items, /*index*/ 1), "session b checkpoint");
 
     for _ in 0..100 {
         if session_a_done_marker.exists() {
