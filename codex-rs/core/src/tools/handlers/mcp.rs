@@ -247,7 +247,15 @@ impl McpHandler {
     ) -> Result<Box<dyn crate::tools::context::ToolOutput>, FunctionCallError> {
         let prepared_mcp_call = invocation
             .session
+<<<<<<< HEAD
             .prepare_mcp_call(&self.definition.tool_info)
+=======
+            .prepare_mcp_call(
+                &invocation.step_context.mcp,
+                &self.tool_info.server_name,
+                self.tool_info.tool.name.as_ref(),
+            )
+>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
             .await;
         let prepared = prepared_mcp_call.as_ref().ok();
         // Use the executed call's binding; a later catalog refresh must not change eligibility.

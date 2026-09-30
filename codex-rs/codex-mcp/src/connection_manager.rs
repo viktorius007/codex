@@ -222,9 +222,15 @@ impl McpServerConnection {
         self.client.shutdown().await;
     }
 
-    fn cancel_startup(&self) {
-        if !self.startup_is_dormant() && !self.client.startup_complete.load(Ordering::Acquire) {
+    fn cancel_startup(&self) -> bool {
+        if !self.startup_is_dormant()
+            && !self.client.startup_complete.load(Ordering::Acquire)
+            && !self.client.cancel_token.is_cancelled()
+        {
             self.client.cancel_token.cancel();
+            true
+        } else {
+            false
         }
     }
 
@@ -383,6 +389,22 @@ pub(crate) struct McpConnectionSet {
 }
 
 impl McpConnectionSet {
+    pub(crate) fn has_same_server_connection_identity(&self, current: &Self, server: &str) -> bool {
+        let Some(sampled) = self.servers.get(server) else {
+            return false;
+        };
+        let Some(current) = current.servers.get(server) else {
+            return false;
+        };
+        Arc::ptr_eq(&sampled.connection, &current.connection)
+            || sampled
+                .connection
+                .identity
+                .as_ref()
+                .zip(current.connection.identity.as_ref())
+                .is_some_and(|(sampled, current)| sampled == current)
+    }
+
     fn server(&self, key: &McpServerKey) -> Option<&McpServerView> {
         self.servers.get(key)
     }
@@ -1402,10 +1424,12 @@ impl McpConnectionSet {
         }
     }
 
-    pub(crate) fn cancel_startup(&self) {
+    pub(crate) fn cancel_startup(&self) -> bool {
+        let mut cancelled = false;
         for view in self.servers.values() {
-            view.connection.cancel_startup();
+            cancelled |= view.connection.cancel_startup();
         }
+        cancelled
     }
 
     pub(crate) fn retire_shared_connections(&self) {
