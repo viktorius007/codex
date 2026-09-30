@@ -3,7 +3,6 @@ use codex_extension_api::ToolName;
 use codex_protocol::config_types::ModeKind;
 use codex_protocol::items::AgentMessageContent;
 use codex_protocol::items::TurnItem;
-use codex_protocol::models::MessagePhase;
 use codex_protocol::protocol::TokenUsage;
 use codex_state::ThreadGoalStatus;
 use std::collections::HashMap;
@@ -44,8 +43,7 @@ struct GoalTurnAccounting {
     account_tokens: bool,
     failed_execution: bool,
     successful_tool: bool,
-    empty_final: bool,
-    has_activity: bool,
+    has_model_output: bool,
 }
 
 #[derive(Debug)]
@@ -113,11 +111,9 @@ impl GoalAccountingState {
         outcome: ToolCallOutcome,
     ) {
         let mut inner = self.inner();
-        inner.consecutive_empty_turns = 0;
         let Some(turn) = inner.turns.get_mut(turn_id) else {
             return;
         };
-        turn.has_activity = true;
         if turn.active_goal_id.is_none() {
             return;
         }
@@ -170,14 +166,13 @@ impl GoalAccountingState {
                 let has_text = message.content.iter().any(|content| match content {
                     AgentMessageContent::Text { text } => !text.trim().is_empty(),
                 });
-                turn.has_activity |= has_text || message.questions.is_some();
-                turn.empty_final |=
-                    !has_text && !matches!(message.phase, Some(MessagePhase::Commentary));
+                turn.has_model_output |= has_text || message.questions.is_some();
             }
             TurnItem::Reasoning(reasoning) => {
-                turn.has_activity |= reasoning
+                turn.has_model_output |= reasoning
                     .summary_text
                     .iter()
+                    .chain(&reasoning.raw_content)
                     .any(|text| !text.trim().is_empty());
             }
             TurnItem::UserMessage(_)
@@ -196,9 +191,9 @@ impl GoalAccountingState {
             | TurnItem::ExitedReviewMode(_)
             | TurnItem::FileChange(_)
             | TurnItem::McpToolCall(_)
-            | TurnItem::ContextCompaction(_) => turn.has_activity = true,
+            | TurnItem::ContextCompaction(_) => {}
         }
-        if turn.has_activity {
+        if turn.has_model_output {
             inner.consecutive_empty_turns = 0;
         }
     }
@@ -219,8 +214,7 @@ impl GoalAccountingState {
         let automatic = inner.automatic_goal_turn_id.as_deref() == Some(turn_id);
         let turn = inner.turns.get_mut(turn_id)?;
         let goal_id = turn.active_goal_id.clone()?;
-        let empty = automatic && turn.empty_final && !turn.has_activity;
-        turn.empty_final = false;
+        let empty = automatic && !turn.has_model_output;
         if !empty {
             inner.consecutive_empty_turns = 0;
             return None;
@@ -567,8 +561,7 @@ impl GoalTurnAccounting {
             account_tokens,
             failed_execution: false,
             successful_tool: false,
-            empty_final: false,
-            has_activity: false,
+            has_model_output: false,
         }
     }
 
