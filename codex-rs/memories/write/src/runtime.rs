@@ -340,7 +340,8 @@ impl MemoryStartupContext {
             config.http_client_factory(),
             config.workspace_routing_context(),
             Vec::new(),
-        );
+        )
+        .with_cache_diagnostics(config.codex_home.as_path());
 
         let mut client_session = model_client.new_session();
         let window_id = format!("{}:0", self.thread_id);

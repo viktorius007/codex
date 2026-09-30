@@ -70,6 +70,82 @@ pub(crate) fn tool_log_payload<'a>(
     payload.log_payload()
 }
 
+/// Provenance of the dynamic inputs that shaped this router's tool specs.
+///
+/// The serialized tool array is part of the provider's cached prompt prefix,
+/// so any input that can change between turns — the network-refreshed model
+/// catalog, its lock-contention empty fallback, role config files read from
+/// disk — must be observable for cache-loss attribution.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ToolBuildProvenance {
+    /// Number of model presets embedded in tool descriptions.
+    pub(crate) model_preset_count: usize,
+    /// Whether the preset list fell back to empty on lock contention.
+    pub(crate) model_catalog_lock_contention_fallback: bool,
+    /// Serialized model-preset list used for this build.
+    pub(crate) model_catalog_identity: Option<String>,
+    /// Number of agent-role config files that failed to read or parse.
+    pub(crate) role_file_read_failures: usize,
+}
+
+/// Content digest of one model-visible tool catalog, keyed by tool name.
+///
+/// Used to detect a mid-thread catalog change, which rewrites the serialized
+/// tools sent with every request and invalidates the provider's cached prompt
+/// prefix. Digests are plain content hashes for offline comparison, not keyed
+/// fingerprints.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ToolCatalogDigest {
+    pub(crate) catalog: String,
+    pub(crate) by_tool: BTreeMap<String, String>,
+}
+
+impl ToolCatalogDigest {
+    pub(crate) fn new(specs: &[ToolSpec]) -> Self {
+        use sha1::Digest;
+        let mut catalog_hasher = sha1::Sha1::new();
+        let mut by_tool = BTreeMap::new();
+        for spec in specs {
+            let serialized = serde_json::to_vec(spec).unwrap_or_default();
+            catalog_hasher.update(&serialized);
+            let tool_digest = format!("{:x}", sha1::Sha1::digest(&serialized));
+            by_tool.insert(spec.name().to_string(), tool_digest);
+        }
+        Self {
+            catalog: format!("{:x}", catalog_hasher.finalize()),
+            by_tool,
+        }
+    }
+
+    /// Tool names added, removed, and changed relative to `previous`.
+    pub(crate) fn diff(&self, previous: &Self) -> (Vec<String>, Vec<String>, Vec<String>) {
+        let added = self
+            .by_tool
+            .keys()
+            .filter(|name| !previous.by_tool.contains_key(*name))
+            .cloned()
+            .collect();
+        let removed = previous
+            .by_tool
+            .keys()
+            .filter(|name| !self.by_tool.contains_key(*name))
+            .cloned()
+            .collect();
+        let changed = self
+            .by_tool
+            .iter()
+            .filter(|(name, digest)| {
+                previous
+                    .by_tool
+                    .get(*name)
+                    .is_some_and(|previous_digest| previous_digest != *digest)
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        (added, removed, changed)
+    }
+}
+
 /// One finalized tool plan: its advertised surfaces and matching executable runtimes.
 pub struct ToolRouter {
     registry: ToolRegistry,
@@ -78,6 +154,7 @@ pub struct ToolRouter {
     code_mode_tool_names: BTreeMap<String, ToolName>,
     tool_namespaces_info: Option<TurnToolNamespacesInfo>,
     can_manage_children: bool,
+    tool_build_provenance: ToolBuildProvenance,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -126,12 +203,25 @@ impl ToolRouter {
             code_mode_tool_names,
             tool_namespaces_info,
             can_manage_children: false,
+            tool_build_provenance: ToolBuildProvenance::default(),
         };
         router.can_manage_children = !child_management_tools.is_empty()
             && child_management_tools
                 .iter()
                 .all(|name| router.exposes_tool(name));
         router
+    }
+
+    pub(crate) fn with_tool_build_provenance(
+        mut self,
+        tool_build_provenance: ToolBuildProvenance,
+    ) -> Self {
+        self.tool_build_provenance = tool_build_provenance;
+        self
+    }
+
+    pub(crate) fn tool_build_provenance(&self) -> &ToolBuildProvenance {
+        &self.tool_build_provenance
     }
 
     pub(crate) fn model_visible_specs(&self) -> Arc<[ToolSpec]> {

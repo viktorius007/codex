@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
+use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
 use crate::client::ModelClientSession;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
@@ -13,6 +14,7 @@ use crate::compact_remote_v2::run_inline_remote_auto_compact_task as run_inline_
 use crate::connectors;
 use crate::context::ContextualUserFragment;
 use crate::context::UserVerificationNotice;
+use crate::context_manager::estimate_item_token_count;
 use crate::environment_selection::TurnEnvironmentSnapshot;
 use crate::feedback_tags;
 use crate::hook_runtime::drain_async_hook_results;
@@ -176,13 +178,12 @@ pub(crate) async fn run_turn(
 
     let mut client_session =
         prewarmed_client_session.unwrap_or_else(|| sess.services.model_client.new_session());
-    // TODO(ccunningham): Pre-turn compaction runs before context updates and the
-    // new user message are recorded. Estimate pending incoming items (context
-    // diffs/full reinjection + user input) and trigger compaction preemptively
-    // when they would push the thread over the compaction threshold.
+    // Pre-turn compaction projects incoming turn input without recording it, so a compact request
+    // still contains only the stored history it will replace.
     if let Err(err) = run_pre_sampling_compact(
         &sess,
         &turn_context,
+        &input,
         &mut client_session,
         &cancellation_token,
     )
@@ -1307,14 +1308,31 @@ async fn track_turn_resolved_config_analytics(
 async fn run_pre_sampling_compact(
     sess: &Arc<Session>,
     turn_context: &Arc<TurnContext>,
+    input: &[TurnInput],
     client_session: &mut ModelClientSession,
     cancellation_token: &CancellationToken,
 ) -> CodexResult<()> {
     maybe_run_previous_model_inline_compact(sess, turn_context, client_session, cancellation_token)
         .await?;
-    let token_status =
-        super::context_window::context_window_token_status(sess.as_ref(), turn_context.as_ref())
-            .await;
+    let pending_tokens = input
+        .iter()
+        .map(|input| match input {
+            TurnInput::UserInput { content, .. } => {
+                estimate_item_token_count(&sess.response_item_from_user_input(content.clone()))
+            }
+            TurnInput::FunctionCallOutput(item) => estimate_item_token_count(item),
+            TurnInput::ResponseItem(item) => estimate_item_token_count(&item.item),
+            TurnInput::InterAgentCommunication(communication) => {
+                estimate_item_token_count(&communication.to_model_input_item())
+            }
+        })
+        .fold(0i64, i64::saturating_add);
+    let token_status = super::context_window::context_window_token_status_with_pending_tokens(
+        sess.as_ref(),
+        turn_context.as_ref(),
+        pending_tokens,
+    )
+    .await;
     // Compact if the configured auto-compaction budget or usable context window is exhausted.
     if token_status.token_limit_reached {
         // Pre-turn compaction runs before run_turn creates the normal sampling step.
@@ -1526,7 +1544,7 @@ async fn run_auto_compact(
             );
             run_inline_auto_compact_task(
                 Arc::clone(sess),
-                Arc::clone(turn_context),
+                Arc::clone(&step_context),
                 initial_context_injection,
                 reason,
                 phase,
@@ -1605,6 +1623,7 @@ pub(crate) fn build_prompt(
             &turn_context.session_source,
         ),
         cyber_access_program: turn_context.cyber_access_program,
+        tool_build_provenance: Some(step_context.tool_router.tool_build_provenance().clone()),
     }
 }
 
@@ -1650,6 +1669,7 @@ async fn run_sampling_request(
     );
     let max_retries = turn_context.provider.info().stream_max_retries();
     let mut retry_state = ResponsesStreamRetryState::default();
+    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
     let mut initial_input = Some(input);
     let mut original_input = None;
     let mut executed_tool_calls_by_output = HashMap::new();
@@ -1694,6 +1714,7 @@ async fn run_sampling_request(
             Arc::clone(&turn_diff_tracker),
             &prompt,
             cancellation_token.child_token(),
+            &diagnostic_attempts,
         )
         .await
         {
@@ -2126,6 +2147,7 @@ pub(super) fn realtime_text_for_event(msg: &EventMsg) -> Option<RealtimeEventTex
         | EventMsg::TurnModerationMetadata(_)
         | EventMsg::SafetyBuffering(_)
         | EventMsg::ContextCompacted(_)
+        | EventMsg::ToolCatalogChanged(_)
         | EventMsg::ThreadRolledBack(_)
         | EventMsg::TurnStarted(_)
         | EventMsg::ThreadSettingsApplied(_)
@@ -2535,6 +2557,7 @@ async fn try_run_sampling_request(
     turn_diff_tracker: SharedTurnDiffTracker,
     prompt: &Prompt,
     cancellation_token: CancellationToken,
+    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
 ) -> CodexResult<SamplingRequestResult> {
     let turn_context = Arc::clone(&step_context.turn);
     feedback_tags!(
@@ -2566,7 +2589,7 @@ async fn try_run_sampling_request(
         .reasoning_effort_for_request(&step_context.settings, super::RequestEffortUsage::Sampling)
         .await;
     let mut stream = client_session
-        .stream(
+        .stream_with_diagnostic_attempts(
             prompt,
             &step_context.settings.model_info,
             &step_context.session_telemetry,
@@ -2575,6 +2598,7 @@ async fn try_run_sampling_request(
             step_context.settings.service_tier.clone(),
             responses_metadata,
             &inference_trace,
+            diagnostic_attempts,
         )
         .instrument(trace_span!("stream_request"))
         .or_cancel(&cancellation_token)
