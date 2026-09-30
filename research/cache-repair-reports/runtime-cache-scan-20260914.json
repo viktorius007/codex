@@ -1,0 +1,278 @@
+{
+  "config": {
+    "drop_fraction": 1.0,
+    "min_cached_tokens": 1,
+    "min_lost_tokens": 1,
+    "split_at_unix_ms": null,
+    "warm_window_minutes": 30.0
+  },
+  "incidents": [
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 0,
+      "common_input_prefix_count": 0,
+      "comparison_kind": "related_thread",
+      "elapsed_ms": 360,
+      "estimated_lost_cached_tokens": 13360,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 13360,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 13360,
+      "logical_input_relation": "rewrite",
+      "previous_cached_input_tokens": 38400,
+      "previous_sequence": 7,
+      "previous_timestamp_unix_ms": 1789334051711,
+      "request_kind": "warmup",
+      "sequence": 1,
+      "timestamp_unix_ms": 1789334052071,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 0,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 3082,
+      "estimated_lost_cached_tokens": 10669,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 10669,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 10669,
+      "logical_input_relation": "current_is_prefix",
+      "previous_cached_input_tokens": 23680,
+      "previous_sequence": 5,
+      "previous_timestamp_unix_ms": 1789335017217,
+      "request_kind": "warmup",
+      "sequence": 1,
+      "timestamp_unix_ms": 1789335020299,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 0,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 2611,
+      "estimated_lost_cached_tokens": 10669,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 10669,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 10669,
+      "logical_input_relation": "current_is_prefix",
+      "previous_cached_input_tokens": 23680,
+      "previous_sequence": 5,
+      "previous_timestamp_unix_ms": 1789335084051,
+      "request_kind": "warmup",
+      "sequence": 1,
+      "timestamp_unix_ms": 1789335086662,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 8576,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 13623,
+      "estimated_lost_cached_tokens": 11590,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 20166,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 20166,
+      "logical_input_relation": "rewrite",
+      "previous_cached_input_tokens": 34304,
+      "previous_sequence": 5,
+      "previous_timestamp_unix_ms": 1789335091631,
+      "request_kind": "turn",
+      "sequence": 7,
+      "timestamp_unix_ms": 1789335105254,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 0,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 3122,
+      "estimated_lost_cached_tokens": 10669,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 10669,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 10669,
+      "logical_input_relation": "current_is_prefix",
+      "previous_cached_input_tokens": 19968,
+      "previous_sequence": 9,
+      "previous_timestamp_unix_ms": 1789335107810,
+      "request_kind": "warmup",
+      "sequence": 1,
+      "timestamp_unix_ms": 1789335110932,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 0,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 4539,
+      "estimated_lost_cached_tokens": 10669,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 10669,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 10669,
+      "logical_input_relation": "current_is_prefix",
+      "previous_cached_input_tokens": 23680,
+      "previous_sequence": 5,
+      "previous_timestamp_unix_ms": 1789335249328,
+      "request_kind": "warmup",
+      "sequence": 1,
+      "timestamp_unix_ms": 1789335253867,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 8576,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 18875,
+      "estimated_lost_cached_tokens": 15942,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 24518,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 24518,
+      "logical_input_relation": "rewrite",
+      "previous_cached_input_tokens": 34304,
+      "previous_sequence": 5,
+      "previous_timestamp_unix_ms": 1789335257115,
+      "request_kind": "turn",
+      "sequence": 7,
+      "timestamp_unix_ms": 1789335275990,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 0,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 2109,
+      "estimated_lost_cached_tokens": 10669,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 10669,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 10669,
+      "logical_input_relation": "current_is_prefix",
+      "previous_cached_input_tokens": 24320,
+      "previous_sequence": 9,
+      "previous_timestamp_unix_ms": 1789335278229,
+      "request_kind": "warmup",
+      "sequence": 1,
+      "timestamp_unix_ms": 1789335280338,
+      "wire_observation": "websocket_full"
+    },
+    {
+      "assessment": "request_difference_candidate",
+      "cached_input_tokens": 13440,
+      "common_input_prefix_count": 2,
+      "comparison_kind": "same_thread",
+      "elapsed_ms": 114749,
+      "estimated_lost_cached_tokens": 19313,
+      "evidence_status": "complete",
+      "expected_cached_tokens": 32753,
+      "first_difference": {
+        "name": "requestKind",
+        "scope": "component"
+      },
+      "input_tokens": 32753,
+      "logical_input_relation": "rewrite",
+      "previous_cached_input_tokens": 226432,
+      "previous_sequence": 155,
+      "previous_timestamp_unix_ms": 1789335583910,
+      "request_kind": "turn",
+      "sequence": 157,
+      "timestamp_unix_ms": 1789335698659,
+      "wire_observation": "websocket_full"
+    }
+  ],
+  "stats": {
+    "bytes": 2321779,
+    "cache_drops": 9,
+    "completed_attempts": 315,
+    "duplicate_records": 0,
+    "eligible_warm_comparisons": 262,
+    "files": 30,
+    "incidents_found": 9,
+    "incompatible_comparisons": 10,
+    "key_scope_mismatches": 0,
+    "malformed_lines": 0,
+    "missing_evidence_comparisons": 0,
+    "missing_key_scope_comparisons": 0,
+    "missing_usage_outcomes": 0,
+    "order_ambiguous_comparisons": 0,
+    "outcome_records": 330,
+    "oversized_lines": 0,
+    "records": 660,
+    "request_records": 330,
+    "untimed_attempts": 0,
+    "untimed_records": 0
+  },
+  "windows": [
+    {
+      "cache_drop_rate": 0.03435114503816794,
+      "cache_drops": 9,
+      "cached_token_retention_rate": 1.0335512351735405,
+      "eligible_warm_comparisons": 262,
+      "end_unix_ms": 1789335913643,
+      "expected_cached_tokens": 22001038,
+      "name": "all",
+      "observed_cached_tokens": 22739200,
+      "start_unix_ms": 1789333362666
+    }
+  ],
+  "review": {
+    "installation_unix_ms": 1789332102165,
+    "scope": "Dated runtime diagnostics only; includes earlier deliberate probes, excludes raw experiment trace bundles. Offline analysis; no live model tests.",
+    "classification": {
+      "warmup_candidates": 6,
+      "deliberate_post_compaction_probe_drops": 2,
+      "ordinary_session_post_compaction_drops": 1,
+      "unexplained_drops_identified": 0
+    },
+    "qualification": "Warm predecessor comparisons use a 30-minute window. Cold starts and incomparable attempts do not establish cache failure. No guarantee of absence outside the observed comparisons.",
+    "ordinary_compaction_recovery": [
+      {
+        "input": 32753,
+        "cachedInput": 13440
+      },
+      {
+        "input": 33491,
+        "cachedInput": 32512
+      },
+      {
+        "input": 33708,
+        "cachedInput": 33280
+      }
+    ]
+  }
+}

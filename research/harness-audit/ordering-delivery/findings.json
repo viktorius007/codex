@@ -1,0 +1,54 @@
+[
+  {
+    "id": "pr-harness-ordering-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-09-23T13:14:57Z",
+      "commit": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "model": "sol",
+      "mode": "production-readiness",
+      "slice": "parallel-tool-result-ordering-and-next-request"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Malformed client tool-search arguments record a function-call output with an empty call ID instead of the matching search output.",
+    "scenario": "The model emits tool_search_call search-invalid with execution client and arguments {\"query\":7}; parsing fails, the original call is stored, and the response stored beside it is function_call_output with call_id \"\". The next prompt synthesizes an empty tool_search_output and treats the wrong output as orphan; a debug build panics at that orphan check and a release build drops the parse error.",
+    "evidence": [
+      {
+        "path": "codex-rs/core/src/tools/router.rs",
+        "lines": "349-363",
+        "point": "Invalid SearchToolCallParams return RespondToModel before a ToolCall is created."
+      },
+      {
+        "path": "codex-rs/core/src/stream_events_utils.rs",
+        "lines": "387-411",
+        "point": "RespondToModel branch always stores FunctionCallOutput with an empty call ID."
+      },
+      {
+        "path": "codex-rs/core/src/context_manager/normalize.rs",
+        "lines": "21-126,153-211",
+        "point": "Search calls pair with ToolSearchOutput by ID; the wrong function output is orphaned."
+      },
+      {
+        "path": "codex-rs/core/src/tools/parallel.rs",
+        "lines": "289-300",
+        "point": "Ordinary tool-search failures use a ToolSearchOutput carrying the original call ID."
+      }
+    ],
+    "trace": "ResponseEvent::OutputItemDone -> ToolRouter::build_tool_call (parse error) -> handle_output_item_done RespondToModel -> record_conversation_items (wrong output) -> ContextManager::for_prompt normalization -> synthetic search output plus orphaned function output -> next request or debug panic.",
+    "authority": {
+      "source": "codex-rs/core/src/context_manager/history.rs:873-881 and codex-rs/core/src/tools/parallel.rs:292-300",
+      "quote": "all function/tool calls must have a corresponding output"
+    },
+    "proof": {
+      "name": "malformed_tool_search_call_records_matching_search_output",
+      "red_test": "diff --git a/codex-rs/core/src/stream_events_utils_tests.rs b/codex-rs/core/src/stream_events_utils_tests.rs\nindex 2f5bc57072..b40c1cfc2d 100644\n--- a/codex-rs/core/src/stream_events_utils_tests.rs\n+++ b/codex-rs/core/src/stream_events_utils_tests.rs\n@@ -308,6 +308,47 @@ fn output_context(session: Arc<Session>, turn_context: Arc<TurnContext>) -> Hand\n     }\n }\n \n+#[tokio::test]\n+async fn malformed_tool_search_call_records_matching_search_output() {\n+    let (session, turn_context) = make_session_and_context().await;\n+    let mut ctx = output_context(Arc::new(session), Arc::new(turn_context));\n+    let call = serde_json::from_value(json!({\n+        \"type\": \"tool_search_call\",\n+        \"call_id\": \"search-invalid\",\n+        \"execution\": \"client\",\n+        \"arguments\": { \"query\": 7 },\n+    }))\n+    .expect(\"well-formed response item with invalid search arguments\");\n+\n+    let result = handle_output_item_done(&mut ctx, call, /*previously_active_item*/ None)\n+        .await\n+        .expect(\"invalid search arguments should be answered in history\");\n+    assert!(result.needs_follow_up);\n+    let history = ctx.sess.clone_history().await;\n+    let call_and_outputs = history\n+        .raw_items()\n+        .filter_map(|item| match item {\n+            ResponseItem::ToolSearchCall { call_id, .. } => {\n+                Some((\"tool_search_call\", call_id.as_deref()))\n+            }\n+            ResponseItem::ToolSearchOutput { call_id, .. } => {\n+                Some((\"tool_search_output\", call_id.as_deref()))\n+            }\n+            ResponseItem::FunctionCallOutput { call_id, .. } => {\n+                Some((\"function_call_output\", call_id.as_deref()))\n+            }\n+            _ => None,\n+        })\n+        .collect::<Vec<_>>();\n+    assert_eq!(\n+        call_and_outputs,\n+        vec![\n+            (\"tool_search_call\", Some(\"search-invalid\")),\n+            (\"tool_search_output\", Some(\"search-invalid\")),\n+        ],\n+    );\n+}\n+\n #[tokio::test]\n async fn handle_output_item_done_returns_contributed_last_agent_message() {\n     let (mut session, turn_context) = make_session_and_context().await;\n",
+      "fails_on": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "output": "1 test run: 0 passed, 1 failed; expected tool_search_output/search-invalid, observed function_call_output/empty call ID (malformed-tool-search-red.txt).",
+      "command": "RUSTC_WRAPPER= HOST_CC=clang HOST_CXX=clang++ CARGO_BUILD_JOBS=32 CARGO_INCREMENTAL=1 CARGO_TARGET_DIR=/private/tmp/codex-harness-audit/ordering/codex-rs/target just test -p codex-core -E 'test(malformed_tool_search_call_records_matching_search_output)'",
+      "log_path": "malformed-tool-search-red.txt"
+    },
+    "severity": "Moderate: malformed model arguments are accepted by the response parser but the feedback loses its error and becomes an empty search result; debug builds panic while normalizing the orphan. Affects client tool-search discovery, with no evidence of a release-provider 400.",
+    "status": "open"
+  }
+]

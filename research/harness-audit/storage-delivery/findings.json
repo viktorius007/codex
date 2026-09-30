@@ -1,0 +1,88 @@
+[
+  {
+    "id": "storage-archive-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-09-23T13:00:06Z",
+      "commit": "34d1bd0a11",
+      "model": "sol-high",
+      "mode": "production-readiness",
+      "slice": "durable-transcript-write-migration-archive"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "A process crash after archiving the rollout file but before updating SQLite makes a paginated thread impossible to resume by ID.",
+    "scenario": "A paginated thread has durable SQLite metadata and JSONL. Archive renames JSONL into archived_sessions; the process exits before mark_archived commits. After reopening the database and store, the archived JSONL remains intact, SQLite points to the missing active path, and load_latest_model_context returns InvalidRequest: no rollout found.",
+    "evidence": [
+      {
+        "path": "codex-rs/thread-store/src/local/archive_thread.rs",
+        "lines": "121-145",
+        "point": "archive_thread_with_paths renames each file before awaiting mark_archived; error rollback is only reached if that await returns an error."
+      },
+      {
+        "path": "codex-rs/thread-store/src/local/thread_rollout_resolver.rs",
+        "lines": "96-118",
+        "point": "A missing SQLite rollout path for Paginated returns None before archived fallback."
+      },
+      {
+        "path": "codex-rs/thread-store/src/local/model_context.rs",
+        "lines": "37-51",
+        "point": "The normal model-context load requires the resolver to find the rollout path."
+      },
+      {
+        "path": "codex-rs/app-server/src/request_processors/thread_processor.rs",
+        "lines": "1756-1763",
+        "point": "Production thread/archive awaits the local store archive operation."
+      }
+    ],
+    "trace": "thread/archive RPC -> ThreadStore::archive_threads -> archive_thread_with_paths -> fs::rename -> process exit before StateRuntime::mark_archived -> cold StateRuntime/LocalThreadStore reopen -> load_latest_model_context -> thread_rollout_resolver::resolve -> InvalidRequest no rollout found",
+    "authority": {
+      "source": "production-readiness failure mode: durable archive crash consistency",
+      "quote": "A persisted transcript must remain resumable after a process crash at any archive publication boundary."
+    },
+    "proof": {
+      "red_test": "diff --git a/codex-rs/thread-store/src/local/archive_thread.rs b/codex-rs/thread-store/src/local/archive_thread.rs\nindex 397ab0f9e2..140e06a04c 100644\n--- a/codex-rs/thread-store/src/local/archive_thread.rs\n+++ b/codex-rs/thread-store/src/local/archive_thread.rs\n@@ -368,4 +368,100 @@ mod tests {\n         assert!(updated.archived_at.is_some());\n         assert_eq!(updated.recency_at, metadata.recency_at);\n     }\n+\n+    #[tokio::test]\n+    async fn archive_crash_after_rename_keeps_paginated_context_resumable() {\n+        let home = TempDir::new().expect(\"temp dir\");\n+        let config = test_config(home.path());\n+        let uuid = Uuid::from_u128(208);\n+        let thread_id = ThreadId::from_string(&uuid.to_string()).expect(\"valid thread id\");\n+        let active_path = write_session_file_with_history_mode(\n+            home.path(),\n+            \"2025-01-03T12-00-00\",\n+            uuid,\n+            ThreadHistoryMode::Paginated,\n+        )\n+        .expect(\"session file\");\n+        let runtime = codex_state::StateRuntime::init(\n+            codex_state::SqliteConfig::new_for_testing(home.path().abs()),\n+            config.default_model_provider_id.clone(),\n+        )\n+        .await\n+        .expect(\"state db should initialize\");\n+        runtime\n+            .mark_backfill_complete(/*last_watermark*/ None)\n+            .await\n+            .expect(\"backfill should be complete\");\n+        let mut builder = codex_state::ThreadMetadataBuilder::new(\n+            thread_id,\n+            active_path.clone(),\n+            Utc::now(),\n+            SessionSource::Cli,\n+        );\n+        builder.model_provider = Some(config.default_model_provider_id.clone());\n+        builder.history_mode = ThreadHistoryMode::Paginated;\n+        builder.cwd = home.path().to_path_buf();\n+        builder.cli_version = Some(\"test_version\".to_string());\n+        let metadata = builder.build(config.default_model_provider_id.as_str());\n+        runtime\n+            .upsert_thread(&metadata)\n+            .await\n+            .expect(\"state db upsert should succeed\");\n+        let store = LocalThreadStore::new(config.clone(), Some(runtime.clone()));\n+        store\n+            .load_latest_model_context(crate::LoadThreadHistoryParams {\n+                thread_id,\n+                include_archived: true,\n+            })\n+            .await\n+            .expect(\"fixture must be resumable before archive\");\n+\n+        let archived_path = home\n+            .path()\n+            .join(ARCHIVED_SESSIONS_SUBDIR)\n+            .join(active_path.file_name().expect(\"file name\"));\n+        std::fs::create_dir_all(archived_path.parent().expect(\"archive directory\"))\n+            .expect(\"create archive directory\");\n+        std::fs::rename(&active_path, &archived_path)\n+            .expect(\"simulate archive rename immediately before process crash\");\n+        #[cfg(unix)]\n+        for path in [\n+            archived_path.as_path(),\n+            archived_path.parent().expect(\"archive directory\"),\n+            active_path.parent().expect(\"session directory\"),\n+        ] {\n+            std::fs::File::open(path)\n+                .expect(\"open archived state for sync\")\n+                .sync_all()\n+                .expect(\"sync archived state\");\n+        }\n+        drop(store);\n+        drop(runtime);\n+\n+        let restarted_runtime = codex_state::StateRuntime::init(\n+            codex_state::SqliteConfig::new_for_testing(home.path().abs()),\n+            config.default_model_provider_id.clone(),\n+        )\n+        .await\n+        .expect(\"reopen state database after simulated crash\");\n+        let stale_metadata = restarted_runtime\n+            .get_thread(thread_id)\n+            .await\n+            .expect(\"read reopened state database\")\n+            .expect(\"thread metadata must survive crash\");\n+        assert_eq!(stale_metadata.rollout_path, active_path);\n+        assert!(!active_path.exists());\n+        assert!(archived_path.exists());\n+\n+        let restarted_store = LocalThreadStore::new(config, Some(restarted_runtime));\n+        let context = restarted_store\n+            .load_latest_model_context(crate::LoadThreadHistoryParams {\n+                thread_id,\n+                include_archived: true,\n+            })\n+            .await\n+            .expect(\"archive crash must leave model context resumable by id\");\n+        assert_eq!(context.thread_id, thread_id);\n+        assert!(!context.items.is_empty());\n+    }\n }\n",
+      "name": "archive_crash_after_rename_keeps_paginated_context_resumable",
+      "fails_on": "34d1bd0a11",
+      "output": "Compiled; nextest 1 test, 0 passed, 1 failed (two failed attempts). After pre-rename control succeeded, fresh SQLite/store reopen returned InvalidRequest { message: \"no rollout found for thread id 00000000-0000-0000-0000-0000000000d0\" }. See red-test-output.txt."
+    },
+    "severity": "Significant persistent loss of resume for the affected paginated thread after a narrow but reachable crash window; JSONL bytes remain on disk. No claim of ordinary client-disconnect cancellation or universal data deletion.",
+    "status": "open"
+  },
+  {
+    "id": "storage-compression-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-09-23T13:00:06Z",
+      "commit": "34d1bd0a11",
+      "model": "sol-high",
+      "mode": "production-readiness",
+      "slice": "durable-transcript-write-migration-archive"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Cold compression does not remove its plain source before publishing a verified compressed copy.",
+    "checked": "The compressed temp is encoded, decoded for verification, metadata synced, and published before the plain path is removed.",
+    "closed_by": "Tier 2 source: codex-rs/rollout/src/compression.rs:809-930, especially 862-928.",
+    "reopens_if": "A fixture proves wrong plain/compressed precedence, changed source bytes that evade same_file_state, or loss across a concrete crash point.",
+    "status": "closed"
+  },
+  {
+    "id": "storage-migration-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-09-23T13:00:06Z",
+      "commit": "34d1bd0a11",
+      "model": "sol-high",
+      "mode": "production-readiness",
+      "slice": "durable-transcript-write-migration-archive"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "Published paginated migration has a pending journal and explicit startup recovery path.",
+    "checked": "Journal is synced before staging and startup checks pending IDs; a paginated file plus pending journal invokes projection recovery.",
+    "closed_by": "Tier 2 source: codex-rs/thread-store/src/local/rollout_migration/publish.rs:225-248; startup.rs:61-80; rollout_migration.rs:483-518,998-1047.",
+    "reopens_if": "A concrete crash or I/O failure fixture shows the journal is lost, skipped, or recovery corrupts a published file.",
+    "status": "closed"
+  }
+]

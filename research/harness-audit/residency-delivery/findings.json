@@ -1,0 +1,54 @@
+[
+  {
+    "id": "pr-mav2-residency-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-09-23T13:20:05Z",
+      "commit": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "model": "gpt-6-sol",
+      "mode": "production-readiness",
+      "slice": "multi-agent-v2-residency-capacity"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "An eviction removes a loaded worker from the residency count before shutdown and does not restore it if the eviction is canceled.",
+    "scenario": "With one available worker slot, a completed worker remains loaded. A spawn or reload starts eviction and pauses while checking its active-turn lock. The worker ID has already been popped from residents, so another reservation succeeds despite the loaded runtime. Canceling the evictor leaves that runtime loaded and the resident count at zero, allowing later over-allocation.",
+    "evidence": [
+      {
+        "path": "codex-rs/core/src/agent/control/residency.rs",
+        "lines": "105-115",
+        "point": "Capacity is computed only from residents.len() plus pending_slots."
+      },
+      {
+        "path": "codex-rs/core/src/agent/control/residency.rs",
+        "lines": "117-155",
+        "point": "Eviction pops before awaiting the manager, status, rollout and shutdown; unsuccessful eligibility and shutdown explicitly touch the resident, but cancellation has no rollback."
+      },
+      {
+        "path": "codex-rs/core/src/agent/control/residency.rs",
+        "lines": "168-180",
+        "point": "pop_lru_candidate removes the candidate from residents immediately."
+      },
+      {
+        "path": "codex-rs/core/src/agent/control/residency_tests.rs",
+        "lines": "71-129",
+        "point": "The executed test pins eviction at the active-turn lock, checks the original runtime is loaded, cancels eviction, and observes the capacity state."
+      }
+    ],
+    "trace": "spawn_agent_internal or ensure_v2_agent_loaded -> reserve_v2_residency_slot -> V2Residency::reserve_slot -> try_unload_one_resident -> pop_lru_candidate -> await active-turn lock -> concurrent try_reserve_pending_slot succeeds -> eviction future dropped -> loaded worker remains absent from residents",
+    "authority": {
+      "source": "residency.rs:105-115 capacity invariant and MultiAgentV2 configured worker limit",
+      "quote": "if state.residents.len().saturating_add(state.pending_slots) >= capacity { return false; }"
+    },
+    "proof": {
+      "red_test": "diff --git a/codex-rs/core/src/agent/control/residency_tests.rs b/codex-rs/core/src/agent/control/residency_tests.rs\nindex 28704ab0f2..16c1f4dd8b 100644\n--- a/codex-rs/core/src/agent/control/residency_tests.rs\n+++ b/codex-rs/core/src/agent/control/residency_tests.rs\n@@ -67,6 +67,66 @@ async fn residency_slot_reservation_unloads_oldest_idle_v2_agent() {\n     assert!(manager.get_thread(second.thread_id).await.is_ok());\n }\n \n+#[tokio::test]\n+async fn residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction() {\n+    let mut config = test_config().await;\n+    let _ = config.features.enable(Feature::MultiAgentV2);\n+    config.multi_agent_v2.max_concurrent_threads_per_session = 2;\n+    let temp_home = tempfile::tempdir().expect(\"create temp home\");\n+    config.codex_home = temp_home.path().to_path_buf().try_into().unwrap();\n+    config.cwd = temp_home.path().to_path_buf().try_into().unwrap();\n+    let manager = ThreadManager::with_models_provider_and_home_for_tests(\n+        CodexAuth::from_api_key(\"dummy\"),\n+        config.model_provider.clone(),\n+        config.codex_home.to_path_buf(),\n+        Arc::new(codex_exec_server::EnvironmentManager::default_for_tests()),\n+    );\n+    let root = manager\n+        .start_thread(StartThreadOptions::new(config.clone()))\n+        .await\n+        .expect(\"start root thread\");\n+    let control = manager.agent_control();\n+    let state = control.upgrade().expect(\"thread manager should be live\");\n+\n+    let first_slot = control\n+        .reserve_v2_residency_slot(&state, &config, /*protected_thread_id*/ None)\n+        .await\n+        .expect(\"first resident slot\");\n+    let first =\n+        spawn_v2_subagent(&control, &state, config.clone(), root.thread_id, \"worker-1\").await;\n+    first_slot.commit(first.thread_id);\n+    mark_thread_completed(first.thread.as_ref()).await;\n+\n+    assert!(manager.get_thread(first.thread_id).await.is_ok());\n+    assert_eq!(\n+        first.thread.agent_status().await,\n+        crate::agent::AgentStatus::Completed(Some(\"done\".to_string()))\n+    );\n+\n+    // The held active-turn lock makes the eviction check pending after the\n+    // uncontended manager lookup and terminal-status read.\n+    let active_turn = first.thread.session.active_turn.lock().await;\n+    let mut evictor =\n+        Box::pin(control.reserve_v2_residency_slot(&state, &config, /*protected_thread_id*/ None));\n+    assert!(futures::poll!(evictor.as_mut()).is_pending());\n+    assert!(manager.get_thread(first.thread_id).await.is_ok());\n+\n+    let concurrent_reservation = control.v2_residency.try_reserve_pending_slot(1);\n+    if concurrent_reservation {\n+        control.v2_residency.release_pending_slot();\n+    }\n+    drop(evictor);\n+    drop(active_turn);\n+    assert_eq!(\n+        (\n+            concurrent_reservation,\n+            control.v2_residency.resident_count()\n+        ),\n+        (false, 1),\n+        \"the loaded owner must occupy capacity during eviction and after cancellation\"\n+    );\n+}\n+\n #[tokio::test]\n async fn interrupted_v2_agent_is_lost_after_residency_eviction() {\n     let mut config = test_config().await;\n",
+      "name": "residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction",
+      "fails_on": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "command": "RUSTC_WRAPPER= HOST_CC=clang HOST_CXX=clang++ CARGO_BUILD_JOBS=32 CARGO_INCREMENTAL=1 CARGO_TARGET_DIR=/private/tmp/codex-harness-audit/residency/codex-rs/target just test -p codex-core -E 'test(residency_keeps_loaded_owner_counted_during_and_after_cancelled_eviction)'",
+      "output": "Summary: 1 test run, 0 passed, 1 failed. Assertion at residency_tests.rs:120 observed (true, 0), expected (false, 1), after confirming the first worker runtime was loaded.",
+      "raw_log": "/private/tmp/codex-harness-audit/residency/residency-red-final.log"
+    },
+    "severity": "High: cancellation can leave a loaded worker permanently uncounted for the session, and overlapping reservations can exceed the configured loaded-worker capacity even before cancellation. It requires concurrent work or interruption at an eviction await.",
+    "status": "open"
+  }
+]

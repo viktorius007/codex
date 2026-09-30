@@ -1,0 +1,49 @@
+{
+  "captured_at": "2026-09-19T23:02:29Z",
+  "current_checkout": {
+    "branch": "local/customizations",
+    "commit": "7516ec8035ce707156185214b6f56821c6c68b91"
+  },
+  "current_install": {
+    "codex_path": "/Users/viktor/.local/bin/codex",
+    "codex_sha256": "8d1202852518a6f658a44a03faccaecaf5f13621044708771c186c8417460495",
+    "code_mode_host_path": "/Users/viktor/.local/bin/codex-code-mode-host",
+    "code_mode_host_sha256": "ac1772933ff600e0815270ecc0de38adcdce037b80d4ce25250525895e970710",
+    "reported_version": "codex-cli 0.155.1+local.4"
+  },
+  "incident_install": {
+    "installation_record": "research/cache-repair-reports/installation-local3.json",
+    "reported_version": "codex-cli 0.154.0+local.3",
+    "source_commit": "ffde91b0c52241cf0b746fe3524c52b82ddd099a",
+    "candidate_pair_sha256": "2d67b2751291ce586631a9dcfe5602e193471725484ceeba01bdb04868a967c8"
+  },
+  "resumed_harness_collaboration_tools": [
+    "followup_task",
+    "interrupt_agent",
+    "list_agents",
+    "send_message",
+    "spawn_agent"
+  ],
+  "resumed_harness_absent_collaboration_tools": [
+    "wait_agent"
+  ],
+  "live_observations": {
+    "quick_probe_completed_without_parent_wait": true,
+    "deep_probe_completed_without_parent_wait": true,
+    "single_list_agents_snapshot_succeeded": true,
+    "followup_task_to_running_deep_probe_succeeded": true,
+    "deep_probe_acknowledged_followup_with_marker": "FOLLOWUP-RECEIVED",
+    "deep_probe_requested_send_message_was_issued": false,
+    "idle_parent_live_wake_exercised": false,
+    "github_capture_yielded_exec_call_id": "exec-fe1b7b2b-8644-46ec-a2a4-fb2e0a26e23a",
+    "github_capture_yielded_exec_process_id": "55835",
+    "github_capture_completion_exit_code": 0,
+    "github_capture_completion_received_without_write_stdin_poll": true
+  },
+  "observation_basis": [
+    "Runtime-injected collaboration tool definitions in the resumed root turn",
+    "Live Luna probe final results",
+    "Hashed Luna rollout files in source-manifest.json",
+    "Tool-registration and terminal-wake source captured in source-snapshot.json"
+  ]
+}

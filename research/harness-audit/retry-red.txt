@@ -1,0 +1,49 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+   Compiling codex-api v0.156.1+local.7 (/private/tmp/codex-harness-audit/retry/codex-rs/codex-api)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.29s
+────────────
+ Nextest run ID 823ca635-5cf1-480a-a4b0-e8bc3a232fc6 with nextest profile: local
+    Starting 1 test across 7 binaries (193 tests skipped)
+  TRY 1 FAIL [   0.013s] (───) codex-api sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward
+  stdout ───
+
+    running 1 test
+    test sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward ... FAILED
+
+    failures:
+
+    failures:
+        sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 173 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward' (319919028) panicked at codex-api/src/sse/responses.rs:1203:9:
+    assertion failed: `Some(Err(Stream("Transport error: network error: transport failed after terminal response")))` does not match `Some(Err(ApiError::QuotaExceeded))`
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.010s] (1/1) codex-api sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward
+  stdout ───
+
+    running 1 test
+    test sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward ... FAILED
+
+    failures:
+
+    failures:
+        sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 173 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward' (319919031) panicked at codex-api/src/sse/responses.rs:1203:9:
+    assertion failed: `Some(Err(Stream("Transport error: network error: transport failed after terminal response")))` does not match `Some(Err(ApiError::QuotaExceeded))`
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.025s] 1 test run: 0 passed, 1 failed, 193 skipped
+  TRY 2 FAIL [   0.010s] (1/1) codex-api sse::responses::tests::failed_response_keeps_terminal_classification_when_transport_fails_afterward
+error: test run failed
+error: recipe `test` failed on line 88 with exit code 100

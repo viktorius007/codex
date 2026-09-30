@@ -1,0 +1,518 @@
+{
+  "codex-rs/core/src/session/mod.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session/turn.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session/turn_context.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session/context_window.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session/rollout_reconstruction.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session_prefix.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/client.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/client_common.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/compact.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/compact_remote_v2.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/context_manager/history.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/state/session.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/agent/role.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "prefix",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/prefix-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-api/src/request_observer.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-api/src/endpoint/responses.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-api/src/endpoint/responses_websocket.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-api/src/endpoint/session.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/cache_diagnostics.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/cache-diagnostics/src/lib.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/cache-diagnostics/src/key.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/cache-diagnostics/src/writer.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/cache-diagnostics/src/manifest.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/memories/write/src/runtime.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "diagnostics",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/diagnostics-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-mcp/src/binding.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-mcp/src/catalog.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/codex-mcp/src/connection_manager.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/tools/router.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/tools/spec_plan.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/skills/src/tools/mod.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "finding",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/skills/src/tools/read.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/skills/src/provider/host.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/skills/src/catalog.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/skills/src/render.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "catalog",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/catalog-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/unified_exec/process_manager.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "finding",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/unified_exec/async_watcher.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session/input_queue.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/session/inject.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/tasks/mod.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/tasks/lifecycle.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/tools/code_mode/wait_handler.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/core/src/agent/control.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/goal/src/extension.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  },
+  "codex-rs/ext/goal/src/runtime.rs": {
+    "production-readiness": {
+      "commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "authority_commit": "d5f8ef066a86255fc1e84c1b2a9759c222aa9f4d",
+      "ts": "2026-09-23T10:09:29.067947+00:00",
+      "model": "gpt-6-sol-high",
+      "slice": "async",
+      "verdict": "no-proven-significant-defect",
+      "report": "research/custom-patch-audit/async-review.md",
+      "scope_limit": "Local patch effects on cache identity and model turns; source audit unless report cites executed test."
+    }
+  }
+}

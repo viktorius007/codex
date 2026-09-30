@@ -1,0 +1,676 @@
+{
+  "sourceCommit": "b2da63e68447be521bc9b68471d5faa861c09d62",
+  "installedSourceCommit": "4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7",
+  "installedVersion": "0.154.0+local.2",
+  "model": "gpt-6-astra",
+  "reasoningEffort": "medium",
+  "probe": "remote-v2 manual compaction and cold app-server resumes",
+  "evidenceDirectory": "/Users/viktor/.codex/cache-diagnostics/experiments/compaction-resume-20260914/codex-prefix-probe-p1byfypd",
+  "analysis": {
+    "phases": [
+      {
+        "label": "initial",
+        "atUnixMs": 1789335246883,
+        "usage": {
+          "input_tokens": 23859,
+          "cached_input_tokens": 0,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 23864
+        },
+        "wire_incremental": false,
+        "input_count": 7,
+        "input_shape": [
+          {
+            "type": "additional_tools",
+            "role": "developer"
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "base_instructions",
+            "text_bytes": 10543
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "contextual_instructions",
+            "text_bytes": 42713
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "other_context",
+            "text_bytes": 3753
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 2431
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 271
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "retained_user_reference",
+            "text_bytes": 6132
+          }
+        ]
+      },
+      {
+        "label": "warm_before_resume",
+        "atUnixMs": 1789335249326,
+        "usage": {
+          "input_tokens": 29218,
+          "cached_input_tokens": 23680,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 29223
+        },
+        "wire_incremental": true,
+        "input_count": 10,
+        "input_shape": [
+          {
+            "type": "additional_tools",
+            "role": "developer"
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "base_instructions",
+            "text_bytes": 10543
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "contextual_instructions",
+            "text_bytes": 42713
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "other_context",
+            "text_bytes": 3753
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 2431
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 271
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "retained_user_reference",
+            "text_bytes": 6132
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "label": "assistant_reply",
+            "text_bytes": 2
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 22564
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          }
+        ]
+      },
+      {
+        "label": "cold_resume_before_compaction",
+        "atUnixMs": 1789335255124,
+        "usage": {
+          "input_tokens": 34510,
+          "cached_input_tokens": 29056,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 34515
+        },
+        "wire_incremental": false,
+        "input_count": 13,
+        "input_shape": [
+          {
+            "type": "additional_tools",
+            "role": "developer"
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "base_instructions",
+            "text_bytes": 10543
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "contextual_instructions",
+            "text_bytes": 42713
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "other_context",
+            "text_bytes": 3753
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 2431
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 271
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "retained_user_reference",
+            "text_bytes": 6132
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "label": "assistant_reply",
+            "text_bytes": 2
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 22564
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "label": "assistant_reply",
+            "text_bytes": 2
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 22180
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          }
+        ]
+      },
+      {
+        "label": "first_after_compaction",
+        "atUnixMs": 1789335275985,
+        "usage": {
+          "input_tokens": 24518,
+          "cached_input_tokens": 8576,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 24523
+        },
+        "wire_incremental": false,
+        "input_count": 11,
+        "input_shape": [
+          {
+            "type": "additional_tools",
+            "role": "developer"
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "base_instructions",
+            "text_bytes": 10543
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "retained_user_reference",
+            "text_bytes": 6132
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "compaction",
+            "role": null
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "contextual_instructions",
+            "text_bytes": 43097
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "other_context",
+            "text_bytes": 3753
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 2431
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 271
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          }
+        ]
+      },
+      {
+        "label": "warm_after_compaction",
+        "atUnixMs": 1789335278228,
+        "usage": {
+          "input_tokens": 24532,
+          "cached_input_tokens": 24320,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 24537
+        },
+        "wire_incremental": true,
+        "input_count": 13,
+        "input_shape": [
+          {
+            "type": "additional_tools",
+            "role": "developer"
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "base_instructions",
+            "text_bytes": 10543
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "retained_user_reference",
+            "text_bytes": 6132
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "compaction",
+            "role": null
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "contextual_instructions",
+            "text_bytes": 43097
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "other_context",
+            "text_bytes": 3753
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 2431
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 271
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "label": "assistant_reply",
+            "text_bytes": 2
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          }
+        ]
+      },
+      {
+        "label": "cold_resume_after_compaction",
+        "atUnixMs": 1789335281621,
+        "usage": {
+          "input_tokens": 29824,
+          "cached_input_tokens": 24320,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 29829
+        },
+        "wire_incremental": false,
+        "input_count": 16,
+        "input_shape": [
+          {
+            "type": "additional_tools",
+            "role": "developer"
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "base_instructions",
+            "text_bytes": 10543
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "retained_user_reference",
+            "text_bytes": 6132
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "compaction",
+            "role": null
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "contextual_instructions",
+            "text_bytes": 43097
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "other_context",
+            "text_bytes": 3753
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 2431
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 271
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "label": "assistant_reply",
+            "text_bytes": 2
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "label": "assistant_reply",
+            "text_bytes": 2
+          },
+          {
+            "type": "message",
+            "role": "developer",
+            "label": "other_context",
+            "text_bytes": 22180
+          },
+          {
+            "type": "message",
+            "role": "user",
+            "label": "user_followup",
+            "text_bytes": 9
+          }
+        ]
+      }
+    ],
+    "comparisons": [
+      {
+        "from": "initial",
+        "to": "warm_before_resume",
+        "elapsedMs": 2443,
+        "fixed_fields_equal": {
+          "include": true,
+          "model": true,
+          "parallel_tool_calls": true,
+          "prompt_cache_key": true,
+          "reasoning": true,
+          "store": true,
+          "stream": true,
+          "text": true,
+          "tool_choice": true
+        },
+        "metadata_equal": false,
+        "lite_tools_item_equal": true,
+        "lite_base_item_equal": true,
+        "previous_input_count": 7,
+        "prefix_counts": {
+          "exact": 7,
+          "without_internal_metadata": 7,
+          "visible_payload": 7
+        },
+        "previous_input_and_output_count": 8,
+        "input_and_output_prefix_counts": {
+          "exact": 8,
+          "without_internal_metadata": 8,
+          "visible_payload": 8
+        }
+      },
+      {
+        "from": "warm_before_resume",
+        "to": "cold_resume_before_compaction",
+        "elapsedMs": 5798,
+        "fixed_fields_equal": {
+          "include": true,
+          "model": true,
+          "parallel_tool_calls": true,
+          "prompt_cache_key": true,
+          "reasoning": true,
+          "store": true,
+          "stream": true,
+          "text": true,
+          "tool_choice": true
+        },
+        "metadata_equal": false,
+        "lite_tools_item_equal": true,
+        "lite_base_item_equal": true,
+        "previous_input_count": 10,
+        "prefix_counts": {
+          "exact": 7,
+          "without_internal_metadata": 10,
+          "visible_payload": 10
+        },
+        "previous_input_and_output_count": 11,
+        "input_and_output_prefix_counts": {
+          "exact": 7,
+          "without_internal_metadata": 11,
+          "visible_payload": 11
+        }
+      },
+      {
+        "from": "cold_resume_before_compaction",
+        "to": "first_after_compaction",
+        "elapsedMs": 20861,
+        "fixed_fields_equal": {
+          "include": true,
+          "model": true,
+          "parallel_tool_calls": true,
+          "prompt_cache_key": true,
+          "reasoning": true,
+          "store": true,
+          "stream": true,
+          "text": true,
+          "tool_choice": true
+        },
+        "metadata_equal": false,
+        "lite_tools_item_equal": true,
+        "lite_base_item_equal": true,
+        "previous_input_count": 13,
+        "prefix_counts": {
+          "exact": 2,
+          "without_internal_metadata": 2,
+          "visible_payload": 2
+        },
+        "previous_input_and_output_count": 14,
+        "input_and_output_prefix_counts": {
+          "exact": 2,
+          "without_internal_metadata": 2,
+          "visible_payload": 2
+        }
+      },
+      {
+        "from": "first_after_compaction",
+        "to": "warm_after_compaction",
+        "elapsedMs": 2243,
+        "fixed_fields_equal": {
+          "include": true,
+          "model": true,
+          "parallel_tool_calls": true,
+          "prompt_cache_key": true,
+          "reasoning": true,
+          "store": true,
+          "stream": true,
+          "text": true,
+          "tool_choice": true
+        },
+        "metadata_equal": false,
+        "lite_tools_item_equal": true,
+        "lite_base_item_equal": true,
+        "previous_input_count": 11,
+        "prefix_counts": {
+          "exact": 11,
+          "without_internal_metadata": 11,
+          "visible_payload": 11
+        },
+        "previous_input_and_output_count": 12,
+        "input_and_output_prefix_counts": {
+          "exact": 12,
+          "without_internal_metadata": 12,
+          "visible_payload": 12
+        }
+      },
+      {
+        "from": "warm_after_compaction",
+        "to": "cold_resume_after_compaction",
+        "elapsedMs": 3393,
+        "fixed_fields_equal": {
+          "include": true,
+          "model": true,
+          "parallel_tool_calls": true,
+          "prompt_cache_key": true,
+          "reasoning": true,
+          "store": true,
+          "stream": true,
+          "text": true,
+          "tool_choice": true
+        },
+        "metadata_equal": false,
+        "lite_tools_item_equal": true,
+        "lite_base_item_equal": true,
+        "previous_input_count": 13,
+        "prefix_counts": {
+          "exact": 11,
+          "without_internal_metadata": 13,
+          "visible_payload": 13
+        },
+        "previous_input_and_output_count": 14,
+        "input_and_output_prefix_counts": {
+          "exact": 11,
+          "without_internal_metadata": 14,
+          "visible_payload": 14
+        }
+      }
+    ],
+    "compaction_checkpoints": 1
+  },
+  "files": {
+    "probe.py": "63c796ac5d3d6d6705789455db52929edda819f16cdf6bc8a9b9ba243ed1c77a",
+    "analyze.py": "e5de6bd11b915742f4b41d5a5d5352ba7198f24dd2ea28f6d4f5c102b7cbe4fc",
+    "summary.json": "294f2ae7d7e8506b5d8bc5bc460d1c6a54ad3ff6473faa72aa570152239de5f9",
+    "analysis.json": "86462577b789e584614c5a7563a7df29f6b374e875d069e74bff5a6b46ae0b77",
+    "protocol-events.jsonl": "059f1db04b366e825e04246158cfedbbc77be615fa9f07db9fddd9b30c82b563"
+  }
+}

@@ -1,0 +1,85 @@
+[
+  {
+    "id": "pr-mcp-startup-001",
+    "kind": "finding",
+    "run": {
+      "ts": "2026-09-23T13:03:17Z",
+      "commit": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "model": "sol",
+      "mode": "production-readiness",
+      "slice": "interrupted-mcp-startup-recovery"
+    },
+    "category": "defect",
+    "domain": "code",
+    "summary": "An idle interrupt cancels a pending MCP startup but never schedules reconnection, so the server tools disappear from later turns.",
+    "scenario": "A configured streamable HTTP MCP server has entered initialize; an idle Op::Interrupt cancels it; the server then becomes responsive; the next unchanged-settings turn makes no second initialize request and omits the server tool from the model request.",
+    "evidence": [
+      {
+        "path": "codex-rs/core/src/session/mod.rs",
+        "lines": "4895-4901",
+        "point": "Idle interrupt calls cancel_mcp_startup after abort_all_tasks."
+      },
+      {
+        "path": "codex-rs/core/src/session/mcp.rs",
+        "lines": "172-202,339-383,729-731",
+        "point": "The interrupt does not invalidate McpRefresh; unchanged auth, environments, and capability roots leave the canceled runtime published for the next turn."
+      },
+      {
+        "path": "codex-rs/codex-mcp/src/rmcp_client.rs",
+        "lines": "399-420,527-565",
+        "point": "Cancellation becomes a shared startup result; reconnect_failed_startup only handles Failed, not Cancelled."
+      },
+      {
+        "path": "codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs",
+        "lines": "285-298",
+        "point": "Binding capture omits a server whose completed client result is an error."
+      }
+    ],
+    "trace": "Op::Interrupt -> Session::interrupt_task -> cancel_mcp_startup -> McpRuntime::cancel_startup -> McpServerConnection::cancel_startup -> CancellationToken; next turn -> mcp_runtime_for_step -> refresh_mcp_if_dirty returns with no pending refresh -> published AsyncManagedClient returns cached Cancelled -> capture_binding_with_metadata omits server tool -> model request has no namespace.",
+    "authority": {
+      "source": "production-readiness failure mode",
+      "quote": "After a transient startup cancellation, a later turn must be able to use a now-ready configured MCP server without requiring an unrelated configuration change."
+    },
+    "proof": {
+      "name": "interrupted_idle_mcp_startup_reconnects_for_next_turn",
+      "red_test": "diff --git a/codex-rs/core/tests/suite/mcp_optional_startup_grace.rs b/codex-rs/core/tests/suite/mcp_optional_startup_grace.rs\nindex f5ef343ae4..7133664582 100644\n--- a/codex-rs/core/tests/suite/mcp_optional_startup_grace.rs\n+++ b/codex-rs/core/tests/suite/mcp_optional_startup_grace.rs\n@@ -3,10 +3,14 @@\n use std::time::Duration;\n \n use anyhow::Context;\n+use codex_protocol::protocol::EventMsg;\n+use codex_protocol::protocol::McpStartupStatus;\n+use codex_protocol::protocol::Op;\n use core_test_support::apps_test_server::AppsTestServer;\n use core_test_support::responses;\n use core_test_support::skip_if_no_network;\n use core_test_support::test_codex::test_codex;\n+use core_test_support::wait_for_event;\n use pretty_assertions::assert_eq;\n use serde_json::json;\n use test_case::test_case;\n@@ -15,6 +19,87 @@ const SERVER_NAME: &str = \"optional_startup\";\n const TOOL_NAMESPACE: &str = \"mcp__optional_startup\";\n const TOOL_NAME: &str = \"calendar_create_event\";\n \n+#[tokio::test(flavor = \"multi_thread\", worker_threads = 2)]\n+async fn interrupted_idle_mcp_startup_reconnects_for_next_turn() -> anyhow::Result<()> {\n+    skip_if_no_network!(Ok(()));\n+\n+    let responses_server = responses::start_mock_server().await;\n+    let mcp_server = responses::start_mock_server().await;\n+    let (http_server, startup_control) =\n+        AppsTestServer::mount_with_startup_control(&mcp_server).await?;\n+    let release_startup = startup_control.hold_next_successful_initialize();\n+    let server_url = format!(\"{}/api/codex/ps/mcp\", http_server.chatgpt_base_url);\n+    let fixture = test_codex()\n+        .with_config(move |config| {\n+            config.mcp_optional_startup_grace = Duration::ZERO;\n+            let mut servers = config.mcp_servers.get().clone();\n+            servers.insert(\n+                SERVER_NAME.to_string(),\n+                serde_json::from_value(json!({\n+                    \"url\": server_url,\n+                    \"http_headers\": { \"Authorization\": \"Bearer synthetic-test-token\" },\n+                    \"enabled_tools\": [TOOL_NAME],\n+                    \"startup_timeout_sec\": 10,\n+                }))\n+                .expect(\"synthetic MCP server configuration\"),\n+            );\n+            config\n+                .mcp_servers\n+                .set(servers)\n+                .expect(\"valid MCP configuration\");\n+        })\n+        .build_with_auto_env(&responses_server)\n+        .await?;\n+\n+    wait_for_event(&fixture.codex, |event| {\n+        matches!(event, EventMsg::McpStartupUpdate(update)\n+            if update.server == SERVER_NAME && matches!(update.status, McpStartupStatus::Starting))\n+    })\n+    .await;\n+    tokio::time::timeout(Duration::from_secs(5), async {\n+        while startup_control.initialize_attempts() == 0 {\n+            tokio::task::yield_now().await;\n+        }\n+    })\n+    .await\n+    .context(\"MCP initialization should be in flight before the idle interrupt\")?;\n+    assert_eq!(startup_control.initialize_attempts(), 1);\n+    fixture.codex.submit(Op::Interrupt).await?;\n+    wait_for_event(&fixture.codex, |event| {\n+        matches!(event, EventMsg::McpStartupUpdate(update)\n+            if update.server == SERVER_NAME && matches!(update.status, McpStartupStatus::Cancelled))\n+    })\n+    .await;\n+    release_startup\n+        .send(())\n+        .expect(\"held initialization should release\");\n+\n+    let response = responses::mount_sse_once(\n+        &responses_server,\n+        responses::sse(vec![\n+            responses::ev_response_created(\"resp-after-idle-interrupt\"),\n+            responses::ev_assistant_message(\"msg-after-idle-interrupt\", \"done\"),\n+            responses::ev_completed(\"resp-after-idle-interrupt\"),\n+        ]),\n+    )\n+    .await;\n+    fixture\n+        .submit_text_turn(\"show the available MCP tools\")\n+        .await?;\n+\n+    let request = response.single_request().body_json();\n+    assert_eq!(\n+        (\n+            startup_control.initialize_attempts(),\n+            responses::namespace_child_tool(&request, TOOL_NAMESPACE, TOOL_NAME).is_some(),\n+        ),\n+        (2, true),\n+        \"the next turn should reconnect and advertise the recovered server tool\"\n+    );\n+    fixture.codex.shutdown_and_wait().await?;\n+    Ok(())\n+}\n+\n #[derive(Clone, Copy)]\n enum StartupGraceScenario {\n     ShortGraceOmitsPending,\n",
+      "command": "just test -p codex-core -E 'test(interrupted_idle_mcp_startup_reconnects_for_next_turn)'",
+      "fails_on": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "output": "Compiled and ran on unchanged production; two attempts failed with actual (initialize_attempts, tool_advertised) = (1, false), expected (2, true). Raw log: red-test-final.log."
+    },
+    "severity": "High user impact within the affected session: a common idle interrupt during slow server startup permanently removes that server's tools until an explicit refresh or another unrelated reprojection; no data loss was shown.",
+    "status": "open"
+  },
+  {
+    "id": "pr-mcp-startup-dismissal-001",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-09-23T13:03:17Z",
+      "commit": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "model": "sol",
+      "mode": "production-readiness",
+      "slice": "interrupted-mcp-startup-recovery"
+    },
+    "summary": "An idle startup interrupt does not cancel an already ready client.",
+    "checked": "McpServerConnection::cancel_startup checks startup_complete before canceling its token; the existing ready-client test covers continued tool catalog access.",
+    "closed_by": "Source tier 2: codex-rs/codex-mcp/src/connection_manager.rs:141-145; existing test codex-rs/codex-mcp/src/connection_manager_tests.rs:3920-3936.",
+    "reopens_if": "A ready client can have startup_complete false or a different interrupt path cancels its transport.",
+    "status": "no-action"
+  },
+  {
+    "id": "pr-mcp-startup-dismissal-002",
+    "kind": "dismissal",
+    "run": {
+      "ts": "2026-09-23T13:03:17Z",
+      "commit": "34d1bd0a110879b6c8d0b7d517a22ceb367aba9b",
+      "model": "sol",
+      "mode": "production-readiness",
+      "slice": "interrupted-mcp-startup-recovery"
+    },
+    "summary": "Canceling a claimed dirty refresh before publication does not lose its invalidation marker.",
+    "checked": "The refresh guard restores pending on Drop unless publication completed, while the publication gate waits until current.store before releasing startup notifications.",
+    "closed_by": "Source tier 2: codex-rs/core/src/session/mcp_refresh.rs:44-55 and codex-rs/codex-mcp/src/runtime.rs:329-378.",
+    "reopens_if": "A refresh path bypasses the guard or new side effects occur before current.store.",
+    "status": "no-action"
+  }
+]

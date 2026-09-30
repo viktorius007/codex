@@ -1,0 +1,78 @@
+# Cache repair run
+
+Started: 2026-09-14 Australia/Sydney.
+Goal: a trustworthy tested and installed local binary, private cache diagnostics, and direct evidence-driven cache repairs.
+
+## Current delivery state
+
+**Scope correction:** the installed milestone is complete, but the original overall cache-repair objective is not. See [all62 issue dispositions](cache-repair-issue-disposition.md). Unfinished original stage2–5 obligations remain outstanding; prior scope exclusions did not satisfy them.
+
+Installed: **`0.154.0+local.2`**, built from clean source commit `4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7` on `local/customizations`. Fourteen source commits preserve the mechanism boundaries. The matching previous `0.154.0+local.1` executable/helper pair is backed up.
+
+Installation cutover completed **2026-09-14T06:41:42.165+10:00** (Sydney), Unix milliseconds **1789332102165**. Full machine-readable hashes, binary paths, backup, source, and timestamps are in [installation-local2.json](cache-repair-reports/installation-local2.json). Newly started processes use the new build; already-running processes retain the old executable.
+
+The full workspace suite passed **17,641/17,641**, with47 skips, one successful retry, and one leaky label. The retry's transient-status fixture now asserts the exact sampled turn's successful completion event. The final focused gate passed376/376, including both corrected fork variants and all API/records/skills tests. Scoped Clippy finished with no remaining warnings and repository formatting passed. The final clean-commit build and installed CLI localhost roundtrip passed; its actual sidecar passed the offline analyzer too. The smoke is synthetic and proves collection behavior, not provider cache improvement.
+
+Permanent private run evidence is retained under `/Users/viktor/.codex/cache-repair-evidence/2026-09-14-local2/run/`, including full test logs, commit mappings, installation provenance, and diagnostic smoke evidence. Source-worktree archives are preserved alongside that run directory. Cleanup completion is recorded below.
+
+The detailed chronology, corrections, and recovery instructions remain in [cache-repair-recovery.md](cache-repair-recovery.md). Historical issue discovery remains in [prompt-cache-prefix-stability.md](prompt-cache-prefix-stability.md); refresh it incrementally, never through blanket rediscovery.
+
+## Authorization and boundaries
+
+- Preserve diagnostic evidence indefinitely: no automatic deletion, disk quota, or age expiry. Individual records and memory are bounded.
+- Full tests, experiments, and validated installation are authorized. Preserve the previous matching binary pair and record exact installation provenance.
+- Choose direct Pareto fixes from local evidence; GitHub proposals are clues. Do not expand into speculative backend or broad retained-history redesign.
+- Use fresh-context Sol agents for load-bearing work. The coordinator owns small corrections, integration, and cleanup.
+- Fingerprint differences are observed changes, not proven causes; equality does not prove a backend fault.
+
+## Implemented candidate and regression evidence
+
+| Area | Implemented behavior | Verification evidence in `/private/tmp/codex-cache-run/` |
+|---|---|---|
+| Diagnostic archive | Installation-keyed fingerprints, complete logical/wire observation, private append-only run files, bounded records/manifests, paired outcomes and usage; no automatic retention deletion | `records-api-lifecycle-green.log`:191 passed; `records-verifier.md` |
+| Runtime diagnostics | Ordinary requests, warmup, local/remote compaction, retries, reused WebSockets, and detached memory requests | `runtime-diagnostics-verifier-followup.md` and `runtime-diagnostics-memory-assessment.md`; lifecycle gates; memory regression in final318-test gate |
+| Offline analysis | Bounded read-only parsing, first observed differences, truthful missing/ambiguous evidence, normalized warm-comparison rates, independent before/after windows | `final-python-scanners.log`:21 passed; `analysis-verifier-followup.md` |
+| Usage accounting | Accepted usage stays paired with its covered history boundary; usage-less tails, replacement, and resume are accounted for | `usage-verifier.md`; focused history/reconstruction gates |
+| Compaction | Local compaction reuses active sampling tools; pending turn input contributes to thresholds without entering the compacted history | `compaction-verifier.md`; `pending-projection-fullsuite-review.md` |
+| Fresh-context startup | Shared startup context precedes role-specific instructions; private parent history stays out of child input | `fresh-prefix-verifier.md`; `local2-wake-fixtures-3.log`:17 passed |
+| Plugin skills | Stable semantic locators resolve through the active snapshot with containment protection | `locator-verifier-followup.md`; full skills gate176 passed |
+| Subagent completion | Bounded completion text wakes an idle parent; active waits avoid duplicate delivery | Focused wake/security/residency gates; final318-test gate |
+| MCP authority | Deterministic full tool order; sampled ready calls retain exact authority; lazy cached calls verify connection/configuration/schema before using live execution metadata | `tool-stability-final-audit.md`; `lazy-presentation-green.log`:322 passed |
+| Local version and fixtures | SemVer metadata preserved; host-sensitive tests retain their behavioral oracles | SemVer crate gates; `tui-final-gate.log`:4314 passed |
+
+## Explicit carry-forward boundaries
+
+The original research queue contains proposals beyond these direct repairs. A hard-capped retained raw tail plus structured compaction checkpoint is not implemented. Later world-state, skill, and prompt-hook changes are not included in pending-turn projection. These remain separate compaction-continuity work; do not describe the whole original Stage3 as complete.
+
+Generic MCP `tools/list_changed` notifications remain unimplemented. This candidate protects sampled execution authority and stable ordering. Publishing a genuinely changed schema should change the prefix; notification support is separate capability freshness work. Forked-history redesign and provider-controlled cache affinity remain lower-priority research, not fixes claimed by this build.
+
+No provider-side cache improvement has been measured. The historical rollout scan cannot supply a complete request-fingerprint pre-fix window. Record installation start/end to millisecond precision and select new-process diagnostic runs for post-install analysis; old running processes remain on their old binary.
+
+## Delivery and cleanup
+
+Source integration, full and focused test gates, lint, formatting, clean-commit rebuild, validated installation, previous-pair preservation, and installed-sidecar smoke are complete. Sixteen completed agent worktrees were verified byte-for-byte against their private archive before removal; their obsolete branches were removed. The final integration target/worktree and task caches were removed after evidence preservation. Only the root worktree and `main`/`local/customizations` branches remain; the cleanup check found41GiB free. Unknown pre-existing temporary artifacts were preserved. Diagnostic evidence has no automatic deletion policy.
+
+## Source commits
+
+```text
+4b0a1a1194 Stabilize host-sensitive test fixtures
+8c5e8401e8 Wake idle parents for terminal subagent results
+ed3f293b13 Bound successful subagent completion messages
+ab966ac087 Use stable locators for plugin skills
+1e9fa7b0b5 Validate sampled MCP execution authority
+a2157431be Keep shared startup context before agent role hints
+3ca29ec4b6 Reuse sampling tools for local compaction
+8b4b96eb23 Project pending input into compaction thresholds
+822499499c Track accepted token usage against history
+02973de896 Add the offline cache diagnostics audit
+72746d3ec5 Record diagnostics across model request lifecycles
+e380697e74 Observe final Responses transport requests
+7bb3784a7c Add private cache diagnostic archives
+b75edf8ca2 Preserve local SemVer metadata in runtime tags
+```
+
+## Environment
+
+MacBook Pro M3 Max,16 cores,48GB RAM. Cargo uses32 jobs, incremental development compilation, and one isolated integration target; agents run no concurrent Cargo builds. Open-file limit is4096 with unlimited hard limit. The verified Codex V8 archive/bindings are supplied by `run-check.py`; the full-suite V8 feature aligns the test marker with the linked sandbox build.
+
+CMake, GStreamer, and Bazelisk were installed as required test/build prerequisites. Python tools use UV Python3.12 with the task-local cache. Disk headroom reached approximately11GiB during the full build. Do not remove its active target; clean owned incremental/build artifacts after Cargo completes and after preserving the final binaries/evidence.

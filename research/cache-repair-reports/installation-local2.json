@@ -1,0 +1,122 @@
+{
+  "candidate_pair_sha256": "e72c8235743fcc00d7c790acdbc270e227688d920df07d94940496954e2745dd",
+  "candidate_profile": "target/dev-small",
+  "candidates": {
+    "codex": {
+      "dynamic_links": [
+        "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit (compatibility version 1.0.0, current version 275.0.0)",
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)",
+        "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices (compatibility version 1.0.0, current version 1226.0.0)",
+        "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration (compatibility version 1.0.0, current version 1385.60.3)",
+        "/usr/lib/liblzma.5.dylib (compatibility version 6.0.0, current version 6.3.0)",
+        "/usr/lib/libbz2.1.0.dylib (compatibility version 1.0.0, current version 1.0.8)",
+        "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.30.107)",
+        "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics (compatibility version 64.0.0, current version 1965.2.3)",
+        "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)",
+        "/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)",
+        "/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)",
+        "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork (compatibility version 1.0.0, current version 3860.255.31)",
+        "/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)",
+        "/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)"
+      ],
+      "file": "/private/tmp/codex-cache-integration/codex-rs/target/dev-small/codex: Mach-O 64-bit executable arm64",
+      "path": "/private/tmp/codex-cache-integration/codex-rs/target/dev-small/codex",
+      "sha256": "a7a011d2bcadea9b64a81465aca6f86b44b29666920ca2e44dc7f6003f5cbbf4",
+      "size": 355101728
+    },
+    "codex-code-mode-host": {
+      "dynamic_links": [
+        "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 4201.0.0)",
+        "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)",
+        "/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)",
+        "/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)",
+        "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork (compatibility version 1.0.0, current version 3860.255.31)",
+        "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration (compatibility version 1.0.0, current version 1385.60.3)",
+        "/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 61901.60.40)",
+        "/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)"
+      ],
+      "file": "/private/tmp/codex-cache-integration/codex-rs/target/dev-small/codex-code-mode-host: Mach-O 64-bit executable arm64",
+      "path": "/private/tmp/codex-cache-integration/codex-rs/target/dev-small/codex-code-mode-host",
+      "sha256": "f4fffcc5d54bcef9cc9ed9c8eed82c4dd7fce9063b3e141aa2711eb29aa71f39",
+      "size": 91709904
+    }
+  },
+  "cutover": {
+    "finished": {
+      "australia_sydney": "2026-09-14T06:41:42.165+10:00",
+      "unix_ms": 1789332102165,
+      "utc": "2026-09-13T20:41:42.165+00:00"
+    },
+    "started": {
+      "australia_sydney": "2026-09-14T06:41:42.165+10:00",
+      "unix_ms": 1789332102165,
+      "utc": "2026-09-13T20:41:42.165+00:00"
+    }
+  },
+  "final_test_evidence": {
+    "path": "/private/tmp/codex-cache-run/final-full-workspace-2.log",
+    "sha256": "c8b079aac02100c141bc09728ecd28d8f5c13e41094d0ca9d6a88382302bea92",
+    "size": 2388867,
+    "summary": "Summary [ 924.704s] 17641 tests run: 17641 passed (5 slow, 1 flaky, 1 leaky), 47 skipped"
+  },
+  "install": {
+    "base": "/Users/viktor/.local/lib/codex-local",
+    "bin_dir": "/Users/viktor/.local/bin",
+    "current_target": "/Users/viktor/.local/lib/codex-local/0.154.0+local.2-4b0a1a1194d1-e72c8235743f",
+    "layout_before": "legacy-regular-files",
+    "public_links": {
+      "codex": "/Users/viktor/.local/lib/codex-local/current/codex",
+      "codex-code-mode-host": "/Users/viktor/.local/lib/codex-local/current/codex-code-mode-host"
+    },
+    "release": "/Users/viktor/.local/lib/codex-local/0.154.0+local.2-4b0a1a1194d1-e72c8235743f"
+  },
+  "invocation": [
+    "/private/tmp/codex-cache-run/install-validated.py",
+    "--source",
+    "/private/tmp/codex-cache-integration",
+    "--commit",
+    "4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7",
+    "--expected-version",
+    "0.154.0+local.2",
+    "--test-evidence",
+    "/private/tmp/codex-cache-run/final-full-workspace-2.log",
+    "--provenance",
+    "/private/tmp/codex-cache-run/install-0.154.0+local.2-4b0a1a1194d1.json"
+  ],
+  "previous_pair": {
+    "backup": "/Users/viktor/.local/lib/codex-local/backup-before-0.154.0+local.2-4b0a1a1194d1-77ff06a0cbc9",
+    "files": {
+      "codex": {
+        "path": "/Users/viktor/.local/bin/codex",
+        "sha256": "d571e6e415b142a00fc944768213014db0664d21843c2ed342b0db5e7f62f2e6",
+        "size": 298263304
+      },
+      "codex-code-mode-host": {
+        "path": "/Users/viktor/.local/bin/codex-code-mode-host",
+        "sha256": "de5adcf6283a9e701f08cf5478d8a4ef52951a7aeb3a3e1236c99d538d102ce8",
+        "size": 82992392
+      }
+    },
+    "release": null,
+    "sha256": "77ff06a0cbc9c1644034ce87c18fae8ee9381cb0f85be498e6f4b1d510b2e1a7"
+  },
+  "schema_version": 1,
+  "source": {
+    "branch": "work/cache-integration",
+    "cargo_lock": {
+      "path": "/private/tmp/codex-cache-integration/codex-rs/Cargo.lock",
+      "sha256": "1b156583cbd2be423252c8bec30e898ac15dc8739cc5ed4bf1c1a09d8ded1261",
+      "size": 408306
+    },
+    "clean": true,
+    "commit": "4b0a1a1194d1393680c9dca1d75cb9b8ecb17de7",
+    "expected_version": "0.154.0+local.2",
+    "path": "/private/tmp/codex-cache-integration"
+  },
+  "status": "installed",
+  "timestamps": {
+    "australia_sydney": "2026-09-14T06:41:42.607+10:00",
+    "unix_ms": 1789332102607,
+    "utc": "2026-09-13T20:41:42.607+00:00"
+  }
+}
