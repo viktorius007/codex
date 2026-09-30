@@ -119,21 +119,24 @@ impl<T: HttpTransport> EndpointSession<T> {
         skip_all,
         fields(http.method = %method, api.path = path)
     )]
-    pub(crate) async fn stream_encoded_json_with<C>(
+    pub(crate) async fn stream_encoded_json_with<C, O>(
         &self,
         method: Method,
         path: &str,
         extra_headers: HeaderMap,
-        body: Option<EncodedJsonBody>,
+        body: EncodedJsonBody,
         configure: C,
+        observe: O,
     ) -> Result<StreamResponse, ApiError>
     where
         C: Fn(&mut Request),
+        O: FnOnce(&EncodedJsonBody, &Request),
     {
-        let body = body.map(RequestBody::EncodedJson);
-        let mut request = self.make_request(&method, path, &extra_headers, body.as_ref());
+        let mut request = self.make_request(&method, path, &extra_headers, None);
+        request.body = Some(RequestBody::EncodedJson(body.clone()));
         configure(&mut request);
         let request = request.into_prepared().map_err(TransportError::Build)?;
+        observe(&body, &request);
         let make_request = || request.clone();
 
         let stream = run_with_request_telemetry(
