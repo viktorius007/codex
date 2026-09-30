@@ -129,8 +129,7 @@ async fn empty_timed_yields_stay_inside_one_wait_until_useful_output() -> anyhow
         .await?;
     let wait_task = tokio::spawn(async move {
         CodeModeWaitHandler::new(
-            /*description_override*/ None,
-            /*parameters_override*/ None,
+            /*description_override*/ None, /*parameters_override*/ None,
         )
         .handle(invocation)
         .await
