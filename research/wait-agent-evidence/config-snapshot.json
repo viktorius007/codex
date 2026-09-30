@@ -1,0 +1,15 @@
+{
+  "captured_at": "2026-09-19T23:04:10.996560+00:00",
+  "mtime_ns": 1789857296918897811,
+  "path": "/Users/viktor/.codex/config.toml",
+  "redaction": "Only features.multi_agent_v2 is stored; the full-file SHA-256 binds this selection to the original file without copying unrelated configuration.",
+  "selected_value": {
+    "features": {
+      "multi_agent_v2": {
+        "wait_agent_enabled": false
+      }
+    }
+  },
+  "sha256": "cecafe59b28e9e1b44a429b37f7ce5137ba707cadea2367cb1393e61f0884ce7",
+  "size_bytes": 11387
+}

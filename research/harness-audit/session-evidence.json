@@ -1,0 +1,131 @@
+{
+  "anomalies": [
+    {
+      "calls_without_output": [],
+      "duplicate_call_ids": [],
+      "duplicate_output_ids": [],
+      "file_id": "27c04f21ae8cffed",
+      "outputs_without_call": [],
+      "task_complete": 10,
+      "task_started": 10,
+      "tool_catalog_changed": 2,
+      "turn_aborted": 0
+    },
+    {
+      "calls_without_output": [],
+      "duplicate_call_ids": [],
+      "duplicate_output_ids": [],
+      "file_id": "68c47d9a6531229e",
+      "outputs_without_call": [],
+      "task_complete": 47,
+      "task_started": 48,
+      "tool_catalog_changed": 0,
+      "turn_aborted": 1
+    },
+    {
+      "calls_without_output": [],
+      "duplicate_call_ids": [],
+      "duplicate_output_ids": [],
+      "file_id": "18fb12b01efce0f2",
+      "outputs_without_call": [],
+      "task_complete": 4,
+      "task_started": 4,
+      "tool_catalog_changed": 1,
+      "turn_aborted": 0
+    }
+  ],
+  "completed_item_types": {
+    "AgentMessage:None": 229,
+    "CommandExecution:completed": 1760,
+    "CommandExecution:failed": 148,
+    "ContextCompaction:None": 6,
+    "Extension:None": 146,
+    "FileChange:completed": 140,
+    "McpToolCall:completed": 205,
+    "McpToolCall:failed": 4,
+    "Reasoning:None": 1682,
+    "SubAgentActivity:None": 79,
+    "UserMessage:None": 19
+  },
+  "event_types": {
+    "agent_message": 89,
+    "agent_reasoning": 85,
+    "context_compacted": 1,
+    "item_completed": 4418,
+    "task_complete": 129,
+    "task_started": 130,
+    "thread_settings_applied": 99,
+    "token_count": 1947,
+    "tool_catalog_changed": 3,
+    "turn_aborted": 1,
+    "user_message": 90
+  },
+  "record_types": {
+    "compacted": 8,
+    "event_msg": 6992,
+    "inter_agent_communication_metadata": 68,
+    "response_item": 6102,
+    "session_meta": 39,
+    "token_usage_record": 1923,
+    "turn_context": 136,
+    "world_state": 59
+  },
+  "runtime_log_slice": {
+    "end_utc": "2026-09-23T12:15:38+00:00",
+    "first_row_utc": "2026-09-22T12:57:31+00:00",
+    "last_row_utc": "2026-09-23T12:15:30+00:00",
+    "level_target_counts": {
+      "ERROR:codex_api::endpoint::responses_websocket": 2,
+      "ERROR:rmcp::transport::worker": 6,
+      "WARN:codex_core::responses_retry": 12
+    },
+    "retry_body_marker_counts": {
+      "closed": 5,
+      "timeout": 2,
+      "websocket": 8
+    },
+    "row_count": 20,
+    "row_manifest_sha256": "239a68e8c3db709bb2f3e4780348ba72ab77ac7e56638596bf096d740affba82",
+    "source_line_counts": {
+      "/kache/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rmcp-3.2.0/src/transport/worker.rs:249": 6,
+      "codex-api/src/endpoint/responses_websocket.rs:572": 2,
+      "core/src/responses_retry.rs:156": 7,
+      "core/src/responses_retry.rs:158": 5
+    },
+    "start_utc": "2026-09-22T00:00:00+00:00"
+  },
+  "selection": {
+    "candidate_files": 57,
+    "days_utc": [
+      "22",
+      "23"
+    ],
+    "first_event_utc": "2026-09-22T12:57:30.785Z",
+    "last_event_utc": "2026-09-23T10:37:00.954Z",
+    "last_modified_at_or_before_utc": "2026-09-23T12:15:38+00:00",
+    "manifest_sha256": "985b5008aea7543ccdb04b64ef4233d41908ba91d65a9f771c926177a5ba27fb",
+    "selected_bytes": 77811249,
+    "selected_files": 38,
+    "selected_lines": 15327
+  },
+  "session_versions": {
+    "0.155.1+local.5": 18,
+    "0.156.1+local.6": 21
+  },
+  "tool_call_ids": 1792,
+  "tool_call_items": 1792,
+  "tool_names": {
+    "exec": 1559,
+    "list_agents": 10,
+    "send_message": 59,
+    "sleep": 146,
+    "spawn_agent": 10,
+    "wait": 8
+  },
+  "tool_output_items": 1792,
+  "turn_models": {
+    "codex-auto-review": 90,
+    "gpt-5.6-sol": 14,
+    "gpt-6-sol": 32
+  }
+}

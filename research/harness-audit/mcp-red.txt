@@ -1,0 +1,71 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.15s
+────────────
+ Nextest run ID d2bd0d95-79f6-4658-8224-2a47ac54003d with nextest profile: local
+    Starting 1 test across 3 binaries (4636 tests skipped)
+  TRY 1 FAIL [   2.885s] (───) codex-core::all suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn
+  stdout ───
+
+    running 1 test
+    test suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn ... FAILED
+
+    failures:
+
+    failures:
+        suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2135 filtered out; finished in 2.80s
+
+  stderr ───
+
+    thread 'suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn' (322191521) panicked at core/tests/suite/mcp_optional_startup_grace.rs:91:5:
+    assertion failed: `(left == right)`: the next turn should reconnect and advertise the recovered server tool
+
+    Diff < left / right > :
+     (
+    <    1,
+    <    false,
+    >    2,
+    >    true,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   1.062s] (1/1) codex-core::all suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn
+  stdout ───
+
+    running 1 test
+    test suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn ... FAILED
+
+    failures:
+
+    failures:
+        suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2135 filtered out; finished in 1.03s
+
+  stderr ───
+
+    thread 'suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn' (322203146) panicked at core/tests/suite/mcp_optional_startup_grace.rs:91:5:
+    assertion failed: `(left == right)`: the next turn should reconnect and advertise the recovered server tool
+
+    Diff < left / right > :
+     (
+    <    1,
+    <    false,
+    >    2,
+    >    true,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   3.986s] 1 test run: 0 passed, 1 failed, 4636 skipped
+  TRY 2 FAIL [   1.062s] (1/1) codex-core::all suite::mcp_optional_startup_grace::interrupted_idle_mcp_startup_reconnects_for_next_turn
+error: test run failed
+error: recipe `test` failed on line 88 with exit code 100

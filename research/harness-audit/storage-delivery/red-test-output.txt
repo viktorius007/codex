@@ -1,0 +1,49 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+   Compiling codex-thread-store v0.156.1+local.7 (/private/tmp/codex-harness-audit/storage/codex-rs/thread-store)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.86s
+────────────
+ Nextest run ID 830081d3-e913-467c-9cd2-1d21eb617b72 with nextest profile: local
+    Starting 1 test across 1 binary (256 tests skipped)
+  TRY 1 FAIL [   0.270s] (───) codex-thread-store local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable
+  stdout ───
+
+    running 1 test
+    test local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable ... FAILED
+
+    failures:
+
+    failures:
+        local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 256 filtered out; finished in 0.25s
+
+  stderr ───
+
+    thread 'local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable' (320722384) panicked at thread-store/src/local/archive_thread.rs:463:14:
+    archive crash must leave model context resumable by id: InvalidRequest { message: "no rollout found for thread id 00000000-0000-0000-0000-0000000000d0" }
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.301s] (1/1) codex-thread-store local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable
+  stdout ───
+
+    running 1 test
+    test local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable ... FAILED
+
+    failures:
+
+    failures:
+        local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 256 filtered out; finished in 0.28s
+
+  stderr ───
+
+    thread 'local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable' (320722740) panicked at thread-store/src/local/archive_thread.rs:463:14:
+    archive crash must leave model context resumable by id: InvalidRequest { message: "no rollout found for thread id 00000000-0000-0000-0000-0000000000d0" }
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.578s] 1 test run: 0 passed, 1 failed, 256 skipped
+  TRY 2 FAIL [   0.301s] (1/1) codex-thread-store local::archive_thread::tests::archive_crash_after_rename_keeps_paginated_context_resumable
+error: test run failed
+error: recipe `test` failed on line 88 with exit code 100

@@ -1,0 +1,40 @@
+{
+  "candidate_pair_sha256": "2d67b2751291ce586631a9dcfe5602e193471725484ceeba01bdb04868a967c8",
+  "candidate_profile": "target/dev-small",
+  "candidates": {
+    "codex": {
+      "path": "/Users/viktor/Projects/github/codex/codex-rs/target/dev-small/codex",
+      "sha256": "0f5aa1959f03cddd201970636d002ee1bbe38727be3454b9842577dd3ace5783",
+      "size": 355322480
+    },
+    "codex-code-mode-host": {
+      "path": "/Users/viktor/Projects/github/codex/codex-rs/target/dev-small/codex-code-mode-host",
+      "sha256": "142c7e98c5fff36fb23ea706d5833d1a8f5c4a2b41b01a56c155d4513bd26f0d",
+      "size": 91729392
+    }
+  },
+  "install": {
+    "base": "/Users/viktor/.local/lib/codex-local",
+    "bin_dir": "/Users/viktor/.local/bin",
+    "public_links": {
+      "codex": "/Users/viktor/.local/bin/codex",
+      "codex-code-mode-host": "/Users/viktor/.local/bin/codex-code-mode-host"
+    },
+    "release": "/Users/viktor/.local/lib/codex-local/0.154.0+local.3-ffde91b0c522-2d67b2751291"
+  },
+  "previous_release": "/Users/viktor/.local/lib/codex-local/0.154.0+local.2-4b0a1a1194d1-e72c8235743f",
+  "reported_version": "codex-cli 0.154.0+local.3",
+  "schema_version": 1,
+  "source": {
+    "branch": "local/customizations",
+    "clean": true,
+    "commit": "ffde91b0c52241cf0b746fe3524c52b82ddd099a",
+    "expected_version": "0.154.0+local.3",
+    "path": "/Users/viktor/Projects/github/codex"
+  },
+  "status": "installed",
+  "timestamps": {
+    "unix_ms": 1789365923434,
+    "utc": "2026-09-14T06:05:23.429176+00:00"
+  }
+}

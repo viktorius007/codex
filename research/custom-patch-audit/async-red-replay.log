@@ -1,0 +1,208 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s
+────────────
+ Nextest run ID bb6f4e89-b087-4aa1-939b-710dea12ac06 with nextest profile: local
+    Starting 3 tests across 3 binaries (4633 tests skipped)
+  TRY 1 FAIL [   0.322s] (───) codex-core unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion
+  stdout ───
+
+    running 1 test
+    test unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion ... FAILED
+
+    failures:
+
+    failures:
+        unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2596 filtered out; finished in 0.30s
+
+  stderr ───
+    WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+
+    thread 'unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion' (313047657) panicked at core/src/unified_exec/mod_tests.rs:915:5:
+    assertion failed: `(left == right)`: terminal write_stdin already delivered exit; watcher must not enqueue it again
+
+    Diff < left / right > :
+    <[
+    <    ResponseItem(
+    <        ResponseItemEnvelope {
+    <            item: Message {
+    <                id: None,
+    <                role: "user",
+    <                content: [
+    <                    InputText {
+    <                        text: "<exec-command-completed call-id=\"exec-call\" process-id=\"1000\" exit-code=\"0\">\n<command>controlled process</command>\n<output>\n\n</output>\n</exec-command-completed>",
+    <                    },
+    <                ],
+    <                phase: None,
+    <                internal_chat_message_metadata_passthrough: Some(
+    <                    InternalChatMessageMetadataPassthrough {
+    <                        turn_id: None,
+    <                        create_time: None,
+    <                        content_item_kinds: Some(
+    <                            [
+    <                                ContentItemKind(
+    <                                    "exec.completion",
+    <                                ),
+    <                            ],
+    <                        ),
+    <                        cell_id: None,
+    <                        executed_tool_calls: None,
+    <                        tool_calls_complete: None,
+    <                    },
+    <                ),
+    <            },
+    <            metadata: None,
+    <        },
+    <    ),
+    <]
+    >[]
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   0.323s] (───) codex-core unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit
+  stdout ───
+
+    running 1 test
+    test unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit ... FAILED
+
+    failures:
+
+    failures:
+        unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2596 filtered out; finished in 0.30s
+
+  stderr ───
+    WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+
+    thread 'unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit' (313047658) panicked at core/src/unified_exec/mod_tests.rs:778:5:
+    terminal write_stdin output must disarm the background completion watcher
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   0.324s] (───) codex-core unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit
+  stdout ───
+
+    running 1 test
+    test unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit ... FAILED
+
+    failures:
+
+    failures:
+        unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2596 filtered out; finished in 0.30s
+
+  stderr ───
+    WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+
+    thread 'unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit' (313047656) panicked at core/src/unified_exec/mod_tests.rs:778:5:
+    terminal write_stdin output must disarm the background completion watcher
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.304s] (1/3) codex-core unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion
+  stdout ───
+
+    running 1 test
+    test unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion ... FAILED
+
+    failures:
+
+    failures:
+        unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2596 filtered out; finished in 0.28s
+
+  stderr ───
+    WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+
+    thread 'unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion' (313047839) panicked at core/src/unified_exec/mod_tests.rs:915:5:
+    assertion failed: `(left == right)`: terminal write_stdin already delivered exit; watcher must not enqueue it again
+
+    Diff < left / right > :
+    <[
+    <    ResponseItem(
+    <        ResponseItemEnvelope {
+    <            item: Message {
+    <                id: None,
+    <                role: "user",
+    <                content: [
+    <                    InputText {
+    <                        text: "<exec-command-completed call-id=\"exec-call\" process-id=\"1000\" exit-code=\"0\">\n<command>controlled process</command>\n<output>\n\n</output>\n</exec-command-completed>",
+    <                    },
+    <                ],
+    <                phase: None,
+    <                internal_chat_message_metadata_passthrough: Some(
+    <                    InternalChatMessageMetadataPassthrough {
+    <                        turn_id: None,
+    <                        create_time: None,
+    <                        content_item_kinds: Some(
+    <                            [
+    <                                ContentItemKind(
+    <                                    "exec.completion",
+    <                                ),
+    <                            ],
+    <                        ),
+    <                        cell_id: None,
+    <                        executed_tool_calls: None,
+    <                        tool_calls_complete: None,
+    <                    },
+    <                ),
+    <            },
+    <            metadata: None,
+    <        },
+    <    ),
+    <]
+    >[]
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.309s] (2/3) codex-core unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit
+  stdout ───
+
+    running 1 test
+    test unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit ... FAILED
+
+    failures:
+
+    failures:
+        unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2596 filtered out; finished in 0.29s
+
+  stderr ───
+    WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+
+    thread 'unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit' (313047840) panicked at core/src/unified_exec/mod_tests.rs:778:5:
+    terminal write_stdin output must disarm the background completion watcher
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.309s] (3/3) codex-core unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit
+  stdout ───
+
+    running 1 test
+    test unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit ... FAILED
+
+    failures:
+
+    failures:
+        unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2596 filtered out; finished in 0.29s
+
+  stderr ───
+    WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)
+
+    thread 'unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit' (313047838) panicked at core/src/unified_exec/mod_tests.rs:778:5:
+    terminal write_stdin output must disarm the background completion watcher
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.662s] 3 tests run: 0 passed, 3 failed, 4633 skipped
+  TRY 2 FAIL [   0.304s] (1/3) codex-core unified_exec::tests::terminal_write_stdin_does_not_queue_duplicate_exec_completion
+  TRY 2 FAIL [   0.309s] (2/3) codex-core unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::removed_before_exit
+  TRY 2 FAIL [   0.309s] (3/3) codex-core unified_exec::tests::terminal_write_stdin_does_not_leave_exec_completion_armed::normal_exit
+error: test run failed
+error: recipe `test` failed on line 88 with exit code 100
