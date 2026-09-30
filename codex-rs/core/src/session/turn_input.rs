@@ -579,6 +579,7 @@ async fn start_if_idle(
     let sender_messages = capture_sender_user_messages(session, &mut input).await;
     match kind {
         TurnStartKind::User => {
+            task_input.extend(session.input_queue.drain_next_async_results().await);
             session.clear_connector_selection().await;
             task_input.push(
                 pending_turn_input(
@@ -757,7 +758,7 @@ impl Session {
         Some(configuration.clone())
     }
 
-    async fn should_wake_on_agent_messages(&self) -> bool {
+    pub(crate) async fn should_wake_on_agent_messages(&self) -> bool {
         if !self.features.enabled(Feature::WakeOnAgentMessages)
             || self.is_interrupted()
             || !self.input_queue.has_pending_mailbox_items().await
@@ -819,7 +820,10 @@ impl Session {
         Ok(())
     }
 
-    async fn clear_reserved_idle_turn(&self, turn_state: &Arc<tokio::sync::Mutex<TurnState>>) {
+    pub(crate) async fn clear_reserved_idle_turn(
+        &self,
+        turn_state: &Arc<tokio::sync::Mutex<TurnState>>,
+    ) {
         let mut active_turn_guard = self.active_turn.lock().await;
         if let Some(active_turn) = active_turn_guard.as_ref()
             && active_turn.task.is_none()

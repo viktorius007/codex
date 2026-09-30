@@ -70,6 +70,14 @@ impl ExtensionData {
         &self.level_id
     }
 
+    /// Freezes the current attachment map while sharing the attached values.
+    pub fn snapshot(&self) -> Self {
+        Self {
+            level_id: self.level_id.clone(),
+            entries: Mutex::new(self.entries().clone()),
+        }
+    }
+
     /// Returns the attached value of type `T`, if one exists.
     pub fn get<T>(&self) -> Option<Arc<T>>
     where

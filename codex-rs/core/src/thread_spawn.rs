@@ -156,6 +156,10 @@ pub(crate) async fn spawn(
                 disabled_plugin_ids: Some(turn.disabled_plugin_ids.clone()),
                 multi_agent_v2_usage_hints,
                 cyber_access_program: turn.cyber_access_program,
+                parent_async_result_origin: Some(crate::agent::control::ParentAsyncResultOrigin {
+                    parent_turn_id: turn.sub_id.clone(),
+                    origin: Arc::new(turn.extension_data.snapshot()),
+                }),
             },
         })
         .await?;
