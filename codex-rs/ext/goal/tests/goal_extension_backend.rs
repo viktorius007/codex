@@ -9,6 +9,8 @@ use std::sync::Weak;
 use std::time::Duration;
 
 use codex_analytics::AnalyticsEventsClient;
+use codex_extension_api::AsyncResultAdmissionCandidate;
+use codex_extension_api::AsyncResultAdmissionInput;
 use codex_extension_api::ExtensionData;
 use codex_extension_api::ExtensionEventSink;
 use codex_extension_api::ExtensionRegistryBuilder;
@@ -95,6 +97,93 @@ async fn installed_goal_tools_create_goal_and_fill_empty_preview() -> anyhow::Re
         metadata.preview.as_deref(),
         Some("ship goal extension backend")
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn async_result_admission_accepts_two_results_owned_by_the_active_goal() -> anyhow::Result<()>
+{
+    let runtime = test_runtime().await?;
+    let thread_id = test_thread_id()?;
+    seed_thread_metadata(runtime.as_ref(), thread_id).await?;
+    let harness = GoalExtensionHarness::new(runtime, thread_id).await?;
+    tool_by_name(&harness.tools(), "create_goal")
+        .handle(tool_call(
+            "create_goal",
+            "call-create-goal",
+            json!({ "objective": "admit owned results" }),
+        ))
+        .await?;
+    let first = harness.start_turn("owned-1", &TokenUsage::default()).await;
+    let second = harness.start_turn("owned-2", &TokenUsage::default()).await;
+    let candidates = [
+        AsyncResultAdmissionCandidate {
+            id: 1,
+            origin_turn_store: &first,
+        },
+        AsyncResultAdmissionCandidate {
+            id: 2,
+            origin_turn_store: &second,
+        },
+    ];
+
+    let (admitted, permits) = harness
+        .registry
+        .admit_async_results(AsyncResultAdmissionInput {
+            candidates: &candidates,
+            thread_store: &harness.thread_store,
+        })
+        .await;
+
+    assert_eq!(admitted, vec![1, 2]);
+    assert_eq!(permits.len(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn paused_goal_denies_owned_result_without_blocking_unrelated_result() -> anyhow::Result<()> {
+    let runtime = test_runtime().await?;
+    let thread_id = test_thread_id()?;
+    seed_thread_metadata(runtime.as_ref(), thread_id).await?;
+    let harness = GoalExtensionHarness::new(runtime, thread_id).await?;
+    let tools = harness.tools();
+    tool_by_name(&tools, "create_goal")
+        .handle(tool_call(
+            "create_goal",
+            "call-create-goal",
+            json!({ "objective": "pause owned work" }),
+        ))
+        .await?;
+    let owned = harness.start_turn("owned", &TokenUsage::default()).await;
+    tool_by_name(&tools, "update_goal")
+        .handle(tool_call(
+            "update_goal",
+            "call-pause-goal",
+            json!({ "status": "paused" }),
+        ))
+        .await?;
+    let unrelated = ExtensionData::new("unrelated");
+    let candidates = [
+        AsyncResultAdmissionCandidate {
+            id: 10,
+            origin_turn_store: &owned,
+        },
+        AsyncResultAdmissionCandidate {
+            id: 11,
+            origin_turn_store: &unrelated,
+        },
+    ];
+
+    let (admitted, permits) = harness
+        .registry
+        .admit_async_results(AsyncResultAdmissionInput {
+            candidates: &candidates,
+            thread_store: &harness.thread_store,
+        })
+        .await;
+
+    assert_eq!(admitted, vec![11]);
+    assert_eq!(permits.len(), 1);
     Ok(())
 }
 
@@ -1765,12 +1854,17 @@ impl GoalExtensionHarness {
             .collect()
     }
 
-    async fn start_turn(&self, turn_id: &str, usage: &TokenUsage) {
+    async fn start_turn(&self, turn_id: &str, usage: &TokenUsage) -> ExtensionData {
         self.start_turn_with_mode(turn_id, ModeKind::Default, usage)
-            .await;
+            .await
     }
 
-    async fn start_turn_with_mode(&self, turn_id: &str, mode: ModeKind, usage: &TokenUsage) {
+    async fn start_turn_with_mode(
+        &self,
+        turn_id: &str,
+        mode: ModeKind,
+        usage: &TokenUsage,
+    ) -> ExtensionData {
         let turn_store = ExtensionData::new(turn_id);
         let mut collaboration_mode = default_collaboration_mode();
         collaboration_mode.mode = mode;
@@ -1786,6 +1880,7 @@ impl GoalExtensionHarness {
                 })
                 .await;
         }
+        turn_store
     }
 
     async fn stop_turn(&self, turn_id: &str) {
