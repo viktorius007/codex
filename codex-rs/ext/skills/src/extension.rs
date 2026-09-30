@@ -71,6 +71,7 @@ use crate::state::SkillsTurnState;
 use crate::telemetry::SkillTelemetry;
 use crate::tools::SkillAnalytics;
 use crate::tools::SkillToolAuthority;
+use crate::tools::SkillToolCatalogInputs;
 use crate::tools::skill_tools;
 use crate::warnings::bounded_warnings;
 use crate::world_state::CLOUD_SKILLS_WORLD_STATE_ID;
@@ -300,7 +301,7 @@ where
         self.build_skill_tools(
             session_store,
             thread_store,
-            /*executor_query*/ None,
+            SkillToolCatalogInputs::default(),
             /*selected_plugins*/ None,
             /*sandbox_contexts*/ None,
         )
@@ -335,7 +336,11 @@ where
         self.build_skill_tools(
             session_store,
             thread_store,
-            executor_query,
+            SkillToolCatalogInputs {
+                executor_query,
+                host_snapshot: step_store.get::<HostSkillsSnapshot>(),
+                host_catalog: step_store.get::<HostSkillsStepState>(),
+            },
             step_store.get::<SelectedPluginSnapshot>(),
             step_store.get::<HashMap<String, FileSystemSandboxContext>>(),
         )
@@ -580,7 +585,7 @@ impl<C> SkillsExtension<C> {
         &self,
         session_store: &ExtensionData,
         thread_store: &ExtensionData,
-        executor_query: Option<SkillListQuery>,
+        catalog_inputs: SkillToolCatalogInputs,
         selected_plugins: Option<Arc<SelectedPluginSnapshot>>,
         sandbox_contexts: Option<Arc<HashMap<String, FileSystemSandboxContext>>>,
     ) -> Vec<Arc<dyn for<'call> ToolExecutor<ToolCall<'call>>>> {
@@ -588,7 +593,7 @@ impl<C> SkillsExtension<C> {
             self.providers.clone(),
             session_store,
             thread_store,
-            executor_query,
+            catalog_inputs,
             selected_plugins,
             sandbox_contexts,
             Arc::clone(&self.shadow_selection),

@@ -268,6 +268,10 @@ impl SkillCatalogEntry {
             .unwrap_or_else(|| self.main_prompt.as_str())
     }
 
+    pub(crate) fn is_plugin_package(&self) -> bool {
+        self.authority.kind == SkillSourceKind::Host && self.plugin_id.is_some()
+    }
+
     pub(crate) fn alias_root(&self) -> Option<&str> {
         self.alias_root.as_deref()
     }
