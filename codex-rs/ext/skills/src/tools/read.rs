@@ -107,10 +107,23 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                         && SkillToolAuthority::from_authority(&entry.authority)
                             .is_some_and(|authority| authority.selector() == selector)
                 }) {
-                    selected_skill = Some((entry, selector));
+                    selected_skill = Some((entry, Some(selector)));
                     break;
                 }
             }
+            selected_skill = selected_skill.or_else(|| {
+                self.context.host_catalog.as_ref().and_then(|catalog| {
+                    catalog
+                        .0
+                        .entries
+                        .iter()
+                        .find(|entry| {
+                            entry.enabled && entry.is_plugin_package() && entry.id.0 == args.package
+                        })
+                        .cloned()
+                        .map(|entry| (entry, None))
+                })
+            });
             let Some((skill_entry, output_authority)) = selected_skill else {
                 return Err(FunctionCallError::RespondToModel(
                     "skill package is not available".to_string(),
@@ -127,13 +140,14 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     .unwrap_or_else(|| SkillResourceId::new(resource)),
             };
             let (context, access_key) = match output_authority {
-                SkillToolAuthoritySelector::Cloud => (
+                None => (SkillReadContext::Host { host_snapshot: self.context.host_snapshot.clone() }, None),
+                Some(SkillToolAuthoritySelector::Cloud) => (
                     SkillReadContext::Cloud {
                         mcp_resources: self.context.mcp_resources.clone(),
                     },
                     None,
                 ),
-                SkillToolAuthoritySelector::Executor => {
+                Some(SkillToolAuthoritySelector::Executor) => {
                     let fs = requested_resource
                         .environment_path()
                         .and_then(|(id, _)| {
@@ -208,7 +222,7 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                             "skill provider returned a different resource".to_string(),
                         ));
                     }
-                    if output_authority == super::SkillToolAuthoritySelector::Cloud
+                    if output_authority == Some(super::SkillToolAuthoritySelector::Cloud)
                         && let Some(state) = self
                             .context
                             .thread_state
@@ -229,14 +243,15 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     "skills.read cursor is invalid".to_string(),
                 ));
             }
-            let skill_root = if output_authority == super::SkillToolAuthoritySelector::Executor {
-                main_prompt
-                    .environment_path()
-                    .and_then(|(_, path)| path.parent())
-                    .map(|path| path.inferred_native_path_string())
-            } else {
-                None
-            };
+            let skill_root =
+                if output_authority == Some(super::SkillToolAuthoritySelector::Executor) {
+                    main_prompt
+                        .environment_path()
+                        .and_then(|(_, path)| path.parent())
+                        .map(|path| path.inferred_native_path_string())
+                } else {
+                    None
+                };
             let response = page_response(
                 result.resource.as_str(),
                 &result.contents,
@@ -244,8 +259,11 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                 start,
                 response_byte_budget,
             )?;
-            let output = skill_json_output(&response, output_authority)?;
-            if output_authority == super::SkillToolAuthoritySelector::Executor
+            let output = skill_json_output(
+                &response,
+                output_authority.unwrap_or(super::SkillToolAuthoritySelector::Executor),
+            )?;
+            if output_authority == Some(super::SkillToolAuthoritySelector::Executor)
                 && response.next_cursor.is_some()
                 && result.contents.len() <= MAX_SKILL_RESOURCE_CONTENT_BYTES
                 && let Some(access) = access_key

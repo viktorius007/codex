@@ -1,6 +1,11 @@
 use std::collections::HashMap;
+use std::path::Component;
+use std::path::Path;
+use std::sync::Arc;
 
 use crate::SkillLoadOutcome;
+use codex_exec_server::LOCAL_FS;
+use codex_exec_server::ReadFileOptions;
 use codex_skills::SkillMetadata;
 use codex_utils_path_uri::PathUri;
 
@@ -61,17 +66,67 @@ impl SkillProvider for HostSkillProvider {
                     "host skill provider requires a host skills snapshot",
                 ));
             };
-            // TODO(anp): Infer resource path conventions once foreign repository paths can reach this
-            // provider. Despite its name, it also serves repository skills from the caller's environment;
-            // the loader currently rejects foreign paths. Host-owned skills use the app-server's local
-            // filesystem.
-            let resource_path = PathUri::from_host_native_path(request.resource.as_str()).ok();
-            let Some(skill) = host_snapshot
-                .outcome()
-                .skills
-                .iter()
-                .find(|skill| Some(&skill.path_to_skills_md) == resource_path.as_ref())
-            else {
+            let outcome = host_snapshot.outcome();
+            if let Some(skill) = outcome.skills.iter().find(|skill| {
+                plugin_skill_locator(outcome, skill)
+                    .is_some_and(|(package, _)| package == request.package)
+            }) {
+                let outside_package = || {
+                    SkillProviderError::new(format!(
+                        "host skill resource is outside its package: {}",
+                        request.resource.as_str()
+                    ))
+                };
+                let read_error = || {
+                    SkillProviderError::new(format!(
+                        "failed to read host skill resource {}",
+                        request.resource.as_str()
+                    ))
+                };
+                let relative_resource = request
+                    .package
+                    .relative_resource_path(request.resource.as_str())
+                    .ok_or_else(&outside_package)?;
+                let relative_path = Path::new(relative_resource);
+                if !relative_path
+                    .components()
+                    .all(|component| matches!(component, Component::Normal(_)))
+                {
+                    return Err(outside_package());
+                }
+                let package_root = skill.path_to_skills_md.parent().ok_or_else(|| {
+                    SkillProviderError::new("host skill package has no parent directory")
+                })?;
+                let requested_path = package_root.join(relative_resource).map_err(|_| outside_package())?;
+                let file_system = outcome
+                    .file_system_for_skill(skill)
+                    .unwrap_or_else(|| Arc::clone(&LOCAL_FS));
+                let resource = file_system
+                    .canonicalize(
+                        &requested_path,
+                        /*sandbox*/ None,
+                    )
+                    .await
+                    .map_err(|_| read_error())?;
+                if !resource.starts_with(&package_root) {
+                    return Err(outside_package());
+                }
+                let contents = file_system
+                    .read_file_text(&resource, ReadFileOptions::default(), /*sandbox*/ None)
+                    .await
+                    .map_err(|_| read_error())?;
+
+                return Ok(SkillReadResult {
+                    resource: request.resource,
+                    contents,
+                });
+            }
+
+            let Some(skill) = outcome.skills.iter().find(|skill| {
+                let skill_path = skill.path_to_skills_md.inferred_native_path_string();
+                skill_path == request.resource.as_str()
+                    || skill_path.replace('\\', "/") == request.resource.as_str()
+            }) else {
                 return Err(SkillProviderError::new(format!(
                     "host skill resource is not loaded: {}",
                     request.resource.as_str()
@@ -119,22 +174,19 @@ fn catalog_from_outcome(outcome: &SkillLoadOutcome) -> SkillCatalog {
     };
 
     for (skill, enabled) in outcome.skills_with_enabled() {
-        let mut entry = catalog_entry_from_skill(skill, enabled);
-        if let Some(discovery_path) =
-            outcome.skill_discovery_path_for_path(&skill.path_to_skills_md)
-        {
-            // Keep the catalog's existing forward-slash display on Windows; lookups use PathUri.
-            entry = entry.with_display_path(
-                discovery_path
-                    .inferred_native_path_string()
-                    .replace('\\', "/"),
-            );
-        }
-        if let Some(root) = outcome.skill_root_for_path(&skill.path_to_skills_md) {
-            // Alias labels share the display path's separators so catalog rendering stays stable.
-            entry = entry.with_alias_root(root.to_string_lossy().replace('\\', "/"));
-            if let Some(root_order) = root_order_by_path.get(root.as_path()) {
-                entry = entry.with_alias_root_order(*root_order);
+        let mut entry = catalog_entry_from_skill(outcome, skill, enabled);
+        if !entry.is_plugin_package() {
+            if let Some(discovery_path) =
+                outcome.skill_discovery_path_for_path(&skill.path_to_skills_md)
+            {
+                entry =
+                    entry.with_display_path(discovery_path.inferred_native_path_string().replace('\\', "/"));
+            }
+            if let Some(root) = outcome.skill_root_for_path(&skill.path_to_skills_md) {
+                entry = entry.with_alias_root(root.to_string_lossy().replace('\\', "/"));
+                if let Some(root_order) = root_order_by_path.get(root.as_path()) {
+                    entry = entry.with_alias_root_order(*root_order);
+                }
             }
         }
         catalog.push_entry(entry);
@@ -143,21 +195,35 @@ fn catalog_from_outcome(outcome: &SkillLoadOutcome) -> SkillCatalog {
     catalog
 }
 
-fn catalog_entry_from_skill(skill: &SkillMetadata, enabled: bool) -> SkillCatalogEntry {
+fn catalog_entry_from_skill(
+    outcome: &SkillLoadOutcome,
+    skill: &SkillMetadata,
+    enabled: bool,
+) -> SkillCatalogEntry {
     let skill_path = skill.path_to_skills_md.inferred_native_path_string();
-    // Preserve model-visible paths while resource IDs retain the native spelling used by clients.
     let display_path = skill_path.replace('\\', "/");
+    let plugin_locator = plugin_skill_locator(outcome, skill);
+    let is_plugin_package = plugin_locator.is_some();
+    let (package, main_prompt) = plugin_locator.unwrap_or_else(|| {
+        (
+            SkillPackageId(skill_path.clone()),
+            SkillResourceId::new(skill_path),
+        )
+    });
     let mut entry = SkillCatalogEntry::new(
-        SkillPackageId(skill_path.clone()),
+        package,
         SkillAuthority::new(SkillSourceKind::Host, HOST_AUTHORITY_ID),
         skill.name.clone(),
         skill.description.clone(),
-        SkillResourceId::new(skill_path),
+        main_prompt,
     )
     .with_short_description(skill.short_description.clone())
-    .with_display_path(display_path)
     .with_prompt_scope(skill.scope)
     .with_dependencies(skill.dependencies.clone());
+    entry.plugin_id = skill.plugin_id.clone();
+    if !is_plugin_package {
+        entry = entry.with_display_path(display_path);
+    }
 
     if !enabled {
         entry = entry.disabled();
@@ -167,6 +233,24 @@ fn catalog_entry_from_skill(skill: &SkillMetadata, enabled: bool) -> SkillCatalo
     }
 
     entry
+}
+
+fn plugin_skill_locator(
+    outcome: &SkillLoadOutcome,
+    skill: &SkillMetadata,
+) -> Option<(SkillPackageId, SkillResourceId)> {
+    let plugin_id = skill.plugin_id.as_deref()?;
+    let root = outcome.skill_root_for_path(&skill.path_to_skills_md)?;
+    let root = PathUri::from_abs_path(root);
+    let directory = skill.path_to_skills_md.parent()?;
+    let relative_directory = directory.relative_path_from(&root)?;
+    let package = if relative_directory.is_empty() {
+        format!("skill://{plugin_id}")
+    } else {
+        format!("skill://{plugin_id}/{relative_directory}")
+    };
+    let resource = format!("{package}/SKILL.md");
+    Some((SkillPackageId(package), SkillResourceId::new(resource)))
 }
 
 #[cfg(test)]
