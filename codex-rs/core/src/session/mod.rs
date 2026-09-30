@@ -1705,6 +1705,7 @@ impl Session {
     ) -> Option<PreviousTurnSettings> {
         let rollout_reconstruction::RolloutReconstruction {
             mut history,
+            accepted_token_usage,
             retained_context,
             guardian_history,
             last_started_turn_id,
@@ -1752,6 +1753,11 @@ impl Session {
         let context = crate::guardian::GuardianReviewContext::from(turn_context);
         let (_, reviewer) = crate::guardian::resolve_review_model(self, &context).await;
         let reviewer_compaction_hash = reviewer.comp_hash.clone();
+        let fallback_base_instructions = if accepted_token_usage.is_none() {
+            Some(self.get_base_instructions().await)
+        } else {
+            None
+        };
         {
             let mut state = self.state.lock().await;
             state.replace_annotated_history(
@@ -1759,6 +1765,23 @@ impl Session {
                 reference_context_item,
                 HistoryReplacement::Reset,
             );
+            let accepted_token_usage = accepted_token_usage.or_else(|| {
+                let base_instructions = fallback_base_instructions.as_ref()?;
+                let estimated_total_tokens = state
+                    .history
+                    .estimate_token_count_with_base_instructions(base_instructions)?;
+                Some(crate::context_manager::AcceptedTokenUsage::fully_accounted(
+                    TokenUsage {
+                        total_tokens: estimated_total_tokens.max(0),
+                        ..TokenUsage::default()
+                    },
+                    state.history.annotated_items().len(),
+                ))
+            });
+            let token_info = state.token_info();
+            state
+                .history
+                .set_token_info_and_accepted_usage(token_info, accepted_token_usage);
             state.history.restore_review_context(
                 Some(&retained_context),
                 guardian_history.as_ref(),
@@ -4849,37 +4872,21 @@ impl Session {
     }
 
     pub(crate) async fn recompute_token_usage(&self, turn_context: &TurnContext) {
-        let history = self.clone_history().await;
         let base_instructions = self.get_base_instructions().await;
-        let Some(estimated_total_tokens) =
-            history.estimate_token_count_with_base_instructions(&base_instructions)
-        else {
-            return;
-        };
-        {
+        let estimated_total_tokens = {
             let mut state = self.state.lock().await;
-            let mut info = state.token_info().unwrap_or(TokenUsageInfo {
-                total_token_usage: TokenUsage::default(),
-                last_token_usage: TokenUsage::default(),
-                model_context_window: None,
-            });
-
-            info.last_token_usage = TokenUsage {
-                input_tokens: 0,
-                cached_input_tokens: 0,
-                cache_write_input_tokens: 0,
-                output_tokens: 0,
-                reasoning_output_tokens: 0,
-                total_tokens: estimated_total_tokens.max(0),
-                codex_rollout_budget_units: None,
+            let Some(estimated_total_tokens) = state
+                .history
+                .estimate_token_count_with_base_instructions(&base_instructions)
+            else {
+                return;
             };
-
-            if let Some(model_context_window) = turn_context.model_context_window() {
-                info.model_context_window = Some(model_context_window);
-            }
-
-            state.set_token_info(Some(info));
-        }
+            state.set_recomputed_token_usage(
+                estimated_total_tokens,
+                turn_context.model_context_window(),
+            );
+            estimated_total_tokens
+        };
         self.set_auto_compact_window_estimated_prefill_for_scope(
             turn_context,
             estimated_total_tokens,

@@ -108,6 +108,7 @@ pub(crate) struct ContextManager {
     /// Process-unique so resumed roots cannot match a worker's cached assistant evidence.
     guardian_review_context_revision: u64,
     token_info: Option<TokenUsageInfo>,
+    accepted_token_usage: Option<AcceptedTokenUsage>,
     /// Reference context snapshot used for diffing and producing model-visible
     /// settings update items.
     ///
@@ -122,6 +123,37 @@ pub(crate) struct ContextManager {
     /// World-state comparison checkpoint. After compaction this may contain only
     /// extension metadata, with model-visible context still awaiting reinjection.
     world_state_baseline: Option<WorldStateSnapshot>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct AcceptedTokenUsage {
+    usage: TokenUsage,
+    history_boundary: usize,
+    reasoning_accounting: AcceptedUsageReasoningAccounting,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum AcceptedUsageReasoningAccounting {
+    RequiresCompatibilityEstimate,
+    Included,
+}
+
+impl AcceptedTokenUsage {
+    pub(crate) fn server_reported(usage: TokenUsage, history_boundary: usize) -> Self {
+        Self {
+            usage,
+            history_boundary,
+            reasoning_accounting: AcceptedUsageReasoningAccounting::RequiresCompatibilityEstimate,
+        }
+    }
+
+    pub(crate) fn fully_accounted(usage: TokenUsage, history_boundary: usize) -> Self {
+        Self {
+            usage,
+            history_boundary,
+            reasoning_accounting: AcceptedUsageReasoningAccounting::Included,
+        }
+    }
 }
 
 struct SharedConversationHistory {
@@ -244,6 +276,7 @@ impl ContextManager {
             token_info: TokenUsageInfo::new_or_append(
                 &None, &None, /*model_context_window*/ None,
             ),
+            accepted_token_usage: None,
             reference_context_item: None,
             world_state_baseline: None,
         }
@@ -435,6 +468,20 @@ impl ContextManager {
         self.token_info = info;
     }
 
+    pub(crate) fn set_token_info_and_accepted_usage(
+        &mut self,
+        info: Option<TokenUsageInfo>,
+        accepted_usage: Option<AcceptedTokenUsage>,
+    ) {
+        debug_assert!(
+            accepted_usage
+                .as_ref()
+                .is_none_or(|accepted| accepted.history_boundary <= self.items.len())
+        );
+        self.token_info = info;
+        self.accepted_token_usage = accepted_usage;
+    }
+
     pub(crate) fn set_reference_context_item(&mut self, item: Option<TurnContextItem>) {
         self.reference_context_item = item;
     }
@@ -479,6 +526,12 @@ impl ContextManager {
                 self.token_info = Some(TokenUsageInfo::full_context_window(context_window));
             }
         }
+        let usage = TokenUsage {
+            total_tokens: context_window,
+            ..TokenUsage::default()
+        };
+        self.accepted_token_usage =
+            Some(AcceptedTokenUsage::fully_accounted(usage, self.items.len()));
     }
 
     /// `items` is ordered from oldest to newest.
@@ -657,6 +710,7 @@ impl ContextManager {
             // its corresponding counterpart to keep the invariants intact without
             // running a full normalization pass.
             normalize::remove_corresponding_for(items, &removed.item);
+            self.accepted_token_usage = None;
             self.world_state_baseline = None;
         }
     }
@@ -677,6 +731,7 @@ impl ContextManager {
             );
         }
         self.items = Arc::new(items);
+        self.accepted_token_usage = None;
         self.history_version = self.history_version.saturating_add(1);
         self.reset_version = self.history_version;
         self.world_state_baseline = None;
@@ -715,6 +770,7 @@ impl ContextManager {
             self.review_history = Some(retained);
         }
         self.items = Arc::new(items);
+        self.accepted_token_usage = None;
         self.history_version = self.history_version.saturating_add(1);
         if promoted {
             self.reset_version = self.history_version;
@@ -858,10 +914,19 @@ impl ContextManager {
             &Some(usage.clone()),
             model_context_window,
         );
+        self.accepted_token_usage = Some(AcceptedTokenUsage::server_reported(
+            usage.clone(),
+            self.items.len(),
+        ));
     }
 
     fn get_non_last_reasoning_items_tokens(&self) -> i64 {
-        // Get reasoning items excluding all the ones after the last instruction boundary.
+        // Post-boundary reasoning is already included in the local item estimate below. Limit this
+        // server-compatibility adjustment to the accepted prefix so it is not counted twice.
+        let accepted_history_items = self
+            .accepted_token_usage
+            .as_ref()
+            .map_or(self.items.len(), |accepted| accepted.history_boundary);
         let Some(last_user_index) = self
             .items
             .iter()
@@ -872,7 +937,7 @@ impl ContextManager {
 
         self.items
             .iter()
-            .take(last_user_index)
+            .take(last_user_index.min(accepted_history_items))
             .filter(|envelope| {
                 matches!(
                     &envelope.item,
@@ -884,6 +949,16 @@ impl ContextManager {
             })
             .map(|envelope| estimate_item_token_count(&envelope.item))
             .fold(0i64, i64::saturating_add)
+    }
+
+    fn items_after_accepted_token_usage(
+        &self,
+    ) -> impl Clone + ExactSizeIterator<Item = &ResponseItem> + DoubleEndedIterator {
+        let start = self
+            .accepted_token_usage
+            .as_ref()
+            .map_or(0, |accepted| accepted.history_boundary);
+        self.items[start..].iter().map(|envelope| &envelope.item)
     }
 
     // These are local items added after the most recent model-emitted item.
@@ -903,20 +978,26 @@ impl ContextManager {
     /// the client should not re-estimate them.
     pub(crate) fn get_total_token_usage(&self, server_reasoning_included: bool) -> i64 {
         let last_tokens = self
-            .token_info
+            .accepted_token_usage
             .as_ref()
-            .map(|info| info.last_token_usage.total_tokens)
-            .unwrap_or(0);
-        let items_after_last_model_generated_tokens = self
-            .items_after_last_model_generated_item()
+            .map_or(0, |accepted| accepted.usage.total_tokens);
+        let items_after_accepted_token_usage = self
+            .items_after_accepted_token_usage()
             .map(estimate_item_token_count)
             .fold(0i64, i64::saturating_add);
-        if server_reasoning_included {
-            last_tokens.saturating_add(items_after_last_model_generated_tokens)
-        } else {
+        let requires_reasoning_compatibility_estimate =
+            self.accepted_token_usage.as_ref().is_some_and(|accepted| {
+                matches!(
+                    accepted.reasoning_accounting,
+                    AcceptedUsageReasoningAccounting::RequiresCompatibilityEstimate
+                )
+            });
+        if !server_reasoning_included && requires_reasoning_compatibility_estimate {
             last_tokens
                 .saturating_add(self.get_non_last_reasoning_items_tokens())
-                .saturating_add(items_after_last_model_generated_tokens)
+                .saturating_add(items_after_accepted_token_usage)
+        } else {
+            last_tokens.saturating_add(items_after_accepted_token_usage)
         }
     }
 
