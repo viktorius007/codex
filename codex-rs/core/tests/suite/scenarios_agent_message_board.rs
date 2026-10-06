@@ -70,6 +70,114 @@ fn done() -> String {
     ])
 }
 
+async fn mount_board_turn(
+    server: &wiremock::MockServer,
+    thread_id: codex_protocol::ThreadId,
+    prompt: &'static str,
+    call_id: &'static str,
+    response: String,
+) -> (responses::ResponseMock, responses::ResponseMock) {
+    let matches_turn = move |request: &wiremock::Request| {
+        let compressed = request
+            .headers
+            .get("content-encoding")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|encoding| encoding.eq_ignore_ascii_case("zstd"));
+        let bytes = if compressed {
+            zstd::stream::decode_all(std::io::Cursor::new(&request.body)).ok()
+        } else {
+            Some(request.body.clone())
+        };
+        bytes
+            .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+            .filter(|body| {
+                body["client_metadata"]["thread_id"] == json!(thread_id)
+                    && body["input"].to_string().contains(prompt)
+            })
+    };
+    let first = responses::mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            matches_turn(request).is_some_and(|body| {
+                !body["input"]
+                    .as_array()
+                    .expect("turn input")
+                    .iter()
+                    .any(|item| {
+                        item["type"] == "function_call_output" && item["call_id"] == call_id
+                    })
+            })
+        },
+        response,
+    )
+    .await;
+    let second = responses::mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            matches_turn(request).is_some_and(|body| {
+                body["input"]
+                    .as_array()
+                    .expect("turn input")
+                    .iter()
+                    .any(|item| {
+                        item["type"] == "function_call_output" && item["call_id"] == call_id
+                    })
+            })
+        },
+        done(),
+    )
+    .await;
+    (first, second)
+}
+
+async fn mount_parent_completion(
+    server: &wiremock::MockServer,
+    root_id: codex_protocol::ThreadId,
+) -> oneshot::Receiver<String> {
+    let (sender, receiver) = oneshot::channel();
+    let sender = std::sync::Mutex::new(Some(sender));
+    responses::mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            let compressed = request
+                .headers
+                .get("content-encoding")
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|encoding| encoding.eq_ignore_ascii_case("zstd"));
+            let bytes = if compressed {
+                zstd::stream::decode_all(std::io::Cursor::new(&request.body)).ok()
+            } else {
+                Some(request.body.clone())
+            };
+            let Some(body) = bytes.and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+            else {
+                return false;
+            };
+            if body["client_metadata"]["thread_id"] != json!(root_id)
+                || !body["input"]
+                    .to_string()
+                    .contains("Message Type: FINAL_ANSWER")
+            {
+                return false;
+            }
+            if let Some(sender) = sender.lock().expect("completion sender").take() {
+                sender
+                    .send(
+                        body["client_metadata"]["turn_id"]
+                            .as_str()
+                            .expect("completion turn ID")
+                            .to_owned(),
+                    )
+                    .expect("completion receiver");
+            }
+            true
+        },
+        sse(vec![ev_completed("parent-completion")]),
+    )
+    .await;
+    receiver
+}
+
 fn configure(config: &mut codex_core::config::Config) {
     super::configure_scenario_catalog(config);
     config
@@ -222,31 +330,45 @@ async fn board_is_shared_with_children_and_skips_idle_notices(
         config.ephemeral = in_memory;
     });
     let root = builder.build_with_auto_env(&server).await?;
-    responses::mount_sse_sequence(
+    let create = mount_board_turn(
         &server,
-        vec![
-            tool(
-                "create-design",
-                "create_channel",
-                json!({"channel_name":"design"}),
-            ),
-            done(),
-        ],
+        root.session_configured.thread_id,
+        "Create the design channel and subscribe.",
+        "create-design",
+        tool(
+            "create-design",
+            "create_channel",
+            json!({"channel_name":"design"}),
+        ),
     )
     .await;
     root.submit_turn("Create the design channel and subscribe.")
         .await?;
-    responses::mount_sse_sequence(
+    create.0.single_request();
+    create.1.single_request();
+    let root_id = root.session_configured.thread_id;
+    responses::mount_sse_once_match(
         &server,
-        vec![
-            tool(
-                "spawn-worker",
-                "spawn_agent",
-                json!({"task_name":"worker","message":"Say ready.","fork_turns":"none"}),
-            ),
-            done(),
-            done(),
-        ],
+        move |request: &wiremock::Request| {
+            let bytes = zstd::stream::decode_all(std::io::Cursor::new(&request.body))
+                .unwrap_or_else(|_| request.body.clone());
+            serde_json::from_slice::<Value>(&bytes)
+                .is_ok_and(|body| body["client_metadata"]["thread_id"] != json!(root_id))
+        },
+        done(),
+    )
+    .await;
+    let parent_completion = mount_parent_completion(&server, root_id).await;
+    let spawn = mount_board_turn(
+        &server,
+        root_id,
+        "Spawn a worker and finish your turn.",
+        "spawn-worker",
+        tool(
+            "spawn-worker",
+            "spawn_agent",
+            json!({"task_name":"worker","message":"Say ready.","fork_turns":"none"}),
+        ),
     )
     .await;
     root.submit_turn("Spawn a worker and finish your turn.")
@@ -260,55 +382,77 @@ async fn board_is_shared_with_children_and_skips_idle_notices(
         .expect("child runtime");
     let child = root.thread_manager.get_thread(child_id).await?;
     wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
-    let child_post = responses::mount_sse_sequence(
+    let completion_turn = parent_completion.await?;
+    wait_for_event(&root.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == completion_turn)
+    }).await;
+    spawn.0.single_request();
+    spawn.1.single_request();
+    let child_post = mount_board_turn(
         &server,
-        vec![
-            tool(
-                "worker-post",
-                "post",
-                json!({"channel_name":"design","text":"Worker's durable decision."}),
-            ),
-            done(),
-        ],
+        child_id,
+        "Post your decision.",
+        "worker-post",
+        tool(
+            "worker-post",
+            "post",
+            json!({"channel_name":"design","text":"Worker's durable decision."}),
+        ),
     )
     .await;
-    child
+    let parent_completion = mount_parent_completion(&server, root_id).await;
+    let submission = child
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: "Post your decision.".into(),
             text_elements: vec![],
         }]))
         .await?;
-    wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
-    let requests = child_post.requests();
-    let output = requests[1]
+    let child_turn = match submission {
+        codex_core::TurnInputSubmission::Started { turn_id }
+        | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+        other => anyhow::bail!("expected child turn admission, got {other:?}"),
+    };
+    wait_for_event(&child, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == child_turn)
+    }).await;
+    child_post.0.single_request();
+    let output = child_post
+        .1
+        .single_request()
         .function_call_output_text("worker-post")
         .expect("child post result");
     let post: Value =
         serde_json::from_str(&output).with_context(|| format!("child post result: {output}"))?;
     assert_eq!(post["author"], "/root/worker");
+    let completion_turn = parent_completion.await?;
+    wait_for_event(&root.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == completion_turn)
+    }).await;
     assert!(matches!(
         root.codex.agent_status().await,
         codex_protocol::protocol::AgentStatus::Completed(_)
     ));
-    let read = responses::mount_sse_sequence(
+    let read = mount_board_turn(
         &server,
-        vec![
-            tool(
-                "root-read",
-                "search_posts",
-                json!({"channel_name":"design"}),
-            ),
-            done(),
-        ],
+        root_id,
+        "Read the worker's decision.",
+        "root-read",
+        tool(
+            "root-read",
+            "search_posts",
+            json!({"channel_name":"design"}),
+        ),
     )
     .await;
     root.submit_turn("Read the worker's decision.").await?;
     assert!(
-        read.requests()
+        [read.0.single_request(), read.1.single_request()]
             .iter()
             .all(|request| !request.body_contains_text("Message Type: CHANNEL_POST"))
     );
-    let output = read.requests()[1]
+    let output = read
+        .1
+        .single_request()
         .function_call_output_text("root-read")
         .expect("read result");
     let result: Value =
@@ -330,20 +474,23 @@ async fn board_is_shared_with_children_and_skips_idle_notices(
         .with_config(configure)
         .restart(&server, &root)
         .await?;
-    let read = responses::mount_sse_sequence(
+    let read = mount_board_turn(
         &server,
-        vec![
-            tool(
-                "resumed-read",
-                "read_post",
-                json!({"message_id":post["message_id"]}),
-            ),
-            done(),
-        ],
+        resumed.session_configured.thread_id,
+        "Read the saved decision.",
+        "resumed-read",
+        tool(
+            "resumed-read",
+            "read_post",
+            json!({"message_id":post["message_id"]}),
+        ),
     )
     .await;
     resumed.submit_turn("Read the saved decision.").await?;
-    let output = read.requests()[1]
+    read.0.single_request();
+    let output = read
+        .1
+        .single_request()
         .function_call_output_text("resumed-read")
         .expect("resumed read result");
     let result: Value =
@@ -390,6 +537,7 @@ async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) -> 
             "spawn_agent",
             json!({"task_name":"worker","message":"Say ready.","fork_turns":"none"}),
         )),
+        response(done()),
         response(done()),
         response(done()),
         vec![
@@ -443,17 +591,31 @@ async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) -> 
     let child = root.thread_manager.get_thread(child_id).await?;
     wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
 
-    root.codex
+    streaming.wait_for_request_count(/*count*/ 5).await;
+    let completion_request: Value = serde_json::from_slice(&streaming.requests().await[4])?;
+    let completion_turn = completion_request["client_metadata"]["turn_id"]
+        .as_str()
+        .context("parent completion turn ID")?;
+    assert!(
+        completion_request["input"]
+            .to_string()
+            .contains("Message Type: FINAL_ANSWER")
+    );
+    wait_for_event(&root.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == completion_turn)
+    }).await;
+    let submission = root
+        .codex
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: "Finish your answer.".into(),
             text_elements: vec![],
         }]))
         .await?;
-    let target_turn = wait_for_event_match(&root.codex, |event| match event {
-        EventMsg::TurnStarted(event) => Some(event.turn_id.clone()),
-        _ => None,
-    })
-    .await;
+    let target_turn = match submission {
+        codex_core::TurnInputSubmission::Started { turn_id }
+        | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+        other => anyhow::bail!("expected answer turn admission, got {other:?}"),
+    };
     wait_for_event(&root.codex, |event| match event {
         EventMsg::ItemStarted(event) => match &event.item {
             TurnItem::AgentMessage(message) => {
@@ -476,7 +638,7 @@ async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) -> 
         }]))
         .await?;
     // The child's follow-up confirms fanout completed, but its final would separately notify root.
-    streaming.wait_for_request_count(/*count*/ 7).await;
+    streaming.wait_for_request_count(/*count*/ 8).await;
     let requests = streaming.requests().await;
     let request: Value = serde_json::from_slice(requests.last().context("child follow-up")?)?;
     let post = request["input"]
@@ -489,12 +651,25 @@ async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) -> 
     assert_eq!(post.author.as_str(), "/root/worker");
     release_final.send(()).expect("release root response");
     wait_for_event(&root.codex, |event| {
-        matches!(event, EventMsg::TurnComplete(_))
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == target_turn)
     })
     .await;
     release_child.send(()).expect("release child response");
     wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
 
+    streaming.wait_for_request_count(/*count*/ 9).await;
+    let completion_request: Value = serde_json::from_slice(&streaming.requests().await[8])?;
+    let completion_turn = completion_request["client_metadata"]["turn_id"]
+        .as_str()
+        .context("parent completion turn ID")?;
+    assert!(
+        completion_request["input"]
+            .to_string()
+            .contains("Message Type: FINAL_ANSWER")
+    );
+    wait_for_event(&root.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == completion_turn)
+    }).await;
     root.submit_turn("Start another turn.").await?;
 
     let requests = streaming
