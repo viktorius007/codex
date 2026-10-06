@@ -611,3 +611,4 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable sync final-diagnostic-replay.log](research/stable-0.160.1-final-diagnostic-replay.log) — Preserves final diagnostic replay evidence for the stable update.
 - [Stable sync verified-workspace-junit.xml](research/stable-0.160.1-verified-workspace-junit.xml) — Preserves verified workspace junit evidence for the stable update.
 - [Stable 0.160.1 local.10 installation record](/Users/viktor/.local/lib/codex-local/0.160.1+local.10-c34fb75f0e07/provenance.json) — Records installed binaries, source, checksums, validation results, installation time, and local.9 rollback.
+- [Stable local.10 managed daemon update](research/stable-0.160.1-daemon-update.log) — Records pinning the managed daemon to the installed local.10 package after the old daemon respawned.
