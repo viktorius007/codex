@@ -11,6 +11,7 @@ use std::time::Duration;
 use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use codex_config::ConfigLayerEntry;
 use codex_config::ConfigLayerSource;
 use codex_config::ConfigLayerStack;
 use codex_config::types::McpServerConfig;
@@ -39,7 +40,6 @@ use codex_protocol::items::TurnItem;
 use codex_protocol::models::ImageReference;
 use codex_protocol::models::ResponseItem;
 use codex_protocol::openai_models::CodeModeToolMessages;
-use codex_protocol::openai_models::ReasoningEffort;
 use codex_protocol::openai_models::ToolMessage;
 use codex_protocol::openai_models::ToolMode;
 use codex_protocol::protocol::EnvironmentConfigState;
@@ -610,8 +610,21 @@ async fn astra_kickoff_with_skills_plugins_and_remote_compaction() -> Result<()>
         })
         .with_config(|config| {
             configure_scenario_catalog(config);
+            let stack = &config.config_layer_stack;
+            config.config_layer_stack = ConfigLayerStack::new(
+                vec![ConfigLayerEntry::new(
+                    ConfigLayerSource::SessionFlags,
+                    stack.effective_config(),
+                )],
+                stack.requirements().clone(),
+                stack.requirements_toml().clone(),
+            )
+            .expect("isolated kickoff fixture config");
         });
     let test = builder.build(&server).await?;
+    test.thread_manager
+        .skills_service()
+        .set_extra_roots(vec![test.config.codex_home.join("skills").try_into()?]);
 
     for input in [
         vec![
@@ -1423,7 +1436,10 @@ async fn astra_refreshes_plugin_tools_and_skills_in_an_existing_thread() -> Resu
         .with_home(Arc::clone(&home))
         .with_auth(CodexAuth::create_dummy_chatgpt_auth_for_testing())
         .with_extensions(skills_extensions())
-        .with_config(configure_scenario_catalog);
+        .with_config(|config| {
+            configure_scenario_catalog(config);
+            config.include_skill_instructions = false;
+        });
     let test = builder.build(&server).await?;
 
     test.submit_turn("Check whether the Notes plugin echo tool is available.")
@@ -1466,11 +1482,15 @@ async fn astra_refreshes_plugin_tools_and_skills_in_an_existing_thread() -> Resu
     test.submit_text_turn("Use the Notes tool again to check that the kickoff is Friday.")
         .await?;
 
+    let requests = mock.requests();
+    assert!(!requests[0].body_contains_text("State the owner and date from the notes."));
+    assert!(requests[2].body_contains_text("State the owner and date from the notes."));
+
     insta::assert_snapshot!(
         "astra_plugin_refresh",
         context_snapshot::format_request_history_snapshot(
             "Astra checks for Notes, refreshes its installed plugin without restarting, and uses the new skill and Code Mode MCP tool across turns.",
-            &mock.requests(),
+            &requests,
             &ContextSnapshotOptions::default().include_request_settings(),
         )
     );

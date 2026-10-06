@@ -337,7 +337,15 @@ async fn snapshot_for_config_merges_extension_host_and_legacy_plugin_roots() {
     );
     let plugin_skill_root =
         plugin_skill_root_for_skill_path(&plugin_skill_path, "sample@test", "sample");
-    let config_layer_stack = config_stack(&codex_home, "[skills.bundled]\nenabled = false\n");
+    let config_layer_stack = ConfigLayerStack::new(
+        vec![ConfigLayerEntry::new(
+            ConfigLayerSource::SessionFlags,
+            toml::from_str("[skills.bundled]\nenabled = false\n").expect("session flags toml"),
+        )],
+        Default::default(),
+        ConfigRequirementsToml::default(),
+    )
+    .expect("valid config layer stack");
     let input = HostSkillsLoadInput::new(
         cwd.path().abs(),
         vec![plugin_skill_root],
@@ -347,6 +355,7 @@ async fn snapshot_for_config_merges_extension_host_and_legacy_plugin_roots() {
         codex_home.path().abs(),
         /*bundled_skills_enabled*/ false,
     );
+    skills_service.set_extra_roots(vec![codex_home.path().join("skills").abs()]);
 
     let snapshot = skills_service
         .snapshot_for_config(&input, Some(Arc::clone(&LOCAL_FS)))
@@ -366,7 +375,7 @@ async fn snapshot_for_config_merges_extension_host_and_legacy_plugin_roots() {
 
 #[cfg(unix)]
 #[tokio::test]
-async fn snapshot_for_config_preserves_host_precedence_for_symlinked_plugin_root() {
+async fn snapshot_preserves_host_precedence_for_symlinked_plugin_root() {
     use std::os::unix::fs::symlink;
 
     let codex_home = tempfile::tempdir().expect("tempdir");
@@ -386,19 +395,37 @@ async fn snapshot_for_config_preserves_host_precedence_for_symlinked_plugin_root
         codex_home.path().join("skills"),
     )
     .expect("symlink user skills root to plugin skills root");
-    let config_layer_stack = config_stack(&codex_home, "[skills.bundled]\nenabled = false\n");
+    let config_layer_stack = ConfigLayerStack::new(
+        vec![ConfigLayerEntry::new(
+            ConfigLayerSource::SessionFlags,
+            toml::from_str("[skills.bundled]\nenabled = false\n").expect("session flags toml"),
+        )],
+        Default::default(),
+        ConfigRequirementsToml::default(),
+    )
+    .expect("valid config layer stack");
     let skills_service = HostSkillsService::new(
         codex_home.path().abs(),
         /*bundled_skills_enabled*/ false,
     );
-
-    let outcome = skills_for_config_with_stack(
-        &skills_service,
-        &cwd,
-        &config_layer_stack,
-        &[plugin_skill_root],
-    )
-    .await;
+    let input = HostSkillsLoadInput::new(cwd.path().abs(), Vec::new(), config_layer_stack);
+    let roots = vec![
+        HostSkillRoot::host(
+            codex_home.path().join("skills").abs(),
+            SkillScope::User,
+            Arc::clone(&LOCAL_FS),
+        ),
+        HostSkillRoot::plugin(plugin_skill_root, Arc::clone(&LOCAL_FS)),
+    ];
+    let rules = skill_config_rules_from_stack(&input.config_layer_stack);
+    let cache_key = config_skills_cache_key(&roots, &rules, input.plugin_skill_snapshots.as_ref());
+    let snapshot = skills_service
+        .snapshot_for_skill_roots(
+            &input, roots, &rules, cache_key, /*force_reload*/ false,
+            /*request_root_snapshots*/ None,
+        )
+        .await;
+    let outcome = snapshot.outcome();
 
     assert_eq!(
         outcome.skills,

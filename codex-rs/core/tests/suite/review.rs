@@ -940,6 +940,27 @@ async fn review_uses_custom_review_model_from_config() {
     let (server, request_log) =
         start_responses_server_with_sse(completed_sse(), /*expected_requests*/ 1).await;
     let codex_home = Arc::new(TempDir::new().unwrap());
+    let mut models = codex_models_manager::bundled_models_response()
+        .expect("bundled model catalog should parse");
+    let model = models
+        .models
+        .iter_mut()
+        .find(|model| model.slug == "gpt-5.6-sol")
+        .expect("bundled model should exist");
+    model.slug = "custom-review-model".to_string();
+    model
+        .guardian
+        .get_or_insert_with(Default::default)
+        .computer_use = Some(codex_protocol::openai_models::GuardianReviewMode::Synchronous);
+    model.node_repl_auto_review_required = true;
+    model.node_repl_disabled = true;
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .and(wiremock::matchers::path_regex(".*/models$"))
+        .respond_with(wiremock::ResponseTemplate::new(200).set_body_json(models))
+        .with_priority(1)
+        .expect(1)
+        .mount(&server)
+        .await;
     let test = test_codex()
         .with_home(Arc::clone(&codex_home))
         .with_auth(CodexAuth::create_dummy_chatgpt_auth_for_testing())
@@ -952,19 +973,6 @@ async fn review_uses_custom_review_model_from_config() {
         .await
         .expect("custom review conversation should be created");
     let codex = Arc::clone(&test.codex);
-    std::fs::remove_file(codex_home.path().join("models_cache.json"))
-        .expect("initial empty model catalog should be cached");
-    let mut models = codex_models_manager::bundled_models_response()
-        .expect("bundled model catalog should parse");
-    let model = models
-        .models
-        .iter_mut()
-        .find(|model| model.slug == "gpt-5.6-sol")
-        .expect("bundled model should exist");
-    model.slug = "custom-review-model".to_string();
-    model.node_repl_auto_review_required = true;
-    model.node_repl_disabled = true;
-    let models_mock = responses::mount_models_once(&server, models).await;
 
     codex
         .submit(Op::Review {
@@ -1006,7 +1014,17 @@ async fn review_uses_custom_review_model_from_config() {
     .expect("review request turn metadata json");
     assert_eq!(turn_metadata["node_repl_auto_review_required"], true);
     assert_eq!(turn_metadata["node_repl_disabled"], true);
-    assert_eq!(models_mock.requests().len(), 1);
+    assert_eq!(
+        server
+            .received_requests()
+            .await
+            .expect("recorded requests")
+            .iter()
+            .filter(|request| request.method.as_str() == "GET"
+                && request.url.path().ends_with("/models"))
+            .count(),
+        1,
+    );
 
     let _codex_home_guard = codex_home;
     server.verify().await;
