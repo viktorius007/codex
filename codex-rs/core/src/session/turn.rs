@@ -1314,19 +1314,30 @@ async fn run_pre_sampling_compact(
 ) -> CodexResult<()> {
     maybe_run_previous_model_inline_compact(sess, turn_context, client_session, cancellation_token)
         .await?;
-    let pending_tokens = input
-        .iter()
-        .map(|input| match input {
-            TurnInput::UserInput { content, .. } => {
-                estimate_item_token_count(&sess.response_item_from_user_input(content.clone()))
-            }
-            TurnInput::FunctionCallOutput(item) => estimate_item_token_count(item),
-            TurnInput::ResponseItem(item) => estimate_item_token_count(&item.item),
-            TurnInput::InterAgentCommunication(communication) => {
-                estimate_item_token_count(&communication.to_model_input_item())
-            }
-        })
-        .fold(0i64, i64::saturating_add);
+    // Guardian trims optional evidence when it finalizes its complete request.
+    // Projecting that unbudgeted draft here would compact or reject it too early.
+    let pending_tokens = if sess
+        .services
+        .thread_extension_data
+        .get::<crate::guardian::PendingReviewContext>()
+        .is_some()
+    {
+        0
+    } else {
+        input
+            .iter()
+            .map(|input| match input {
+                TurnInput::UserInput { content, .. } => {
+                    estimate_item_token_count(&sess.response_item_from_user_input(content.clone()))
+                }
+                TurnInput::FunctionCallOutput(item) => estimate_item_token_count(item),
+                TurnInput::ResponseItem(item) => estimate_item_token_count(&item.item),
+                TurnInput::InterAgentCommunication(communication) => {
+                    estimate_item_token_count(&communication.to_model_input_item())
+                }
+            })
+            .fold(0i64, i64::saturating_add)
+    };
     let token_status = super::context_window::context_window_token_status_with_pending_tokens(
         sess.as_ref(),
         turn_context.as_ref(),
