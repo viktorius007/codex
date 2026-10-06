@@ -1691,6 +1691,16 @@ impl Session {
             InitialHistory::Resumed(resumed_history) => {
                 let turn_context = self.new_default_turn().await;
                 let rollout_items = resumed_history.history;
+                self.state.lock().await.last_tool_catalog_digest =
+                    rollout_items.iter().rev().find_map(|item| match item {
+                        RolloutItem::EventMsg(EventMsg::ToolCatalogChanged(event)) => {
+                            Some(crate::tools::router::ToolCatalogDigest {
+                                catalog: event.current_digest.clone(),
+                                by_tool: None,
+                            })
+                        }
+                        _ => None,
+                    });
                 if matches!(
                     rollout_items.iter().rev().find_map(|item| match item {
                         RolloutItem::EventMsg(event) => agent_status_from_event(event),
@@ -4015,7 +4025,7 @@ impl Session {
         let Some(previous) = previous else {
             return;
         };
-        if previous == digest {
+        if previous.catalog == digest.catalog {
             return;
         }
         let (added, removed, changed) = digest.diff(&previous);
@@ -4882,21 +4892,13 @@ impl Session {
                     "developer"
                         if fragment.markers().0 == MultiAgentRoleInstructions::type_markers().0 =>
                     {
-<<<<<<< HEAD
-                        separate_developer_messages.push(fragment.render_fragment().into());
-=======
                         initial_multi_agent_usage_hint = Some(fragment);
->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
                     }
                     "developer"
                         if update.placement == Placement::Standalone
                             && fragment.markers().0.is_empty() =>
                     {
-<<<<<<< HEAD
-                        separate_developer_messages.push(fragment.render_fragment().into());
-=======
                         initial_multi_agent_usage_hint = Some(fragment);
->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
                     }
                     "developer" => developer_sections.push(fragment.render_fragment()),
                     "user" => contextual_user_sections.push(fragment.render_fragment()),
@@ -4917,16 +4919,7 @@ impl Session {
             ) {
                 items.push(developer_message);
             }
-<<<<<<< HEAD
             items.append(&mut separate_developer_messages);
-=======
-            for section in separate_developer_sections.drain(..) {
-                if let Some(developer_message) =
-                    crate::context_manager::updates::build_rendered_message(vec![section])
-                {
-                    items.push(developer_message);
-                }
-            }
             if let Some(contextual_user_message) =
                 crate::context_manager::updates::build_rendered_message(std::mem::take(
                     &mut contextual_user_sections,
@@ -4935,11 +4928,13 @@ impl Session {
                 items.push(contextual_user_message);
             }
             if let Some(fragment) = initial_multi_agent_usage_hint
-                && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![fragment.render_fragment()])
+                && let Some(message) =
+                    crate::context_manager::updates::build_rendered_message(vec![
+                        fragment.render_fragment(),
+                    ])
             {
                 items.push(message);
             }
->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
             if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
                 && let Some(message) =
                     crate::context_manager::updates::build_rendered_message(vec![
