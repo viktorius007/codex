@@ -1315,8 +1315,21 @@ async fn astra_kickoff_with_skills_plugins_and_remote_compaction() -> Result<()>
         })
         .with_config(|config| {
             configure_scenario_catalog(config);
+            let stack = &config.config_layer_stack;
+            config.config_layer_stack = ConfigLayerStack::new(
+                vec![ConfigLayerEntry::new(
+                    ConfigLayerSource::SessionFlags,
+                    stack.effective_config(),
+                )],
+                stack.requirements().clone(),
+                stack.requirements_toml().clone(),
+            )
+            .expect("isolated kickoff fixture config");
         });
     let test = builder.build(&server).await?;
+    test.thread_manager
+        .skills_service()
+        .set_extra_roots(vec![test.config.codex_home.join("skills")]);
 
     for input in [
         vec![
@@ -2942,7 +2955,10 @@ async fn astra_refreshes_plugin_tools_and_skills_in_an_existing_thread(
         .with_home(Arc::clone(&home))
         .with_auth(CodexAuth::create_dummy_chatgpt_auth_for_testing())
         .with_extensions(skills_extensions())
-        .with_config(configure_scenario_catalog);
+        .with_config(|config| {
+            configure_scenario_catalog(config);
+            config.include_skill_instructions = false;
+        });
     let test = builder.build(&server).await?;
 
     test.submit_turn("Check whether the Notes plugin echo tool is available.")
@@ -2985,6 +3001,10 @@ async fn astra_refreshes_plugin_tools_and_skills_in_an_existing_thread(
     test.submit_text_turn("Use the Notes tool again to check that the kickoff is Friday.")
         .await?;
 
+    let requests = mock.requests();
+    assert!(!requests[0].body_contains_text("State the owner and date from the notes."));
+    assert!(requests[2].body_contains_text("State the owner and date from the notes."));
+
     let snapshot_name = if simplified_selection_hints {
         "astra_plugin_refresh_simplified_selection_hints_on"
     } else {
@@ -2994,7 +3014,7 @@ async fn astra_refreshes_plugin_tools_and_skills_in_an_existing_thread(
         snapshot_name,
         context_snapshot::format_request_history_snapshot(
             "Astra checks for Notes, refreshes its installed plugin without restarting, and uses the new skill and Code Mode MCP tool across turns.",
-            &mock.requests(),
+            &requests,
             &ContextSnapshotOptions::default().include_request_settings(),
         )
     );
@@ -3575,7 +3595,7 @@ async fn model_catalog_refresh_preserves_tools_and_history() -> Result<()> {
     )
     .await?;
     insta::assert_snapshot!(context_snapshot::format_request_history_snapshot(
-        "Catalog refreshes append the updated listing once while preserving tools and prior input.",
+        "Catalog refreshes retain the thread’s admitted listing while preserving tools and prior input.",
         &requests,
         &ContextSnapshotOptions::default().include_request_settings(),
     ));

@@ -330,9 +330,10 @@ async fn reused_websocket_diagnostics_do_not_keep_the_first_attempt_observer() -
         outbound[0].body_json().to_string().len()
     );
     assert_eq!(warmup_request["wire"]["transport"]["endpoint"], "responses");
+    // Startup preconnect opens the socket before the first warmup request.
     assert_eq!(
         warmup_request["wire"]["transport"]["connectionReused"],
-        false
+        true
     );
     assert_eq!(warmup_request["wire"]["transport"]["incremental"], false);
     assert_eq!(warmup_request["attemptId"], warmup_outcome["attemptId"]);
