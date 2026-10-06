@@ -88,7 +88,6 @@ use crate::responses::start_mock_server;
 use crate::streaming_sse::StreamingSseServer;
 use crate::test_environment;
 use crate::wait_for_event;
-use crate::wait_for_event_match;
 use crate::wait_for_event_with_timeout;
 use wiremock::Match;
 use wiremock::matchers::path_regex;
@@ -1057,14 +1056,24 @@ impl TestCodex {
 
     /// Submits a text turn without changing the current thread settings.
     pub async fn submit_text_turn(&self, prompt: &str) -> Result<()> {
-        self.codex
+        let submission = self
+            .codex
             .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
                 text: prompt.into(),
                 text_elements: Vec::new(),
             }]))
             .await?;
 
-        wait_for_event(&self.codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+        let turn_id = match submission {
+            codex_core::TurnInputSubmission::Started { turn_id }
+            | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+            other => return Err(anyhow!("expected text turn admission, got {other:?}")),
+        };
+        wait_for_event(
+            &self.codex,
+            |ev| matches!(ev, EventMsg::TurnComplete(event) if event.turn_id == turn_id),
+        )
+        .await;
         Ok(())
     }
 
@@ -1188,7 +1197,8 @@ impl TestCodex {
         let turn_environment_selections = environments.map(|environments| {
             TurnEnvironmentSelections::new(self.config.cwd.clone(), environments)
         });
-        self.codex
+        let submission = self
+            .codex
             .start_or_steer_turn(
                 TurnInputRequest::user_input(vec![UserInput::Text {
                     text: prompt.into(),
@@ -1213,11 +1223,11 @@ impl TestCodex {
             )
             .await?;
 
-        let turn_id = wait_for_event_match(&self.codex, |event| match event {
-            EventMsg::TurnStarted(event) => Some(event.turn_id.clone()),
-            _ => None,
-        })
-        .await;
+        let turn_id = match submission {
+            codex_core::TurnInputSubmission::Started { turn_id }
+            | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+            other => return Err(anyhow!("expected turn admission, got {other:?}")),
+        };
         wait_for_event_with_timeout(
             &self.codex,
             |event| match event {

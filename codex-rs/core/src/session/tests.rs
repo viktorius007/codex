@@ -13192,7 +13192,7 @@ async fn make_collaboration_snapshot_session(
         return Arc::new(session);
     }
 
-    let session = make_session_with_config(|config| {
+    make_session_with_config(|config| {
         config
             .features
             .enable(Feature::Collab)
@@ -13206,8 +13206,7 @@ async fn make_collaboration_snapshot_session(
         configure(config);
     })
     .await
-    .expect("build collaboration test session");
-    session
+    .expect("build collaboration test session")
 }
 
 fn prepare_collaboration_turn(turn: &mut Arc<TurnContext>) {
@@ -13271,6 +13270,10 @@ fn catalog_model(slug: &str) -> ModelInfo {
 }
 
 #[tokio::test]
+#[expect(
+    clippy::await_holding_invalid_type,
+    reason = "the held catalog lock proves turn construction reuses the thread snapshot"
+)]
 async fn model_catalog_snapshot_is_frozen_for_thread_lifetime() {
     let manager = Arc::new(MutableCatalogModelsManager::new(vec![catalog_model(
         "catalog-alpha",

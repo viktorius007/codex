@@ -22,11 +22,11 @@ fn exec_command_tool_matches_expected_spec() {
 
     let description = if cfg!(windows) {
         format!(
-            "Runs a command in a PTY, returning output or a session ID for ongoing interaction.{}",
+            "Runs a command in a PTY, returning output or a session ID for ongoing interaction. If the command is still running after yielding, treat it as background work. Do not poll for completion with write_stdin, ps, pgrep, or similar liveness checks just to see whether it finished. Wait for the runtime completion notification instead. Only check again if you need intermediate output for the next step, must interact with the process, or are diagnosing a problem. If there is no other independent work to do, end your turn.{}",
             windows_shell_guidance_description()
         )
     } else {
-        "Runs a command in a PTY, returning output or a session ID for ongoing interaction."
+        "Runs a command in a PTY, returning output or a session ID for ongoing interaction. If the command is still running after yielding, treat it as background work. Do not poll for completion with write_stdin, ps, pgrep, or similar liveness checks just to see whether it finished. Wait for the runtime completion notification instead. Only check again if you need intermediate output for the next step, must interact with the process, or are diagnosing a problem. If there is no other independent work to do, end your turn."
             .to_string()
     };
     let yield_time_ms_description = if cfg!(windows) {
@@ -150,7 +150,7 @@ fn write_stdin_tool_matches_expected_spec() {
         ToolSpec::Function(ResponsesApiTool {
             name: "write_stdin".to_string(),
             description:
-                "Writes characters to an existing unified exec session and returns recent output."
+                "Writes characters to an existing unified exec session and returns recent output. Do not use empty polls to check whether a background command has finished. Use this only when you need intermediate output for the next step or must interact with the running process. Background exec completions arrive through a separate runtime completion notification."
                     .to_string(),
             strict: false,
             defer_loading: None,

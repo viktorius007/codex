@@ -925,7 +925,7 @@ fn websocket_incremental_reuse_tracks_raw_result_metadata() -> anyhow::Result<()
             })
             .unwrap();
         session.websocket_session.last_response_rx = Some(receiver);
-        let continuation = session.prepare_websocket_request(&current);
+        let (continuation, _report) = session.prepare_websocket_request(&current);
         assert_eq!(
             continuation.map(|continuation| (
                 continuation.response_id,
@@ -2103,6 +2103,7 @@ async fn intercepted_output_reaches_trace_and_websocket_bookkeeping() -> anyhow:
         attempt,
         test_model_provider(),
         vec![Box::new(ReplaceOutput)],
+        /*cache_diagnostic_attempt*/ None,
     );
     let mut delivered = Vec::new();
     while let Some(event) = stream.next().await {
