@@ -125,6 +125,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::time::Instant;
 use test_case::test_case;
+use tokio::sync::Notify;
 use tokio::sync::oneshot;
 use wiremock::Mock;
 use wiremock::MockServer;
@@ -1885,6 +1886,7 @@ const RESULT_METADATA_PRIVATE_RESULT: &str = "connector result text is not resul
 struct ResultMetadataTestControl {
     server: Mutex<McpServerContribution>,
     gate: Mutex<Option<(oneshot::Sender<()>, oneshot::Receiver<()>)>>,
+    prepared_call: Option<Notify>,
 }
 
 impl McpServerContributor<Config> for ResultMetadataTestControl {
@@ -1902,6 +1904,16 @@ impl McpServerContributor<Config> for ResultMetadataTestControl {
 }
 
 impl ToolLifecycleContributor for ResultMetadataTestControl {
+    fn on_tool_start<'a>(&'a self, input: ToolStartInput<'a>) -> ToolLifecycleFuture<'a> {
+        Box::pin(async move {
+            if input.tool_name.name == "test_sync_tool"
+                && let Some(prepared_call) = &self.prepared_call
+            {
+                prepared_call.notified().await;
+            }
+        })
+    }
+
     fn on_tool_finish<'a>(&'a self, input: ToolFinishInput<'a>) -> ToolLifecycleFuture<'a> {
         Box::pin(async move {
             if !input.tool_name.name.ends_with(RESULT_METADATA_TOOL) {
@@ -1910,6 +1922,10 @@ impl ToolLifecycleContributor for ResultMetadataTestControl {
             let gate = self.gate.lock().unwrap().take();
             if let Some((reached, release)) = gate {
                 reached.send(()).unwrap();
+                if let Some(prepared_call) = &self.prepared_call {
+                    // The JavaScript yield must follow app invocation, while acceptance stays held.
+                    prepared_call.notify_one();
+                }
                 // Finish notification precedes accepted-result metadata capture.
                 release
                     .await
@@ -1926,6 +1942,7 @@ fn result_metadata_fixture_calls(input: &[Value]) -> impl Iterator<Item = &Value
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
+            .filter(|call| call["name"] != "test_sync_tool")
             .map(move |_| output)
     })
 }
@@ -2030,6 +2047,7 @@ async fn code_mode_mcp_metadata_keeps_originating_window_after_compaction() -> R
             protocol_mode: None,
         }),
         gate: Mutex::new(Some((reached_tx, release_rx))),
+        prepared_call: None,
     });
     let mut extensions = ExtensionRegistryBuilder::<Config>::new();
     extensions.tool_lifecycle_contributor(control);
@@ -2148,16 +2166,21 @@ fn assert_result_metadata_call(
     expected_metadata: Option<Value>,
 ) {
     let metadata = &output["internal_chat_message_metadata_passthrough"];
-    let call_name = metadata["executed_tool_calls"][0]["name"].as_str().unwrap();
+    let calls = metadata["executed_tool_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|call| call["name"] != "test_sync_tool")
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_eq!(calls.len(), 1);
+    let call_name = calls[0]["name"].as_str().unwrap();
     assert!(call_name.ends_with(RESULT_METADATA_TOOL));
     let mut expected_call = serde_json::json!({ "name": call_name, "arguments": arguments });
     if let Some(result_metadata) = expected_metadata {
         expected_call["tool_result_metadata"] = result_metadata;
     }
-    assert_eq!(
-        metadata["executed_tool_calls"],
-        serde_json::json!([expected_call])
-    );
+    assert_eq!(calls, vec![expected_call]);
     assert!(metadata.get("tool_result_metadata").is_none());
 }
 
@@ -2616,6 +2639,7 @@ async fn result_metadata_follows_call_binding(
                 )),
             }),
             gate: Mutex::new(None),
+            prepared_call: None,
         }));
         builder = builder.with_extensions(Arc::new(extensions.build()));
     }
@@ -2854,12 +2878,18 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
             protocol_mode: None,
         }),
         gate: Mutex::new(Some((reached_tx, release_rx))),
+        prepared_call: Some(Notify::new()),
     });
     let mut extensions = ExtensionRegistryBuilder::<Config>::new();
     extensions.mcp_server_contributor(control.clone());
     extensions.tool_lifecycle_contributor(control.clone());
     let builder = result_metadata_apps_builder(apps_server.chatgpt_base_url, "user@example.com")
-        .with_extensions(Arc::new(extensions.build()));
+        .with_extensions(Arc::new(extensions.build()))
+        .with_model_info_override("gpt-5.5", |model| {
+            model
+                .experimental_supported_tools
+                .push("test_sync_tool".to_string());
+        });
     let arguments = serde_json::json!({
         "query": "launch plan",
         "response_format": "detailed",
@@ -2867,8 +2897,8 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
     });
     let code = format!(
         "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
-         const pending = tools[tool.name]({arguments}); text(\"pending\"); yield_control(); await pending; \
-         await tools[tool.name]({arguments}); text(\"done\");"
+         const pending = tools[tool.name]({arguments}); await tools.test_sync_tool({{}}); text(\"pending\"); yield_control(); await pending; \
+         text(\"done\");"
     );
     let (test, follow_up) =
         run_code_mode_turn_with_builder(&server, "Search a connected app", &code, builder).await?;
@@ -2882,6 +2912,21 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
     tokio::time::timeout(Duration::from_secs(10), reached_rx).await??;
 
     let first_input = first_request.input();
+    assert_eq!(
+        first_input
+            .iter()
+            .flat_map(|output| {
+                output
+                    .pointer("/internal_chat_message_metadata_passthrough/executed_tool_calls")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+            })
+            .filter(|call| call["name"] == "test_sync_tool")
+            .count(),
+        1,
+        "the preparation barrier must execute exactly once",
+    );
     let emitted_calls = result_metadata_fixture_calls(&first_input).collect::<Vec<_>>();
     assert_eq!(
         emitted_calls.len(),
@@ -2909,18 +2954,44 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
         .refresh_runtime_config(current_config, test.config.clone())
         .await;
     release_tx.send(()).unwrap();
-    let wait = responses::mount_function_call_agent_response(
+    responses::mount_sse_once(
         &server,
-        "call-2",
-        &serde_json::to_string(&serde_json::json!({
-            "cell_id": cell_id,
-            "yield_time_ms": 10_000,
-        }))?,
-        "wait",
+        sse(vec![
+            responses::ev_function_call(
+                "call-2",
+                "wait",
+                &serde_json::json!({"cell_id": cell_id, "yield_time_ms": 10_000}).to_string(),
+            ),
+            ev_completed("resp-wait"),
+        ]),
     )
     .await;
-    test.submit_turn("Wait for the accepted app result").await?;
-    let request = wait.completion.single_request();
+    // Cells retain their originating authority; a fresh cell samples the refreshed binding.
+    responses::mount_sse_once(
+        &server,
+        sse(vec![
+            ev_custom_tool_call(
+                "call-3",
+                "exec",
+                &format!(
+                    "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
+                     await tools[tool.name]({arguments}); text(\"refreshed\");"
+                ),
+            ),
+            ev_completed("resp-refreshed"),
+        ]),
+    ).await;
+    let completion = responses::mount_sse_once(
+        &server,
+        sse(vec![
+            ev_assistant_message("msg-refreshed", "done"),
+            ev_completed("resp-done"),
+        ]),
+    )
+    .await;
+    test.submit_turn("Wait for the accepted app result and call the refreshed app")
+        .await?;
+    let request = completion.single_request();
     assert_eq!(recorded_apps_tool_calls(&server).await.len(), 1);
     assert_eq!(recorded_apps_tool_calls(&refreshed_server).await.len(), 1);
     assert!(
@@ -2945,7 +3016,7 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
             original_output["type"].as_str().unwrap(),
             expected_metadata,
         ),
-        ("call-2", "function_call_output", None),
+        ("call-3", "custom_tool_call_output", None),
     ] {
         let output = request.call_output(call_id, call_type);
         assert_result_metadata_call(&output, &arguments, /*expected_metadata*/ None);
@@ -2958,6 +3029,11 @@ async fn code_mode_result_metadata_keeps_prepared_call_binding_across_runtime_re
         assert_result_metadata_call(captured_output, &arguments, expected_metadata);
     }
     let terminal_output = request.function_call_output("call-2");
+    assert_eq!(
+        terminal_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"],
+        serde_json::json!([]),
+        "acceptance must not move the originating app call into the wait output",
+    );
     assert_eq!(
         terminal_output["internal_chat_message_metadata_passthrough"]["tool_calls_complete"],
         true
@@ -2987,11 +3063,17 @@ async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
             protocol_mode: None,
         }),
         gate: Mutex::new(Some((reached_tx, release_rx))),
+        prepared_call: Some(Notify::new()),
     });
     let mut extensions = ExtensionRegistryBuilder::<Config>::new();
     extensions.tool_lifecycle_contributor(control);
     let builder = result_metadata_apps_builder(apps_server.chatgpt_base_url, "user@example.com")
         .with_extensions(Arc::new(extensions.build()))
+        .with_model_info_override("gpt-5.5", |model| {
+            model
+                .experimental_supported_tools
+                .push("test_sync_tool".to_string());
+        })
         .with_code_mode_host_program(codex_utils_cargo_bin::cargo_bin("codex-code-mode-host")?)
         .with_config(|config| {
             config.features.enable(Feature::CodeModeHost).unwrap();
@@ -3001,7 +3083,7 @@ async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
     let later_arguments = serde_json::json!({ "query": "later" });
     let code = format!(
         "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
-         const pending = tools[tool.name]({arguments}); text(\"pending\"); yield_control(); await pending; \
+         const pending = tools[tool.name]({arguments}); await tools.test_sync_tool({{}}); text(\"pending\"); yield_control(); await pending; \
          await tools[tool.name]({later_arguments}); text(\"accepted\"); \
          yield_control(); await new Promise(() => {{}});"
     );
@@ -3019,13 +3101,37 @@ async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
         .context("first call did not reach the result gate")??;
 
     let first_input = first_request.input();
+    assert_eq!(
+        first_input
+            .iter()
+            .flat_map(|output| {
+                output
+                    .pointer("/internal_chat_message_metadata_passthrough/executed_tool_calls")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+            })
+            .filter(|call| call["name"] == "test_sync_tool")
+            .count(),
+        1,
+        "the preparation barrier must execute exactly once",
+    );
     let initial_calls = result_metadata_fixture_calls(&first_input).collect::<Vec<_>>();
     assert_eq!(initial_calls.len(), 1);
     let original_output = initial_calls[0];
     let original_id = original_output["call_id"].as_str().unwrap().to_string();
     let original_type = original_output["type"].as_str().unwrap().to_string();
     let recorded =
-        &original_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"][0];
+        original_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|call| {
+                call["name"]
+                    .as_str()
+                    .is_some_and(|name| name.ends_with(RESULT_METADATA_TOOL))
+            })
+            .expect("the prepared app call");
     assert!(
         recorded["name"]
             .as_str()
@@ -3074,8 +3180,13 @@ async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
             .find(|item| item["type"] == original_type && item["call_id"] == original_id)
             .expect("captured original output");
         let captured_calls =
-            &captured_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"];
-        assert_eq!(captured_calls.as_array().unwrap().len(), 1);
+            captured_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|call| call["name"] != "test_sync_tool")
+                .collect::<Vec<_>>();
+        assert_eq!(captured_calls.len(), 1);
         assert_eq!(captured_calls[0]["arguments"], recorded["arguments"]);
         assert_eq!(captured_calls[0]["tool_result_metadata"], metadata);
         assert_ne!(
@@ -3102,15 +3213,16 @@ async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
             let terminal_input = terminal_request.input();
             assert_eq!(result_metadata_fixture_calls(&terminal_input).count(), 2);
             let original = terminal_request.call_output(&original_id, &original_type);
-            assert_eq!(
-                original["internal_chat_message_metadata_passthrough"]["executed_tool_calls"][0]["arguments"],
-                recorded["arguments"]
-            );
-            assert!(
-                original["internal_chat_message_metadata_passthrough"]["executed_tool_calls"][0]
-                    .get("tool_result_metadata")
-                    .is_none()
-            );
+            let original_calls =
+                original["internal_chat_message_metadata_passthrough"]["executed_tool_calls"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|call| call["name"] != "test_sync_tool")
+                    .collect::<Vec<_>>();
+            assert_eq!(original_calls.len(), 1);
+            assert_eq!(original_calls[0]["arguments"], recorded["arguments"]);
+            assert!(original_calls[0].get("tool_result_metadata").is_none());
         }
     }
     test.codex.shutdown_and_wait().await?;
