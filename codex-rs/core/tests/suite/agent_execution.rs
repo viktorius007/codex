@@ -1,6 +1,7 @@
 use anyhow::Result;
 use codex_core::windows_sandbox::WindowsSandboxLevelExt;
 use codex_exec_server::CreateDirectoryOptions;
+use codex_extension_api::ExtensionRegistryBuilder;
 use codex_features::Feature;
 use codex_protocol::config_types::WindowsSandboxLevel;
 use codex_protocol::models::PermissionProfile;
@@ -10,21 +11,27 @@ use codex_protocol::protocol::EnvironmentConfigState;
 use codex_protocol::protocol::EventMsg;
 use codex_protocol::protocol::ThreadSettingsOverrides;
 use codex_protocol::protocol::TurnEnvironmentSelections;
+use core_test_support::ThreadIdle;
 use core_test_support::responses::ResponseMock;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_function_call_with_namespace;
 use core_test_support::responses::ev_response_created;
+use core_test_support::responses::mount_response_once_match;
 use core_test_support::responses::mount_sse_once_match;
 use core_test_support::responses::sse;
 use core_test_support::responses::start_mock_server;
+use core_test_support::streaming_sse::StreamingSseChunk;
+use core_test_support::streaming_sse::start_streaming_sse_server;
 use core_test_support::submit_thread_settings;
 use core_test_support::test_codex::test_codex;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use serde_json::json;
+use std::sync::Arc;
 use std::time::Duration;
 use test_case::test_case;
+use tokio::sync::oneshot;
 
 const FIRST_PROMPT: &str = "spawn the first worker";
 const FIRST_TASK: &str = "first worker task";
@@ -342,7 +349,32 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
         json!({ "message": FIRST_TASK, "task_name": "first", "fork_turns": "none" }),
     )
     .await;
-    mount_completed_worker(&server, FIRST_TASK, "first-call").await;
+    let (release_first, first_gate) = oneshot::channel();
+    let mut first_answer = ev_assistant_message("first-worker-completed", "first worker completed");
+    first_answer["item"]["phase"] = json!("final_answer");
+    let (first_server, _) = start_streaming_sse_server(vec![vec![StreamingSseChunk {
+        gate: Some(first_gate),
+        body: sse(vec![first_answer, ev_completed("first-worker-response")]),
+    }]])
+    .await;
+    mount_response_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, FIRST_TASK) && !has_function_call_output(request, "first-call")
+        },
+        wiremock::ResponseTemplate::new(/*s*/ 307)
+            .insert_header("location", format!("{}/v1/responses", first_server.uri())),
+    )
+    .await;
+    mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, "first worker completed")
+                && has_function_call_output(request, "first-call")
+        },
+        sse(vec![ev_completed("first-parent-notification")]),
+    )
+    .await;
 
     mount_root_collaboration_call(
         &server,
@@ -352,9 +384,43 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
         json!({ "message": SECOND_TASK, "task_name": "replacement", "fork_turns": "none" }),
     )
     .await;
-    mount_completed_worker(&server, SECOND_TASK, "replacement-call").await;
+    let (release_replacement, replacement_gate) = oneshot::channel();
+    let mut replacement_answer = ev_assistant_message(
+        "replacement-worker-completed",
+        "replacement worker completed",
+    );
+    replacement_answer["item"]["phase"] = json!("final_answer");
+    let (replacement_server, _) = start_streaming_sse_server(vec![vec![StreamingSseChunk {
+        gate: Some(replacement_gate),
+        body: sse(vec![
+            replacement_answer,
+            ev_completed("replacement-worker-response"),
+        ]),
+    }]])
+    .await;
+    mount_response_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, SECOND_TASK)
+                && !has_function_call_output(request, "replacement-call")
+        },
+        wiremock::ResponseTemplate::new(/*s*/ 307).insert_header(
+            "location",
+            format!("{}/v1/responses", replacement_server.uri()),
+        ),
+    )
+    .await;
+    mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            body_contains(request, "replacement worker completed")
+                && has_function_call_output(request, "replacement-call")
+        },
+        sse(vec![ev_completed("replacement-parent-notification")]),
+    )
+    .await;
 
-    mount_root_collaboration_call(
+    let followup_completion = mount_root_collaboration_call(
         &server,
         FOLLOWUP_PROMPT,
         "followup-call",
@@ -365,7 +431,10 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     let reloaded_worker_request =
         mount_completed_worker(&server, FOLLOWUP_TASK, "followup-call").await;
 
+    let mut extensions = ExtensionRegistryBuilder::new();
+    extensions.thread_lifecycle_contributor(Arc::new(ThreadIdle));
     let mut builder = test_codex()
+        .with_extensions(Arc::new(extensions.build()))
         .with_model("gpt-5.6-sol")
         .with_exec_server_url("none")
         .with_config(|config| {
@@ -468,12 +537,26 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     )
     .await?;
     test.submit_text_turn(FIRST_PROMPT).await?;
+    ThreadIdle::wait(&test.codex).await;
+    release_first
+        .send(())
+        .expect("release first worker completion");
     let first_thread_id = created_threads.recv().await?;
     let first_thread = test.thread_manager.get_thread(first_thread_id).await?;
-    wait_for_event(first_thread.as_ref(), |event| {
+    let completion = wait_for_event(first_thread.as_ref(), |event| {
+        matches!(event, EventMsg::TurnComplete(_) | EventMsg::Error(_))
+    })
+    .await;
+    if let EventMsg::Error(error) = completion {
+        anyhow::bail!("first_thread failed: {}", error.message);
+    }
+    ThreadIdle::wait(first_thread.as_ref()).await;
+    wait_for_event(&test.codex, |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    ThreadIdle::wait(&test.codex).await;
+    first_server.shutdown().await;
 
     let mut parent_environment = child_environment.clone();
     if reload == ResidencyReload::OwnerRevokesWorkspaceRoot {
@@ -498,15 +581,29 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
         .await?;
     }
     test.submit_text_turn(EVICT_PROMPT).await?;
+    ThreadIdle::wait(&test.codex).await;
+    release_replacement
+        .send(())
+        .expect("release replacement worker completion");
     let replacement_thread_id = created_threads.recv().await?;
     let replacement_thread = test
         .thread_manager
         .get_thread(replacement_thread_id)
         .await?;
-    wait_for_event(replacement_thread.as_ref(), |event| {
+    let completion = wait_for_event(replacement_thread.as_ref(), |event| {
+        matches!(event, EventMsg::TurnComplete(_) | EventMsg::Error(_))
+    })
+    .await;
+    if let EventMsg::Error(error) = completion {
+        anyhow::bail!("replacement_thread failed: {}", error.message);
+    }
+    ThreadIdle::wait(replacement_thread.as_ref()).await;
+    wait_for_event(&test.codex, |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    ThreadIdle::wait(&test.codex).await;
+    replacement_server.shutdown().await;
     assert!(
         test.thread_manager
             .get_thread(first_thread_id)
@@ -571,11 +668,21 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     }
 
     test.submit_text_turn(FOLLOWUP_PROMPT).await?;
+    assert_eq!(
+        followup_completion
+            .single_request()
+            .function_call_output_text("followup-call"),
+        Some(String::new()),
+        "followup must accept the task before waiting for worker completion",
+    );
     let reloaded_worker = test.thread_manager.get_thread(first_thread_id).await?;
-    wait_for_event(reloaded_worker.as_ref(), |event| {
-        matches!(event, EventMsg::TurnComplete(_))
+    let completion = wait_for_event(reloaded_worker.as_ref(), |event| {
+        matches!(event, EventMsg::TurnComplete(_) | EventMsg::Error(_))
     })
     .await;
+    if let EventMsg::Error(error) = completion {
+        anyhow::bail!("reloaded_worker failed: {}", error.message);
+    }
     assert_eq!(
         reloaded_worker
             .config_snapshot()

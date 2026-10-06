@@ -1,9 +1,11 @@
 use anyhow::Result;
+use codex_core::NotSubmittedReason;
 use codex_core::RecoverTurnRequest;
 use codex_core::StartIfIdleSubmission;
 use codex_core::TurnInputRequest;
 use codex_core::TurnInputSubmission;
 use codex_core::TurnStartOptions;
+use codex_extension_api::ExtensionRegistryBuilder;
 use codex_features::Feature;
 use codex_login::CodexAuth;
 use codex_protocol::protocol::EventMsg;
@@ -12,6 +14,7 @@ use codex_protocol::turn_input::CyberAccessProgram;
 use codex_protocol::user_input::UserInput;
 use codex_rollout::RolloutItem;
 use codex_rollout::RolloutRecorder;
+use core_test_support::ThreadIdle;
 use core_test_support::responses;
 use core_test_support::streaming_sse::StreamingSseChunk;
 use core_test_support::streaming_sse::start_streaming_sse_server;
@@ -284,7 +287,10 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
             final_response("resp-child-initial"),
         )
         .await;
+        let mut extensions = ExtensionRegistryBuilder::new();
+        extensions.thread_lifecycle_contributor(std::sync::Arc::new(ThreadIdle));
         let test = test_codex()
+            .with_extensions(std::sync::Arc::new(extensions.build()))
             .with_auth(CodexAuth::create_dummy_chatgpt_auth_for_testing())
             .with_model(if is_v2 { "gpt-5.6-sol" } else { "gpt-5.1" })
             .with_config(move |config| {
@@ -303,6 +309,7 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
             .await?;
         let mut created_threads = test.thread_manager.subscribe_thread_created();
         submit(&test, Some(CyberAccessProgram::DaybreakRed)).await?;
+        ThreadIdle::wait(&test.codex).await;
         let child_id = created_threads.recv().await?;
         let child = test.thread_manager.get_thread(child_id).await?;
         wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
@@ -323,7 +330,7 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
             "namespace={namespace}, fork_turns={fork_turns}"
         );
 
-        for (program, expected, reload) in [
+        for (index, (program, expected, reload)) in [
             (
                 Some(CyberAccessProgram::Standard),
                 json!({"cyber": "standard"}),
@@ -340,7 +347,10 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
                 json!({"cyber": "standard"}),
                 true,
             ),
-        ] {
+        ]
+        .into_iter()
+        .enumerate()
+        {
             if reload {
                 let child = test.thread_manager.get_thread(child_id).await?;
                 child.shutdown_and_wait().await?;
@@ -371,16 +381,81 @@ async fn cyber_access_program_is_inherited_by_child_turns() -> Result<()> {
                 ),
                 responses::ev_completed("resp-followup"),
             ]));
-            responses::mount_sse_sequence(&server, reply_sequence).await;
+            let turn_message = format!("followup {index}");
+            let matched_message = turn_message.clone();
+            let parent_followup_requests = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let captured_requests = std::sync::Arc::clone(&parent_followup_requests);
+            let replies = std::sync::Mutex::new(reply_sequence.into_iter());
+            let request_body = |request: &wiremock::Request| {
+                let compressed = request
+                    .headers
+                    .get("content-encoding")
+                    .is_some_and(|value| {
+                        value
+                            .to_str()
+                            .expect("encoding header")
+                            .split(',')
+                            .any(|encoding| encoding.trim().eq_ignore_ascii_case("zstd"))
+                    });
+                let bytes = if compressed {
+                    zstd::stream::decode_all(request.body.as_slice()).expect("decode request")
+                } else {
+                    request.body.clone()
+                };
+                serde_json::from_slice::<serde_json::Value>(&bytes).expect("response request")
+            };
+            Mock::given(method("POST"))
+                .and(path("/v1/responses"))
+                .and(move |request: &wiremock::Request| {
+                    if request.headers.contains_key("x-openai-subagent") {
+                        return false;
+                    }
+                    let body = request_body(request);
+                    body["input"].as_array().is_some_and(|items| {
+                        items.iter().any(|item| {
+                            item["role"] == "user"
+                                && item["content"].as_array().is_some_and(|content| {
+                                    content.iter().any(|part| part["text"] == matched_message)
+                                })
+                        })
+                    })
+                })
+                .respond_with(move |request: &wiremock::Request| {
+                    captured_requests
+                        .lock()
+                        .expect("captured requests")
+                        .push(request_body(request));
+                    responses::sse_response(
+                        replies
+                            .lock()
+                            .expect("followup replies")
+                            .next()
+                            .expect("followup reply"),
+                    )
+                })
+                .up_to_n_times(if reload && !is_v2 { 2 } else { 1 })
+                .mount(&server)
+                .await;
             let followup_child_request = responses::mount_sse_once_match(
                 &server,
                 header("x-openai-subagent", "collab_spawn"),
                 final_response("resp-child-next"),
             )
             .await;
-            submit(&test, program).await?;
+            submit_with_text(&test, program, turn_message).await?;
+            ThreadIdle::wait(&test.codex).await;
             let child = test.thread_manager.get_thread(child_id).await?;
             wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+            assert_eq!(
+                parent_followup_requests
+                    .lock()
+                    .expect("captured requests")
+                    .iter()
+                    .map(|request| request["access_programs"].clone())
+                    .collect::<Vec<_>>(),
+                vec![expected.clone(); if reload && !is_v2 { 2 } else { 1 }],
+                "parent namespace={namespace}, fork_turns={fork_turns}, reload={reload}"
+            );
             assert_eq!(
                 child_programs(&followup_child_request),
                 vec![expected],
@@ -467,6 +542,41 @@ async fn submit(test: &TestCodex, program: Option<CyberAccessProgram>) -> Result
         .await?;
     let event = wait_for_event(&test.codex, |event| {
         matches!(event, EventMsg::TurnComplete(_) | EventMsg::Error(_))
+    })
+    .await;
+    if let EventMsg::Error(error) = event {
+        anyhow::bail!("cyber program {program:?}: {error:?}");
+    }
+    Ok(())
+}
+
+async fn submit_with_text(
+    test: &TestCodex,
+    program: Option<CyberAccessProgram>,
+    text: String,
+) -> Result<()> {
+    let request = TurnInputRequest::user_input(vec![UserInput::Text {
+        text,
+        text_elements: Vec::new(),
+    }])
+    .on_start(TurnStartOptions {
+        cyber_access_program: program,
+        ..Default::default()
+    });
+    let turn_id = loop {
+        match test.codex.start_turn_if_idle(request.clone()).await? {
+            StartIfIdleSubmission::Started { turn_id } => break turn_id,
+            StartIfIdleSubmission::NotSubmitted {
+                reason: NotSubmittedReason::NotIdle,
+            } => {
+                ThreadIdle::wait(&test.codex).await;
+            }
+            other => anyhow::bail!("cyber program {program:?}: turn was not submitted: {other:?}"),
+        }
+    };
+    let event = wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(event) if event.turn_id == turn_id)
+            || matches!(event, EventMsg::Error(_))
     })
     .await;
     if let EventMsg::Error(error) = event {
