@@ -117,13 +117,14 @@ fn persisted_tool_catalog_events(items: &[RolloutItem]) -> Vec<serde_json::Value
 
 #[tokio::test]
 async fn selected_tool_catalog_change_persists_once_and_restores_digest_on_resume() {
-    let (mut session, baseline_turn, events) =
+    let (mut session, _baseline_turn, events) =
         make_session_and_context_with_dynamic_tools_and_rx(baseline_tools()).await;
     let rollout_path = attach_thread_persistence(
         Arc::get_mut(&mut session).expect("test session should still be uniquely owned"),
     )
     .await;
 
+    let baseline_turn = turn_with_tools(&session, baseline_tools()).await;
     let baseline = select_step(&session, baseline_turn).await;
     let baseline_digest = ToolCatalogDigest::new(&baseline.tool_router.model_visible_specs());
     assert_eq!(
@@ -186,7 +187,7 @@ async fn selected_tool_catalog_change_persists_once_and_restores_digest_on_resum
         .record_initial_history(InitialHistory::Resumed(ResumedHistory {
             conversation_id: session.thread_id,
             history: Arc::new(resumed_history),
-            rollout_path: Some(rollout_path),
+            rollout_path: Some(rollout_path.clone()),
         }))
         .await;
 
@@ -198,6 +199,50 @@ async fn selected_tool_catalog_change_persists_once_and_restores_digest_on_resum
             .last_tool_catalog_digest
             .as_ref()
             .map(|digest| digest.catalog.clone()),
-        Some(changed_digest.catalog),
+        Some(changed_digest.catalog.clone()),
+    );
+
+    assert_eq!(
+        tool_catalog_events(&events),
+        Vec::<serde_json::Value>::new()
+    );
+    let resumed_turn = turn_with_tools(&session, changed_tools()).await;
+    select_step(&session, resumed_turn).await;
+    assert_eq!(
+        tool_catalog_events(&events),
+        Vec::<serde_json::Value>::new()
+    );
+    assert_eq!(
+        session.state.lock().await.last_tool_catalog_digest,
+        Some(changed_digest.clone()),
+    );
+
+    // Repeat the cold resume before changing the catalog: saved history cannot
+    // attribute the transition to individual tools.
+    let InitialHistory::Resumed(resumed) = RolloutRecorder::get_rollout_history(&rollout_path)
+        .await
+        .expect("rollout should be readable")
+    else {
+        panic!("expected resumed rollout history");
+    };
+    session
+        .record_initial_history(InitialHistory::Resumed(resumed))
+        .await;
+    assert_eq!(
+        tool_catalog_events(&events),
+        Vec::<serde_json::Value>::new()
+    );
+    let changed_resumed_turn = turn_with_tools(&session, baseline_tools()).await;
+    select_step(&session, changed_resumed_turn).await;
+    let expected = EventMsg::ToolCatalogChanged(ToolCatalogChangedEvent {
+        previous_digest: changed_digest.catalog,
+        current_digest: baseline_digest.catalog,
+        added: Vec::new(),
+        removed: Vec::new(),
+        changed: Vec::new(),
+    });
+    assert_eq!(
+        tool_catalog_events(&events),
+        vec![serde_json::to_value(expected).expect("expected event should serialize")],
     );
 }

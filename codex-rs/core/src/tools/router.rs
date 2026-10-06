@@ -97,7 +97,7 @@ pub(crate) struct ToolBuildProvenance {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ToolCatalogDigest {
     pub(crate) catalog: String,
-    pub(crate) by_tool: BTreeMap<String, String>,
+    pub(crate) by_tool: Option<BTreeMap<String, String>>,
 }
 
 impl ToolCatalogDigest {
@@ -113,30 +113,31 @@ impl ToolCatalogDigest {
         }
         Self {
             catalog: format!("{:x}", catalog_hasher.finalize()),
-            by_tool,
+            by_tool: Some(by_tool),
         }
     }
 
     /// Tool names added, removed, and changed relative to `previous`.
     pub(crate) fn diff(&self, previous: &Self) -> (Vec<String>, Vec<String>, Vec<String>) {
-        let added = self
-            .by_tool
+        // Saved catalog events carry only the aggregate hash, so tool attribution
+        // remains unknown until a selected catalog supplies the individual hashes.
+        let (Some(current), Some(previous)) = (&self.by_tool, &previous.by_tool) else {
+            return (Vec::new(), Vec::new(), Vec::new());
+        };
+        let added = current
             .keys()
-            .filter(|name| !previous.by_tool.contains_key(*name))
+            .filter(|name| !previous.contains_key(*name))
             .cloned()
             .collect();
         let removed = previous
-            .by_tool
             .keys()
-            .filter(|name| !self.by_tool.contains_key(*name))
+            .filter(|name| !current.contains_key(*name))
             .cloned()
             .collect();
-        let changed = self
-            .by_tool
+        let changed = current
             .iter()
             .filter(|(name, digest)| {
                 previous
-                    .by_tool
                     .get(*name)
                     .is_some_and(|previous_digest| previous_digest != *digest)
             })
