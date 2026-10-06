@@ -34,6 +34,8 @@
 - Cache repair verification must cover ordinary and post-compaction cold resumes within the provider cache lifetime, checking preserved input prefixes and unchanged effective model, instructions, settings, and ordered tools separately from provider-reported cache reuse.
 - When auditing local patches for cache misses or wasted turns, focus on significant defects, require executed failing tests that assert the causal mechanism, group findings by severity, and have the coordinator choose the simplest surgical fix before delegating implementation to Sol. Retire this manual review rule when an automated gate enforces it.
 
+- For stable-release updates, pursue reproduced failures with surgical fixes only; avoid unrelated investigations and ceremony, and finish with passing validation before installation.
+
 ## Syncing to a new upstream stable release
 
 Apply this workflow only when the user requests moving `local/customizations` to a newer upstream stable `rust-v*` release tag. Do not start it for `origin/main` updates, alpha tags, routine code changes, or merely discovering a new tag.
@@ -536,8 +538,76 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Stable 0.159.2 local.9 installation record](/Users/viktor/.local/lib/codex-local/0.159.2+local.9-2cf7c7b2402b-1af74a6637e4/provenance.json) — Records installed local.9 binaries, checksums, validation limits, installation time, and the local.8 rollback release.
 
+- [Local.9 daemon package repair](/Users/viktor/.local/lib/codex-local/0.159.2+local.9-packaged/provenance.json) — Records the complete package layout and unchanged binary checksums used to install the matching managed daemon.
+
 - [TODO.md](TODO.md) — Tracks the remaining explicit Goal deferral follow-up.
 - [audit_cache_diagnostics.py](scripts/audit_cache_diagnostics.py) — Analyzes privacy-preserving prompt-cache diagnostic records offline.
 - [audit_prompt_cache.py](scripts/audit_prompt_cache.py) — Finds likely prompt-cache drops in local Codex rollout files without printing private content.
 - [test_audit_cache_diagnostics.py](scripts/test_audit_cache_diagnostics.py) — Tests the offline cache-diagnostics analyzer and privacy boundaries.
 - [test_audit_prompt_cache.py](scripts/test_audit_prompt_cache.py) — Tests rollout cache-drop classification and privacy-safe output.
+
+- [Stable 0.160.1 sync](research/stable-0.160.1-sync.md) — Records patch preservation, validation, installation, rollback, and cleanup for local.10.
+- [Stable 0.160.1 build log](research/stable-0.160.1-build.log) — Preserves the CLI and code-mode host build output.
+- [Stable 0.160.1 patch comparison](research/stable-0.160.1-range-diff.txt) — Compares the old and rebased local patch series.
+- [Stable 0.160.1 Bazel log](research/stable-0.160.1-bazel.log) — Records dependency lock regeneration.
+- [Stable 0.160.1 format log](research/stable-0.160.1-format.log) — Records the required formatter run.
+- [Stable 0.160.1 focused tests](research/stable-0.160.1-focused.log) — Preserves patch and CLI test results.
+- [Stable 0.160.1 CLI help](research/stable-0.160.1-cli-help.txt) — Records the candidate CLI launch check.
+- [Stable 0.160.1 host help](research/stable-0.160.1-host-help.txt) — Records the candidate code-mode host launch check.
+- [Stable 0.160.1 package log](research/stable-0.160.1-package.log) — Records canonical macOS package assembly.
+- [Stable 0.160.1 compile failure](research/stable-0.160.1-focused-compile-failure.log) — Preserves the stale test-interface failures corrected during validation.
+- [Stable 0.160.1 lint log](research/stable-0.160.1-lint.log) — Records scoped automatic lint checks.
+- [Stable 0.160.1 lint retry](research/stable-0.160.1-lint-retry.log) — Records the lint retry without the failed incremental cache.
+- [Stable 0.160.1 focused rerun](research/stable-0.160.1-focused-rerun.log) — Records focused validation after fixture and lint corrections.
+- [Stable 0.160.1 focused JUnit](research/stable-0.160.1-focused-junit.xml) — Preserves structured focused test results before build cleanup.
+- [Stable 0.160.1 pending snapshots](research/stable-0.160.1-pending-snapshots.tar.gz) — Preserves generated snapshot differences for failure diagnosis.
+- [Stable 0.160.1 failure inventory](research/stable-0.160.1-failure-inventory.json) — Groups focused test failures for targeted diagnosis.
+
+- [Stable 0.160.1 workspace binaries](research/stable-0.160.1-workspace-bins.log) — Records the smaller workspace build including test helper binaries.
+- [Stable 0.160.1 targeted replay](research/stable-0.160.1-triage-rerun.log) — Records isolated fixture and asynchronous ordering checks after helper binaries were built.
+- [Stable 0.160.1 reservation regression](research/stable-0.160.1-reservation-red.log) — Records the causal reserved-turn message-order test before repair and the catalog-fixture replay.
+- [Stable 0.160.1 reservation probe](research/stable-0.160.1-reservation-regression.patch) — Preserves an exploratory reservation test excluded from this update because the underlying code is unchanged upstream.
+- [Stable 0.160.1 final lint](research/stable-0.160.1-final-lint.log) — Records the final scoped lint before the workspace validation run.
+- [Stable 0.160.1 workspace validation](research/stable-0.160.1-workspace-test.log) — Records the final workspace test result and any remaining validation limits.
+- [Stable 0.160.1 corrected focused run](research/stable-0.160.1-corrected-focused.log) — Replays affected crates with the required helper binaries and corrected fixture isolation.
+- [Stable 0.160.1 corrected JUnit](research/stable-0.160.1-corrected-focused-junit.xml) — Preserves the corrected affected-crate replay before targeted repairs.
+- [Stable 0.160.1 surgical rerun](research/stable-0.160.1-surgical-rerun.log) — Checks the remaining failures and causal regression tests after the surgical repairs.
+- [Stable sync surgical-rerun-2.log](research/stable-0.160.1-surgical-rerun-2.log) — Records the 116-test replay and remaining grouped failures.
+- [Stable sync surgical-rerun-2-junit.xml](research/stable-0.160.1-surgical-rerun-2-junit.xml) — Preserves structured surgical replay results.
+- [Stable sync program-probe.log](research/stable-0.160.1-program-probe.log) — Locates selected-program loss in parent versus child requests.
+- [Stable sync fixture-rerun.log](research/stable-0.160.1-fixture-rerun.log) — Records the focused fixture replay and causal failures.
+- [Stable sync fixture-rerun-junit.xml](research/stable-0.160.1-fixture-rerun-junit.xml) — Preserves structured focused fixture replay results.
+- [Stable sync causal-rerun.log](research/stable-0.160.1-causal-rerun.log) — Records verification after correcting mock recording and terminal permissions.
+- [Stable sync causal-rerun JUnit](research/stable-0.160.1-causal-rerun-junit.xml) — Preserves structured verification of the final failure groups.
+- [Stable sync final build](research/stable-0.160.1-final-build.log) — Records the updated CLI and code-mode host compilation.
+- [Stable sync remaining failures replay](research/stable-0.160.1-final-failures.log) — Records the final focused continuation and permission-fixture checks.
+- [Stable sync final-package.log](research/stable-0.160.1-final-package.log) — Records assembly of the compiled local.10 package.
+- [Stable sync final-host-help.txt](research/stable-0.160.1-final-host-help.txt) — Preserves the packaged code-mode host launch check.
+- [Stable sync final-failures-junit.xml](research/stable-0.160.1-final-failures-junit.xml) — Preserves the 67-pass remaining-failures replay.
+- [Stable sync last-three.log](research/stable-0.160.1-last-three.log) — Records the last peer, compaction, and residency checks.
+- [Stable sync last-three-junit.xml](research/stable-0.160.1-last-three-junit.xml) — Preserves the final peer and checkpoint passes and residency failure details.
+- [Stable sync final-lint-dev-small.log](research/stable-0.160.1-final-lint-dev-small.log) — Records scoped lint of the final source using the smaller build profile.
+- [Stable sync residency-final.log](research/stable-0.160.1-residency-final.log) — Records all four passing residency permission and environment cases.
+- [Stable sync residency-final-junit.xml](research/stable-0.160.1-residency-final-junit.xml) — Preserves structured results for the final residency replay.
+- [Stable sync full-workspace-test.log](research/stable-0.160.1-full-workspace-test.log) — Records the complete workspace test run for the stable update.
+- [Stable sync full-workspace-junit.xml](research/stable-0.160.1-full-workspace-junit.xml) — Preserves structured results from the complete 20,979-test run.
+- [Stable sync schema-refresh.log](research/stable-0.160.1-schema-refresh.log) — Records regeneration of protocol fixtures for preserved local events.
+- [Stable sync workspace-final-replay.log](research/stable-0.160.1-workspace-final-replay.log) — Records the targeted replay of failures from the full workspace suite.
+- [Stable sync child-fixtures-final.log](research/stable-0.160.1-child-fixtures-final.log) — Records the developer-context and disabled-skills child inheritance replay.
+- [Stable sync app-fixtures-final.log](research/stable-0.160.1-app-fixtures-final.log) — Records Guardian authorization and compacted child inheritance replays.
+- [Stable sync child-fixtures-final-junit.xml](research/stable-0.160.1-child-fixtures-final-junit.xml) — Preserves both passing child inheritance results.
+- [Stable sync app-fixtures-final-junit.xml](research/stable-0.160.1-app-fixtures-final-junit.xml) — Preserves eight passing app-server checks and two remaining fixture failures.
+- [Stable sync workspace-final-replay-junit.xml](research/stable-0.160.1-workspace-final-replay-junit.xml) — Preserves passing schema, diagnostics, Goal, and isolated doctor checks.
+- [Stable sync app-final-two.log](research/stable-0.160.1-app-final-two.log) — Records passing Guardian cases and the missing child compaction fixture.
+- [Stable sync app-final-two-junit.xml](research/stable-0.160.1-app-final-two-junit.xml) — Preserves structured results for the final app-server diagnosis.
+- [Stable sync child-compaction-final.log](research/stable-0.160.1-child-compaction-final.log) — Records the passing compacted child inheritance test.
+- [Stable sync child-compaction-final-junit.xml](research/stable-0.160.1-child-compaction-final-junit.xml) — Preserves the passing final child compaction result.
+- [Stable sync shipping-lint.log](research/stable-0.160.1-shipping-lint.log) — Records the final scoped core, app-server, protocol, and skills lint.
+- [Stable sync verified-workspace-test.log](research/stable-0.160.1-verified-workspace-test.log) — Records the complete test run against the frozen shipping source.
+- [Stable sync worktree evidence](research/stable-0.160.1-worktree-evidence.tar.gz) — Preserves verified worker patches and generated evidence before cleanup.
+- [Stable sync committed-build-retry.log](research/stable-0.160.1-committed-build-retry.log) — Preserves committed build retry evidence for the stable update.
+- [Stable sync committed-build.log](research/stable-0.160.1-committed-build.log) — Preserves committed build evidence for the stable update.
+- [Stable sync final-diagnostic-junit.xml](research/stable-0.160.1-final-diagnostic-junit.xml) — Preserves final diagnostic junit evidence for the stable update.
+- [Stable sync final-diagnostic-replay.log](research/stable-0.160.1-final-diagnostic-replay.log) — Preserves final diagnostic replay evidence for the stable update.
+- [Stable sync verified-workspace-junit.xml](research/stable-0.160.1-verified-workspace-junit.xml) — Preserves verified workspace junit evidence for the stable update.
+- [Stable 0.160.1 local.10 installation record](/Users/viktor/.local/lib/codex-local/0.160.1+local.10-c34fb75f0e07/provenance.json) — Records installed binaries, source, checksums, validation results, installation time, and local.9 rollback.
