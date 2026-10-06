@@ -2882,6 +2882,7 @@ async fn intercepted_output_reaches_trace_and_websocket_bookkeeping() -> anyhow:
         attempt,
         &test_model_client(SessionSource::Cli).state,
         vec![Box::new(ReplaceOutput)],
+        /*cache_diagnostic_attempt*/ None,
         Some(last_response_tx),
     );
     let mut delivered = Vec::new();
