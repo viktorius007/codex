@@ -103,6 +103,32 @@ async fn unified_exec_zsh_fork_parent_approval_preserves_denied_reads() -> Resul
     )
     .await?;
     approve_expected_exec(&test, &command).await?;
+    let intercepted_approval = wait_for_event(&test.codex, |event| {
+        matches!(
+            event,
+            EventMsg::ExecApprovalRequest(_) | EventMsg::TurnComplete(_)
+        )
+    })
+    .await;
+    let EventMsg::ExecApprovalRequest(intercepted_approval) = intercepted_approval else {
+        panic!("expected intercepted cat approval before completion");
+    };
+    assert_eq!(intercepted_approval.call_id, call_id);
+    assert_eq!(
+        intercepted_approval.command.last(),
+        Some(&denied_path.to_string_lossy().into_owned()),
+    );
+    assert!(
+        intercepted_approval
+            .command
+            .first()
+            .is_some_and(|program| program.ends_with("/cat"))
+    );
+    let intercepted_approval_id = intercepted_approval
+        .approval_id
+        .context("expected a distinct intercepted cat approval id")?;
+    assert_ne!(intercepted_approval_id, call_id);
+    approve_exec(&test, intercepted_approval_id).await?;
     wait_for_completion_without_approval(&test).await;
 
     let result = command_result(&results, call_id);
@@ -556,13 +582,18 @@ async fn unified_exec_zsh_fork_guardian_reviews_persistent_terminal_in_current_t
         unreachable!("completion wait only returns turn-complete events");
     };
 
-    let next_cwd = test.config.cwd.join("next-turn");
-    fs::create_dir(&next_cwd)?;
+    let next_cwd = test.config.cwd.clone();
     let next_denied_path = next_cwd.join("next-environment-private");
-    let (sandbox_policy, permission_profile) = turn_permission_fields(
-        denied_read_permission_profile(next_denied_path.as_path())?,
-        next_cwd.as_path(),
+    // Network drift requires review without changing the terminal's denied reads.
+    let next_permission_profile = PermissionProfile::from_runtime_permissions(
+        &test
+            .session_configured
+            .permission_profile
+            .file_system_sandbox_policy(),
+        NetworkSandboxPolicy::Enabled,
     );
+    let (sandbox_policy, permission_profile) =
+        turn_permission_fields(next_permission_profile, next_cwd.as_path());
     test.codex
         .start_or_steer_turn(
             TurnInputRequest::user_input(vec![UserInput::Text {

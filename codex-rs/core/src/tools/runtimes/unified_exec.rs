@@ -621,11 +621,14 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
             } else {
                 TerminalSandboxSource::Native
             },
-            if attempt.is_escalated() {
-                SandboxPermissions::RequireEscalated
-            } else {
-                SandboxPermissions::UseDefault
-            },
+            sandbox_permissions_preserving_denied_reads(
+                if attempt.is_escalated() {
+                    SandboxPermissions::RequireEscalated
+                } else {
+                    SandboxPermissions::UseDefault
+                },
+                &file_system_sandbox_policy,
+            ),
             req.additional_permissions.as_ref(),
             internal_permissions.as_ref(),
         );
