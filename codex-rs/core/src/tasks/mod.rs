@@ -279,17 +279,34 @@ impl Session {
         self.start_task(turn_context, input, task).await;
     }
 
-    #[expect(
-        clippy::await_holding_invalid_type,
-        reason = "record the started turn atomically with its active reservation and input delivery"
-    )]
     pub(crate) async fn start_task<T: SessionTask>(
         self: &Arc<Self>,
         turn_context: Arc<TurnContext>,
         input: Vec<TurnInput>,
         task: T,
     ) {
-        self.activate_plugin_selection(&turn_context).await;
+        self.start_task_with_reservation(
+            turn_context,
+            input,
+            task,
+            /*reserved_turn_state*/ None,
+            Vec::new(),
+        )
+        .await;
+    }
+
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "record the started turn atomically with its active reservation and input delivery"
+    )]
+    async fn start_task_with_reservation<T: SessionTask>(
+        self: &Arc<Self>,
+        turn_context: Arc<TurnContext>,
+        input: Vec<TurnInput>,
+        task: T,
+        reserved_turn_state: Option<&Arc<Mutex<TurnState>>>,
+        pending_input: Vec<TurnInput>,
+    ) -> bool {
         // Inherited or recovered roots are applied before task start. Otherwise this
         // task owns its turn, including background work. Later mail cannot change it.
         turn_context
@@ -311,13 +328,31 @@ impl Session {
         let cancellation_token = CancellationToken::new();
         let done = Arc::new(Notify::new());
 
-        let mut active = self.active_turn.lock().await;
+        let mut active = loop {
+            let active = self.active_turn.lock().await;
+            if let Some(reserved_turn_state) = reserved_turn_state {
+                if active.as_ref().is_none_or(|turn| {
+                    !Arc::ptr_eq(&turn.turn_state, reserved_turn_state)
+                        || turn.task.is_some()
+                        || turn.cancelled_before_start
+                }) {
+                    return false;
+                }
+            } else if active.as_ref().is_some_and(|turn| turn.task.is_some()) {
+                // An automatic start can register after spawn_task's earlier abort.
+                drop(active);
+                self.abort_all_tasks(TurnAbortReason::Replaced).await;
+                continue;
+            }
+            break active;
+        };
         if active
             .as_ref()
             .is_some_and(|turn| turn.cancelled_before_start)
         {
-            return;
+            return false;
         }
+        self.activate_plugin_selection(&turn_context).await;
         self.record_started_turn(&turn_context.sub_id).await;
         let (pending_items, _, child_result_origins) = self
             .input_queue
@@ -337,6 +372,9 @@ impl Session {
         debug_assert!(turn.task.is_none());
         let turn_state = Arc::clone(&turn.turn_state);
         turn_state.lock().await.token_usage_at_turn_start = token_usage_at_turn_start.clone();
+        self.input_queue
+            .extend_pending_input_for_turn_state(turn_state.as_ref(), pending_input)
+            .await;
         self.input_queue
             .extend_pending_input_for_turn_state(turn_state.as_ref(), pending_items)
             .await;
@@ -433,6 +471,7 @@ impl Session {
             _timer: timer,
         };
         turn.task = Some(running_task);
+        true
     }
 
     /// Returns whether an extension has marked this thread as durably asleep.
@@ -539,8 +578,10 @@ impl Session {
                 .iter()
                 .flat_map(|result| result.input().iter().cloned())
                 .collect::<Vec<_>>();
-            let (mut input, mut start_options, child_result_origins) =
-                self.input_queue.get_pending_input(&self.active_turn).await;
+            let (mut input, mut start_options, child_result_origins) = self
+                .input_queue
+                .drain_mailbox_input_items_with_origins()
+                .await;
             let rollback_child_result_origins = child_result_origins.clone();
             input.splice(0..0, async_input);
             if !input.iter().any(
@@ -595,22 +636,18 @@ impl Session {
             }
             self.maybe_emit_model_warnings_for_turn(turn_context.as_ref())
                 .await;
-            // Task completion must still save this mail if pre-turn compaction fails.
-            self.input_queue
-                .extend_pending_input_for_turn_state(turn_state.as_ref(), input)
-                .await;
-            Box::pin(self.start_task(turn_context, Vec::new(), RegularTask::new())).await;
-            let start_was_cancelled = self
-                .active_turn
-                .lock()
-                .await
-                .as_ref()
-                .is_some_and(|turn| turn.task.is_none());
-            if start_was_cancelled {
-                let cancelled_input = self
-                    .input_queue
-                    .take_pending_input_for_turn_state(turn_state.as_ref())
-                    .await;
+            // Stage mail only after confirming ownership, so a replacement turn's input
+            // cannot be claimed or overwritten while this context is being constructed.
+            let started = Box::pin(self.start_task_with_reservation(
+                Arc::clone(&turn_context),
+                Vec::new(),
+                RegularTask::new(),
+                Some(&turn_state),
+                input.clone(),
+            ))
+            .await;
+            if !started {
+                let cancelled_input = input;
                 let async_item_count = claimed_async_results
                     .iter()
                     .map(|result| result.input().len())
@@ -630,9 +667,40 @@ impl Session {
                 self.input_queue
                     .restore_async_results(claimed_async_results)
                     .await;
-                self.clear_reserved_idle_turn(&turn_state).await;
+                let reserved_input = {
+                    let mut active = self.active_turn.lock().await;
+                    if active.as_ref().is_some_and(|turn| {
+                        Arc::ptr_eq(&turn.turn_state, &turn_state) && turn.task.is_some()
+                    }) {
+                        Vec::new()
+                    } else {
+                        let pending = self
+                            .input_queue
+                            .take_pending_input_for_turn_state(turn_state.as_ref())
+                            .await;
+                        if active
+                            .as_ref()
+                            .is_some_and(|turn| Arc::ptr_eq(&turn.turn_state, &turn_state))
+                        {
+                            *active = None;
+                        }
+                        pending
+                    }
+                };
+                if !reserved_input.is_empty() {
+                    self.input_queue
+                        .enqueue_async_result(
+                            reserved_input,
+                            Arc::clone(&turn_context.extension_data),
+                        )
+                        .await;
+                }
             }
             drop(async_result_admission_permits);
+            if !started {
+                // The replacement may have retired before the restored input was visible.
+                self.maybe_start_turn_for_pending_work().await;
+            }
         })
     }
 
@@ -1138,3 +1206,7 @@ impl Session {
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "admission_tests.rs"]
+mod admission_tests;
