@@ -1671,6 +1671,16 @@ impl Session {
             InitialHistory::Resumed(resumed_history) => {
                 let turn_context = self.new_default_turn().await;
                 let rollout_items = resumed_history.history;
+                self.state.lock().await.last_tool_catalog_digest =
+                    rollout_items.iter().rev().find_map(|item| match item {
+                        RolloutItem::EventMsg(EventMsg::ToolCatalogChanged(event)) => {
+                            Some(crate::tools::router::ToolCatalogDigest {
+                                catalog: event.current_digest.clone(),
+                                by_tool: None,
+                            })
+                        }
+                        _ => None,
+                    });
                 if matches!(
                     rollout_items.iter().rev().find_map(|item| match item {
                         RolloutItem::EventMsg(event) => agent_status_from_event(event),
@@ -3895,7 +3905,7 @@ impl Session {
         let Some(previous) = previous else {
             return;
         };
-        if previous == digest {
+        if previous.catalog == digest.catalog {
             return;
         }
         let (added, removed, changed) = digest.diff(&previous);
