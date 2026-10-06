@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios.rs
+assertion_line: 1353
 expression: "context_snapshot::format_request_history_snapshot(\"Catalog Code Mode instructions and wait parameter descriptions accompany a yielded cell through completion.\",\n&requests, &ContextSnapshotOptions::default().include_request_settings(),)"
 ---
 Scenario: Catalog Code Mode instructions and wait parameter descriptions accompany a yielded cell through completion.
@@ -32,8 +33,8 @@ Settings:
   stream: true
   text: {"verbosity":"low"}
   tool_choice: "auto"
-  tools (7; hash=7a45a45148e7ea6a):
-    - custom/exec: Catalog exec instructions. Default yield: 1234 ms. `image(imageUrlOrItem: string | { image_url: s...; hash=a49b91fd82908e18
+  tools (7; hash=85c7bf232a9202b9):
+    - custom/exec: Catalog exec instructions. Default yield: 1234 ms. `image(imageUrlOrItem: string | { image_url: s...; hash=92bec60d9a50898f
     - function/wait: Catalog wait instructions: resume the yielded cell.; args=[cell_id, max_tokens, terminate, yield_time_ms]; hash=67bc0f04da3505b3
     - function/request_user_input: Request user input for one to three short questions and wait for the response. This tool is only ...; args=[questions]; hash=64a729b25c424fc6
     - function/request_user_input_async: Ask the user one or more questions during ongoing work. Use this tool only to request missing inf...; args=[questions]; hash=d6d74f33db330162
@@ -69,7 +70,15 @@ Settings:
 
         Never use the `request_user_input` tool for permission requests or permission-related escalations.
         </collaboration_mode>
-01:message/developer:
+01:message/user:
+    <environment_context>
+      <cwd><CWD></cwd>
+      <shell><HOST_SHELL></shell>
+      <current_date><CURRENT_DATE></current_date>
+      <timezone><HOST_TIMEZONE></timezone>
+      <filesystem><workspace_roots><root><CWD></root></workspace_roots><permission_profile type="disabled"><...e="unrestricted" /></permission_profile></filesystem> [hash=d40b2f45cb028888]
+    </environment_context>
+02:message/developer:
     <multi_agent_role>You are `/root`, the primary agent in a team of agents collaborating to fulfill the user's goals.
 
     At the start of your turn, you are the active agent.
@@ -78,7 +87,7 @@ Settings:
 
     You can use `spawn_agent` to create a new agent, `followup_task` to give an existing agent a new task an...message to a running agent without triggering a turn. [hash=7d40ff8b58977202]
     `send_message` calls may be read by a human, so ensure they are legible. Always put proper spaces between words and/or numbers.
-    <OMITTED 17 LINES; ~246 TOKENS; hash=780031e2df907944>
+    <OMITTED 17 LINES; ~230 TOKENS; hash=c2fc1f19e9df8667>
     - All agents use the same current working directory.
     - As a result, edits made by one agent are immediately visible to all other agents.
 
@@ -87,16 +96,8 @@ Settings:
     There are 4 available concurrency slots, meaning that up to 4 agents can be active at once, including you.
 
     Full-history forks (`fork_turns` omitted or `"all"`) inherit the parent model and reasoning effort and d...ne"` or a positive integer string.</multi_agent_role> [hash=c7f52e90688299ce]
-02:message/developer:
+03:message/developer:
     <multi_agent_mode>Any earlier instruction enabling proactive multi-agent delegation no longer applies. D...elegation, or parallel agent work.</multi_agent_mode> [hash=2b6e037067b4390c]
-03:message/user:
-    <environment_context>
-      <cwd><CWD></cwd>
-      <shell><HOST_SHELL></shell>
-      <current_date><CURRENT_DATE></current_date>
-      <timezone><HOST_TIMEZONE></timezone>
-      <filesystem><workspace_roots><root><CWD></root></workspace_roots><permission_profile type="disabled"><...e="unrestricted" /></permission_profile></filesystem> [hash=d40b2f45cb028888]
-    </environment_context>
 04:message/user:
     Start a code cell, yield its initial output, then wait for its completion.
 -- request 2 (turn) --
