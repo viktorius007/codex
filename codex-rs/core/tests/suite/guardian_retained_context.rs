@@ -387,7 +387,13 @@ async fn compact_and_assert_answers(
     // Inspect live state by persisting a real compaction checkpoint, not a private getter.
     // Repeating this after legacy rollback replay also catches checkpoint resurrection.
     thread.submit(Op::Compact).await?;
-    wait_for_event(thread, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    let completion = wait_for_event(thread, |event| {
+        matches!(event, EventMsg::TurnComplete(_) | EventMsg::Error(_))
+    })
+    .await;
+    if let EventMsg::Error(error) = completion {
+        anyhow::bail!("compaction failed: {}", error.message);
+    }
     thread.flush_rollout().await?;
     let history = load_context(test, thread).await?;
     let checkpoint = history
@@ -869,15 +875,30 @@ async fn standalone_fork_retains_inherited_user_instructions(
     wait_for_event(&worker, |event| matches!(event, EventMsg::TurnComplete(_))).await;
     if compacted {
         // Local compaction keeps the inherited source message in replacement history.
-        mount_sse_sequence(
+        mount_sse_once_match(
             &server,
-            vec![sse(vec![
+            |request: &wiremock::Request| {
+                serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+                    body["input"].as_array().is_some_and(|items| {
+                        items.iter().any(|item| {
+                            item["content"].as_array().is_some_and(|content| {
+                                content.iter().any(|part| {
+                                    part["text"] == codex_core::compact::SUMMARIZATION_PROMPT
+                                })
+                            })
+                        })
+                    })
+                })
+            },
+            sse(vec![
                 ev_assistant_message("worker-summary", "Inspected the project."),
                 ev_completed("worker-compacted"),
-            ])],
+            ]),
         )
         .await;
-        compact_and_assert_answers(&test, &worker, &[]).await?;
+        compact_and_assert_answers(&test, &worker, &[])
+            .await
+            .context("worker local checkpoint")?;
     }
     let worker_context = worker.conversation_history_snapshot().await;
     let inherited_text = worker_context
@@ -970,7 +991,32 @@ async fn standalone_fork_retains_inherited_user_instructions(
         .clone();
     assert!(!expected.verified_answers_complete());
     let root = fork.thread;
-    compact_and_assert_answers(&test, &root, &[after]).await?;
+    // A fork preserves the worker's local-compaction configuration. Updating the
+    // builder configuration above does not change that already-created thread.
+    mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+                body["input"].as_array().is_some_and(|items| {
+                    items.iter().any(|item| {
+                        item["content"].as_array().is_some_and(|content| {
+                            content.iter().any(|part| {
+                                part["text"] == codex_core::compact::SUMMARIZATION_PROMPT
+                            })
+                        })
+                    })
+                })
+            })
+        },
+        sse(vec![
+            ev_assistant_message("root-summary", "Inspected the project."),
+            ev_completed("root-compacted"),
+        ]),
+    )
+    .await;
+    compact_and_assert_answers(&test, &root, &[after])
+        .await
+        .context("adopted root checkpoint")?;
     let root = resume(&test, &root).await?;
     assert_eq!(
         root.conversation_history_snapshot()

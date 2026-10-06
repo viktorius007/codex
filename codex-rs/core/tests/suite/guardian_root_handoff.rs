@@ -22,6 +22,47 @@ async fn root_messages(thread: &CodexThread) -> Vec<GuardianRootMessage> {
         .collect()
 }
 
+async fn mount_handoff_completion(
+    server: &wiremock::MockServer,
+    root_id: ThreadId,
+    sender_path: &'static str,
+) -> tokio::sync::oneshot::Receiver<String> {
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    let sender = std::sync::Mutex::new(Some(sender));
+    mount_sse_once_match(
+        server,
+        move |request: &wiremock::Request| {
+            let Some(body) = request_body(request) else {
+                return false;
+            };
+            if body["client_metadata"]["thread_id"] != json!(root_id)
+                || !body["input"]
+                    .to_string()
+                    .contains(&format!("Sender: {sender_path}"))
+                || !body["input"]
+                    .to_string()
+                    .contains("Message Type: FINAL_ANSWER")
+            {
+                return false;
+            }
+            if let Some(sender) = sender.lock().expect("completion sender").take() {
+                sender
+                    .send(
+                        body["client_metadata"]["turn_id"]
+                            .as_str()
+                            .expect("completion turn ID")
+                            .to_owned(),
+                    )
+                    .expect("completion receiver");
+            }
+            true
+        },
+        sse(vec![ev_completed("handoff-completion")]),
+    )
+    .await;
+    receiver
+}
+
 async fn handoff(
     test: &TestCodex,
     server: &wiremock::MockServer,
@@ -117,6 +158,7 @@ pub(crate) async fn handoff_scenario() -> Result<Vec<ResponsesRequest>> {
         ]),
     )
     .await;
+    let parent_completion = mount_handoff_completion(&server, root, "/root/alpha").await;
     handoff(
         &test,
         &server,
@@ -138,6 +180,11 @@ pub(crate) async fn handoff_scenario() -> Result<Vec<ResponsesRequest>> {
         wait_for_event(worker, |event| matches!(event, EventMsg::TurnComplete(_))).await;
         ThreadIdle::wait(worker).await;
     }
+    let completion_turn = parent_completion.await?;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == completion_turn)
+    }).await;
+    ThreadIdle::wait(&test.codex).await;
     let mut expected = vec![
         GuardianRootMessage::Assistant("Inspect the private deployment?".to_owned()),
         GuardianRootMessage::User("Inspect the deployment.".to_owned()),
@@ -148,6 +195,7 @@ pub(crate) async fn handoff_scenario() -> Result<Vec<ResponsesRequest>> {
             ev_assistant_message("metrics", "Inspect the metrics too?")["item"].clone(),
         )?])
         .await?;
+    let parent_completion = mount_handoff_completion(&server, root, "/root/beta").await;
     handoff(
         &test,
         &server,
@@ -163,6 +211,11 @@ pub(crate) async fn handoff_scenario() -> Result<Vec<ResponsesRequest>> {
         .await?;
     wait_for_event(&beta, |event| matches!(event, EventMsg::TurnComplete(_))).await;
     ThreadIdle::wait(&beta).await;
+    let completion_turn = parent_completion.await?;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == completion_turn)
+    }).await;
+    ThreadIdle::wait(&test.codex).await;
     let mut with_latest = expected.clone();
     with_latest.extend([
         GuardianRootMessage::Assistant("Inspect the metrics too?".to_owned()),
@@ -233,7 +286,18 @@ pub(crate) async fn handoff_scenario() -> Result<Vec<ResponsesRequest>> {
         json!({"target":"alpha", "message":"Check."}),
     )
     .await?;
-    wait_for_event(&alpha, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    let reviewed_turn = wait_for_event_match(&alpha, |event| match event {
+        EventMsg::GuardianAssessment(assessment)
+            if assessment.target_item_id.as_deref() == Some("check") =>
+        {
+            Some(assessment.turn_id.clone())
+        }
+        _ => None,
+    })
+    .await;
+    wait_for_event(&alpha, |event| {
+        matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == reviewed_turn)
+    }).await;
     ThreadIdle::wait(&alpha).await;
     expected.push(GuardianRootMessage::User(
         "Apply the cancellation.".to_owned(),

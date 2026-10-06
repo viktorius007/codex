@@ -343,11 +343,37 @@ async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
         ]),
     )
     .await;
+    responses::mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+                body["client_metadata"]["x-codex-parent-thread-id"].is_string()
+                    && body["input"].as_array().is_some_and(|items| {
+                        items.iter().any(|item| {
+                            item["content"].as_array().is_some_and(|content| {
+                                content.iter().any(|part| part["text"] == COMPACT_PROMPT)
+                            })
+                        })
+                    })
+            })
+        },
+        responses::sse(vec![
+            responses::ev_response_created("child-pre-turn-compaction"),
+            responses::ev_assistant_message("child-summary", COMPACTED_SUMMARY),
+            responses::ev_completed_with_tokens(
+                "child-pre-turn-compaction",
+                /*total_tokens*/ 10,
+            ),
+        ]),
+    )
+    .await;
     let child_request = responses::mount_sse_once_match(
         &server,
         |request: &wiremock::Request| {
-            let body = String::from_utf8_lossy(&request.body);
-            body.contains(CHILD_PROMPT) && !body.contains(SPAWN_CALL_ID)
+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+                body.to_string().contains(CHILD_PROMPT)
+                    && body["client_metadata"]["x-codex-parent-thread-id"].is_string()
+            })
         },
         responses::sse(vec![
             responses::ev_response_created("compacted-child-work"),
@@ -359,7 +385,10 @@ async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
     responses::mount_sse_once_match(
         &server,
         |request: &wiremock::Request| {
-            String::from_utf8_lossy(&request.body).contains(SPAWN_CALL_ID)
+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+                body.to_string().contains(SPAWN_CALL_ID)
+                    && body["client_metadata"]["x-codex-parent-thread-id"].is_null()
+            })
         },
         responses::sse(vec![
             responses::ev_response_created("compacted-parent-complete"),

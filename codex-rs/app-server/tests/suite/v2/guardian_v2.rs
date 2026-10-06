@@ -453,7 +453,27 @@ async fn parent_response(
             .pointer("/client_metadata/x-codex-parent-thread-id")
             .is_none()
     {
-        let root_request = state.root_requests.fetch_add(1, Ordering::SeqCst);
+        let completion_notice = !state.root_user_input_restriction
+            && request["input"]
+                .as_array()
+                .and_then(|items| items.last())
+                .is_some_and(|item| {
+                    item["content"].as_array().is_some_and(|content| {
+                        content.iter().any(|part| {
+                            part["text"].as_str().is_some_and(|text| {
+                                text.starts_with("Message Type: FINAL_ANSWER\n")
+                                    || text.starts_with("<subagent_notification>")
+                            })
+                        })
+                    })
+                });
+        // A child completion wakes its parent independently of the next user turn.
+        // Serve that continuation without consuming the scripted user-turn position.
+        let root_request = if completion_notice {
+            usize::MAX
+        } else {
+            state.root_requests.fetch_add(1, Ordering::SeqCst)
+        };
         if state.compact_root_after_answer && root_request == 4 {
             let input = request["input"].as_array().expect("root model input");
             assert!(input.iter().any(|item| item["id"] == "cmp_root"));

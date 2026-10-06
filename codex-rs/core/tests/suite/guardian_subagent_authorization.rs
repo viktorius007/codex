@@ -980,6 +980,20 @@ async fn run_guardian_subagent_review(
     } else {
         test.submit_text_turn(INITIAL_PROMPT).await?;
     }
+    if !cancel_call {
+        ThreadIdle::wait(&test.codex).await;
+    }
+    if !messaging_case {
+        mount_sse_once_match(
+            &server,
+            move |request: &wiremock::Request| {
+                is_root_request(request, root_thread_id)
+                    && contains_text(request, "Waiting for user authorization.")
+            },
+            sse(vec![ev_completed("root-worker-completion")]),
+        )
+        .await;
+    }
     worker_completion
         .send(())
         .expect("worker should wait until the root question turn finishes");
@@ -990,7 +1004,11 @@ async fn run_guardian_subagent_review(
     })
     .await;
     ThreadIdle::wait(worker_thread.as_ref()).await;
-    if !cancel_call {
+    if !messaging_case {
+        wait_for_event(&test.codex, |event| {
+            matches!(event, EventMsg::TurnComplete(_))
+        })
+        .await;
         ThreadIdle::wait(&test.codex).await;
     }
     worker_server.shutdown().await;
@@ -1158,15 +1176,33 @@ async fn run_guardian_subagent_review(
         ]),
     )
     .await;
-    mount_sse_once_match(
+    let (release_worker_finished, worker_finished_gate) = oneshot::channel();
+    let (worker_finished_server, _) = start_streaming_sse_server(vec![vec![StreamingSseChunk {
+        gate: Some(worker_finished_gate),
+        body: sse(vec![
+            ev_assistant_message("worker-finished", "The unapproved action was rejected."),
+            ev_completed("worker-finished-response"),
+        ]),
+    }]])
+    .await;
+    mount_response_once_match(
         &server,
         move |request: &wiremock::Request| {
             is_worker_request(request, root_thread_id) && has_call_output(request, WORKER_CALL_ID)
         },
-        sse(vec![
-            ev_assistant_message("worker-finished", "The unapproved action was rejected."),
-            ev_completed("worker-finished-response"),
-        ]),
+        wiremock::ResponseTemplate::new(/*s*/ 307).insert_header(
+            "location",
+            format!("{}/v1/responses", worker_finished_server.uri()),
+        ),
+    )
+    .await;
+    mount_sse_once_match(
+        &server,
+        move |request: &wiremock::Request| {
+            is_root_request(request, root_thread_id)
+                && contains_text(request, "The unapproved action was rejected.")
+        },
+        sse(vec![ev_completed("root-worker-finished-notice")]),
     )
     .await;
 
@@ -1211,10 +1247,21 @@ async fn run_guardian_subagent_review(
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    ThreadIdle::wait(&test.codex).await;
+    release_worker_finished
+        .send(())
+        .expect("release worker final completion");
     wait_for_event(worker_thread.as_ref(), |event| {
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    ThreadIdle::wait(worker_thread.as_ref()).await;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    ThreadIdle::wait(&test.codex).await;
+    worker_finished_server.shutdown().await;
     let answer_message = match root_answer {
         RootAnswer::Complete => Some(GuardianRootMessage::UserInput(format!(
             "assistant: {ROOT_QUESTION}\nuser: {ROOT_ANSWER}\n"
