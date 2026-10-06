@@ -1178,7 +1178,8 @@ async fn spawned_child_receives_forked_parent_context(
 }
 
 async fn submit_turn_with_trigger(test: &TestCodex, prompt: &str, trigger: &str) -> Result<()> {
-    test.codex
+    let submission = test
+        .codex
         .start_or_steer_turn(
             TurnInputRequest::user_input(vec![UserInput::Text {
                 text: prompt.to_string(),
@@ -1190,9 +1191,15 @@ async fn submit_turn_with_trigger(test: &TestCodex, prompt: &str, trigger: &str)
             }),
         )
         .await?;
-    wait_for_event(&test.codex, |event| {
-        matches!(event, EventMsg::TurnComplete(_))
-    })
+    let turn_id = match submission {
+        codex_core::TurnInputSubmission::Started { turn_id }
+        | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+        other => anyhow::bail!("expected turn admission, got {other:?}"),
+    };
+    wait_for_event(
+        &test.codex,
+        |event| matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == turn_id),
+    )
     .await;
     Ok(())
 }
@@ -2154,7 +2161,7 @@ async fn spawned_multi_agent_v2_child_inherits_parent_developer_context() -> Res
             ev_response_created("resp-turn1-1"),
             ev_function_call_with_namespace(
                 SPAWN_CALL_ID,
-                MULTI_AGENT_V1_NAMESPACE,
+                MULTI_AGENT_V2_NAMESPACE,
                 "spawn_agent",
                 &spawn_args,
             ),
@@ -2166,7 +2173,7 @@ async fn spawned_multi_agent_v2_child_inherits_parent_developer_context() -> Res
     let child_request_log = mount_sse_once_match(
         &server,
         |req: &wiremock::Request| {
-            body_contains(req, CHILD_PROMPT) && !body_contains(req, SPAWN_CALL_ID)
+            body_contains(req, CHILD_PROMPT) && request_has_input_type(req, "agent_message")
         },
         sse(vec![
             ev_response_created("resp-child-1"),
@@ -2177,7 +2184,9 @@ async fn spawned_multi_agent_v2_child_inherits_parent_developer_context() -> Res
 
     let _turn1_followup = mount_sse_once_match(
         &server,
-        |req: &wiremock::Request| body_contains(req, SPAWN_CALL_ID),
+        |req: &wiremock::Request| {
+            body_contains(req, SPAWN_CALL_ID) && !request_has_input_type(req, "agent_message")
+        },
         sse(vec![
             ev_response_created("resp-turn1-2"),
             ev_assistant_message("msg-turn1-2", "parent done"),
@@ -2186,17 +2195,19 @@ async fn spawned_multi_agent_v2_child_inherits_parent_developer_context() -> Res
     )
     .await;
 
-    let mut builder = test_codex().with_config(|config| {
-        config
-            .features
-            .enable(Feature::Collab)
-            .expect("test config should allow feature update");
-        config
-            .features
-            .enable(Feature::MultiAgentV2)
-            .expect("test config should allow feature update");
-        config.developer_instructions = Some("Parent developer instructions.".to_string());
-    });
+    let mut builder = test_codex()
+        .with_model("gpt-5.6-sol")
+        .with_config(|config| {
+            config
+                .features
+                .enable(Feature::Collab)
+                .expect("test config should allow feature update");
+            config
+                .features
+                .enable(Feature::MultiAgentV2)
+                .expect("test config should allow feature update");
+            config.developer_instructions = Some("Parent developer instructions.".to_string());
+        });
     let test = builder.build(&server).await?;
 
     test.submit_turn(TURN_1_PROMPT).await?;
@@ -3011,6 +3022,34 @@ async fn plaintext_multi_agent_v2_completion_during_wait_is_delivered_once(
 async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
     reload_sleeping_worker: bool,
 ) -> Result<()> {
+    async fn submit_idle_turn_with_trigger(
+        test: &TestCodex,
+        prompt: &str,
+        trigger: &str,
+    ) -> Result<()> {
+        let request = TurnInputRequest::user_input(vec![UserInput::Text {
+            text: prompt.to_owned(),
+            text_elements: Vec::new(),
+        }])
+        .on_start(TurnStartOptions {
+            turn_trigger: Some(trigger.to_owned()),
+            ..Default::default()
+        });
+        let turn_id = loop {
+            match test.codex.start_turn_if_idle(request.clone()).await? {
+                codex_core::StartIfIdleSubmission::Started { turn_id } => break turn_id,
+                codex_core::StartIfIdleSubmission::NotSubmitted {
+                    reason: codex_core::NotSubmittedReason::NotIdle,
+                } => core_test_support::ThreadIdle::wait(&test.codex).await,
+                other => anyhow::bail!("expected idle turn admission, got {other:?}"),
+            }
+        };
+        wait_for_event(&test.codex, |event| {
+            matches!(event, EventMsg::TurnComplete(completed) if completed.turn_id == turn_id)
+        }).await;
+        Ok(())
+    }
+
     const SPAWN_WORKER_PROMPT: &str = "spawn the completion-routing worker";
     const SPAWN_REQUESTER_PROMPT: &str = "spawn the completion-routing requester";
     const READ_RESULT_PROMPT: &str = "read the completion-routing worker result";
@@ -3022,7 +3061,10 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
     const FOLLOWUP_CALL_ID: &str = "request-peer-followup";
 
     let server = start_mock_server().await;
+    let mut extensions = codex_extension_api::ExtensionRegistryBuilder::new();
+    extensions.thread_lifecycle_contributor(std::sync::Arc::new(core_test_support::ThreadIdle));
     let mut builder = test_codex()
+        .with_extensions(std::sync::Arc::new(extensions.build()))
         .with_model("gpt-5.6-sol")
         .with_config(|config| {
             for feature in [Feature::Collab, Feature::MultiAgentV2] {
@@ -3090,7 +3132,7 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
     )
     .await;
 
-    submit_turn_with_trigger(&test, SPAWN_WORKER_PROMPT, "automation_cron_scheduled").await?;
+    submit_idle_turn_with_trigger(&test, SPAWN_WORKER_PROMPT, "automation_cron_scheduled").await?;
     let worker_thread_id = created_threads.recv().await?;
     let mut worker_thread = test.thread_manager.get_thread(worker_thread_id).await?;
     wait_for_event(worker_thread.as_ref(), |event| {
@@ -3189,7 +3231,7 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         );
     }
 
-    submit_turn_with_trigger(&test, SPAWN_REQUESTER_PROMPT, "composer").await?;
+    submit_idle_turn_with_trigger(&test, SPAWN_REQUESTER_PROMPT, "composer").await?;
     let requester_thread_id = created_threads.recv().await?;
     let requester_thread = test.thread_manager.get_thread(requester_thread_id).await?;
     let requester_turn_id = wait_for_event_match(requester_thread.as_ref(), |event| match event {
@@ -3382,7 +3424,7 @@ async fn skills_toggle_skips_instructions_for_parent_and_spawned_child() -> Resu
             ev_response_created("resp-turn1-1"),
             ev_function_call_with_namespace(
                 SPAWN_CALL_ID,
-                MULTI_AGENT_V1_NAMESPACE,
+                MULTI_AGENT_V2_NAMESPACE,
                 "spawn_agent",
                 &spawn_args,
             ),
@@ -3394,7 +3436,7 @@ async fn skills_toggle_skips_instructions_for_parent_and_spawned_child() -> Resu
     let child_request_log = mount_sse_once_match(
         &server,
         |req: &wiremock::Request| {
-            body_contains(req, CHILD_PROMPT) && !body_contains(req, SPAWN_CALL_ID)
+            body_contains(req, CHILD_PROMPT) && request_has_input_type(req, "agent_message")
         },
         sse(vec![
             ev_response_created("resp-child-1"),
@@ -3405,7 +3447,9 @@ async fn skills_toggle_skips_instructions_for_parent_and_spawned_child() -> Resu
 
     let _turn1_followup = mount_sse_once_match(
         &server,
-        |req: &wiremock::Request| body_contains(req, SPAWN_CALL_ID),
+        |req: &wiremock::Request| {
+            body_contains(req, SPAWN_CALL_ID) && !request_has_input_type(req, "agent_message")
+        },
         sse(vec![
             ev_response_created("resp-turn1-2"),
             ev_assistant_message("msg-turn1-2", "parent done"),
@@ -3415,6 +3459,7 @@ async fn skills_toggle_skips_instructions_for_parent_and_spawned_child() -> Resu
     .await;
 
     let mut builder = test_codex()
+        .with_model("gpt-5.6-sol")
         .with_pre_build_hook(|home| {
             write_home_skill(home, "demo", "demo-skill", "demo skill").expect("write home skill");
         })
