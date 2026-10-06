@@ -614,6 +614,8 @@ fn assert_no_local_persistence_artifacts(codex_home: &Path) -> Result<()> {
     // initialize shell snapshot storage. Neither is thread persistence.
     entries.remove(".sandbox_migration");
     entries.remove("shell_snapshots");
+    // Local request diagnostics contain no thread persistence.
+    entries.remove("cache-diagnostics");
     assert_eq!(
         entries,
         BTreeSet::from([

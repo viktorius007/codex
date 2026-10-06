@@ -27,7 +27,12 @@ use tokio::time::timeout;
 async fn empty_goal_continuations_block_after_three_without_activity(
     recovery: Option<&str>,
 ) -> Result<()> {
-    let turns = if recovery.is_some() { 6 } else { 3 };
+    // Tool activity alone does not reset the local empty-output breaker.
+    let turns = if matches!(recovery, Some("final_answer" | "commentary")) {
+        6
+    } else {
+        3
+    };
     let mut scripts = Vec::new();
     for turn in 1..=turns {
         let mut id = format!("response-{turn}");

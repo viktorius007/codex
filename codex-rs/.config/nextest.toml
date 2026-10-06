@@ -38,6 +38,12 @@ slow-timeout = { period = "1m", terminate-after = 5 }
 filter = 'package(codex-external-agent-migration) & test(import_plugins_infers_external_official_marketplace_when_missing_from_settings)'
 slow-timeout = { period = "1m", terminate-after = 5 }
 
+[[profile.local.overrides]]
+# These doctor subprocess checks take 39–44 seconds in isolation and exceed
+# one minute under full-workspace load; keep this guard scoped to that case.
+filter = 'package(codex-cli) & binary(doctor_path_safety) & (test(=doctor_reports_only_safe_config_error_metadata) | test(=doctor_reports_failed_database_paths))'
+slow-timeout = { period = "1m", terminate-after = 2 }
+
 [test-groups.app_server_protocol_codegen]
 max-threads = 1
 
