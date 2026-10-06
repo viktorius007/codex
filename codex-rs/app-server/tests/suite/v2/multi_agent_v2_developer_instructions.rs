@@ -349,6 +349,30 @@ async fn compacted_full_history_fork_applies_child_developer_instructions(
         ]),
     )
     .await;
+    responses::mount_sse_once_match(
+        &server,
+        |request: &wiremock::Request| {
+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+                body["client_metadata"]["x-codex-parent-thread-id"].is_string()
+                    && body["input"].as_array().is_some_and(|items| {
+                        items.iter().any(|item| {
+                            item["content"].as_array().is_some_and(|content| {
+                                content.iter().any(|part| part["text"] == COMPACT_PROMPT)
+                            })
+                        })
+                    })
+            })
+        },
+        responses::sse(vec![
+            responses::ev_response_created("child-pre-turn-compaction"),
+            responses::ev_assistant_message("child-summary", COMPACTED_SUMMARY),
+            responses::ev_completed_with_tokens(
+                "child-pre-turn-compaction",
+                /*total_tokens*/ 10,
+            ),
+        ]),
+    )
+    .await;
     let child_request = responses::mount_sse_once_match(
         &server,
         |request: &wiremock::Request| {
