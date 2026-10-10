@@ -76,6 +76,9 @@ impl TestDaemon {
     fn command(&self) -> Command {
         let mut command = Command::new(&self.codex);
         command.env("CODEX_HOME", self.home.path());
+        // The daemon's installer writes PATH links under $HOME/.local/bin, so
+        // HOME must point at the temporary home as well.
+        command.env("HOME", self.home.path());
         command
     }
 
