@@ -7,6 +7,7 @@ set windows-shell := ["python", "-c", 'import os, runpy; runpy.run_path(os.envir
 
 rust_min_stack := "8388608" # 8 MiB
 python := if os_family() == "windows" { "python" } else { "python3" }
+rusty_v8_cache := env_var("HOME") / ".cache/rusty-v8-codex"
 
 # Display help
 help:
@@ -40,6 +41,12 @@ code-mode-host *args:
 [no-cd]
 assemble-codex-package *args:
     {{ python }} {{ justfile_directory() }}/scripts/build_codex_package.py {args}
+
+# Build the local CLI package and install it as the active local release.
+[no-cd]
+install-local-package:
+    RUSTY_V8_ARCHIVE={{ rusty_v8_cache }}/librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz RUSTY_V8_SRC_BINDING_PATH={{ rusty_v8_cache }}/src_binding_ptrcomp_sandbox_release_aarch64-apple-darwin.rs {{ python }} {{ justfile_directory() }}/scripts/build_codex_package.py --package-dir {{ justfile_directory() }}/codex-rs/target/local-package --cargo-profile dev-small --force
+    sh {{ justfile_directory() }}/scripts/install/install_local_package.sh {{ justfile_directory() }}/codex-rs/target/local-package
 
 # Build the CLI and run the app-server test client
 app-server-test-client *args:
