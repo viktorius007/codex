@@ -89,6 +89,8 @@ pub(crate) struct RunningTask {
     pub(crate) handle: AbortOnDropHandle<()>,
     pub(crate) turn_context: Arc<TurnContext>,
     pub(crate) _agent_execution_guard: Option<AgentExecutionGuard>,
+    pub(crate) parent_result_residency_guard:
+        Option<crate::agent::control::ParentResultResidencyGuard>,
     /// Follows the task into whichever finalizer claims its terminal event.
     pub(crate) outcome_handoff: Option<TaskTrackerToken>,
     /// Unrecorded input retained during host admission or preparation that can wait on the roster.
