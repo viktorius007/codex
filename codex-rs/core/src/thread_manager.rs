@@ -1437,6 +1437,7 @@ impl ThreadManager {
             ));
         }
         Ok(threads.remove(thread_id).inspect(|thread| {
+            crate::agent::control::cancel_parent_result_residency(thread);
             thread.session.services.mcp_runtime.revoke_ema();
         }))
     }
@@ -1456,6 +1457,7 @@ impl ThreadManager {
             .is_some_and(|thread| Arc::ptr_eq(thread, expected))
         {
             threads.remove(thread_id).inspect(|thread| {
+                crate::agent::control::cancel_parent_result_residency(thread);
                 thread.session.services.mcp_runtime.revoke_ema();
             })
         } else {
@@ -1500,6 +1502,7 @@ impl ThreadManager {
         let mut tracked_threads = self.state.threads.write().await;
         for thread_id in &report.completed {
             if let Some(thread) = tracked_threads.remove(thread_id) {
+                crate::agent::control::cancel_parent_result_residency(&thread);
                 thread.session.services.mcp_runtime.revoke_ema();
             }
         }
@@ -1871,6 +1874,7 @@ impl ThreadManagerState {
             .await
             .remove(thread_id)
             .inspect(|thread| {
+                crate::agent::control::cancel_parent_result_residency(thread);
                 thread.session.services.mcp_runtime.revoke_ema();
             })
     }
@@ -2274,6 +2278,7 @@ impl ThreadManagerState {
                         thread,
                     });
                 }
+                crate::agent::control::cancel_parent_result_residency(&thread);
                 threads.remove(&resumed.conversation_id);
                 thread.session.services.mcp_runtime.revoke_ema();
             }
