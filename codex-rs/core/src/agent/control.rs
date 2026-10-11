@@ -282,9 +282,46 @@ impl LocalAgentControl {
         sub_id: String,
     ) -> CodexResult<()> {
         let state = self.runtime.upgrade()?;
-        let thread = state.get_thread(agent_id).await?;
-        Box::pin(thread.session.enqueue_async_result(input, origin, sub_id)).await;
-        Ok(())
+        let _membership = self.runtime.admit_start()?;
+        loop {
+            let thread = {
+                let threads = state.threads.read().await;
+                let Some(thread) = threads.get(&agent_id) else {
+                    self.runtime.ensure_agent_known(agent_id)?;
+                    return self.runtime.mailboxes.enqueue_deliveries(
+                        agent_id,
+                        Some(sub_id),
+                        vec![crate::agent::api::AgentMailboxDelivery::async_result(
+                            vec![input],
+                            origin,
+                        )],
+                    );
+                };
+                Arc::clone(thread)
+            };
+            let _residency_guard = Arc::clone(&thread.residency_gate).read_owned().await;
+            {
+                let threads = state.threads.read().await;
+                if !threads
+                    .get(&agent_id)
+                    .is_some_and(|current| Arc::ptr_eq(current, &thread))
+                {
+                    continue;
+                }
+                thread
+                    .session
+                    .input_queue
+                    .enqueue_async_result(vec![input], origin)
+                    .await;
+            }
+            Box::pin(
+                thread
+                    .session
+                    .maybe_start_turn_for_pending_work_with_sub_id(sub_id),
+            )
+            .await;
+            return Ok(());
+        }
     }
 }
 
