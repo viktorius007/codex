@@ -5,8 +5,8 @@
 
 use super::LocalAgentControl;
 use crate::agent::api::AgentTurnOutcome;
-use crate::session_prefix::format_guardian_interruption_message;
 use crate::session::TurnInput;
+use crate::session_prefix::format_guardian_interruption_message;
 use crate::session_prefix::format_inter_agent_completion_message;
 use codex_protocol::AgentPath;
 use codex_protocol::items::SubAgentActivityItem;
