@@ -699,14 +699,17 @@ impl Session {
     )]
     pub(crate) async fn reserve_pending_work_turn(
         &self,
+        admitted_async_result_ids: &[u64],
     ) -> Option<(Arc<tokio::sync::Mutex<TurnState>>, TurnStartOptions)> {
         let mut active_turn = self.active_turn.lock().await;
-        if active_turn.is_some() {
+        if active_turn.is_some() || self.is_interrupted() {
             return None;
         }
         let has_trigger_turn = self.input_queue.has_trigger_turn_mailbox_items().await;
         if !has_trigger_turn
-            && !self.has_outstanding_durable_sleep()
+            && admitted_async_result_ids.is_empty()
+            && !(self.input_queue.has_pending_mailbox_items().await
+                && self.has_outstanding_durable_sleep())
             && !self.should_wake_on_agent_messages().await
         {
             return None;
