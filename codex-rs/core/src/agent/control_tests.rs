@@ -1113,11 +1113,13 @@ async fn terminal_async_result_is_retained_while_recipient_is_unloaded() {
         "bounded terminal result".to_string(),
         true,
     );
+    let origin = Arc::new(codex_extension_api::ExtensionData::new("origin-turn"));
+    let input = crate::session::TurnInput::InterAgentCommunication(communication);
     control
         .deliver_async_result(
             recipient_id,
-            crate::session::TurnInput::InterAgentCommunication(communication),
-            Arc::new(codex_extension_api::ExtensionData::new("origin-turn")),
+            input.clone(),
+            Arc::clone(&origin),
             "terminal-result-submission".to_string(),
         )
         .await
@@ -1127,6 +1129,26 @@ async fn terminal_async_result_is_retained_while_recipient_is_unloaded() {
         "retained result must wake the recipient mailbox subscriber"
     );
     assert_thread_not_loaded(&harness.manager, recipient_id).await;
+    let queue = &recipient.session.input_queue;
+    let origins = queue.pending_async_result_origins().await;
+    assert_eq!(
+        origins.len(),
+        1,
+        "one terminal result is available for Goal admission"
+    );
+    assert!(
+        Arc::ptr_eq(&origins[0].1, &origin),
+        "admission receives the original turn store"
+    );
+    assert!(
+        !*pending.borrow(),
+        "controller ownership transfers when the queue imports the result"
+    );
+    let claimed = queue.claim_async_results(&[origins[0].0]).await;
+    assert_eq!(claimed.len(), 1);
+    assert_eq!(claimed[0].input(), &[input]);
+    assert!(queue.pending_async_result_origins().await.is_empty());
+    assert!(queue.claim_async_results(&[origins[0].0]).await.is_empty());
 }
 
 #[tokio::test]
