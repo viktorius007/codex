@@ -164,7 +164,6 @@ impl CacheDiagnosticAttempt {
     pub(crate) fn failed(&self) {
         self.attempt.terminal(TerminalOutcome::Failed);
     }
-
 }
 
 impl Drop for CacheDiagnosticAttempt {

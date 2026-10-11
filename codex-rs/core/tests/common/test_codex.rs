@@ -1130,8 +1130,14 @@ impl TestCodex {
             .await?;
 
         let turn_id = match submission {
-            codex_core::TurnInputSubmission::Started { turn_id, root_turn_id: _ }
-            | codex_core::TurnInputSubmission::Steered { turn_id, root_turn_id: _ } => turn_id,
+            codex_core::TurnInputSubmission::Started {
+                turn_id,
+                root_turn_id: _,
+            }
+            | codex_core::TurnInputSubmission::Steered {
+                turn_id,
+                root_turn_id: _,
+            } => turn_id,
             other => return Err(anyhow!("expected text turn admission, got {other:?}")),
         };
         wait_for_event(
@@ -1290,8 +1296,14 @@ impl TestCodex {
             .await?;
 
         let turn_id = match submission {
-            codex_core::TurnInputSubmission::Started { turn_id, root_turn_id: _ }
-            | codex_core::TurnInputSubmission::Steered { turn_id, root_turn_id: _ } => turn_id,
+            codex_core::TurnInputSubmission::Started {
+                turn_id,
+                root_turn_id: _,
+            }
+            | codex_core::TurnInputSubmission::Steered {
+                turn_id,
+                root_turn_id: _,
+            } => turn_id,
             other => return Err(anyhow!("expected turn admission, got {other:?}")),
         };
         wait_for_event_with_timeout(
