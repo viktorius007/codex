@@ -1,13 +1,14 @@
 ---
 source: core/tests/suite/scenarios.rs
+assertion_line: 1301
 expression: snapshot
 ---
 Scenario: Astra receives new user input after its unfinished response is interrupted.
 
 ## Window 1
 -- request 1 (request) --
-00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
-        - namespace/functions; hash=fada4a476a3754dd
+00:additional_tools/developer (3; hash=4bf46b5a55c61c79):
+        - namespace/functions; hash=e51275c55b5d1947
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -26,12 +27,12 @@ Scenario: Astra receives new user input after its unfinished response is interru
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Draft a launch update.
 07:configuration_update:reasoning={"effort":"low"}
