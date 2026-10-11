@@ -71,13 +71,12 @@ impl ThreadManagerState {
             let mail = thread
                 .session
                 .input_queue
-                .drain_mailbox()
-                .await
-                .into_iter()
-                .map(|mail| mail.communication)
-                .collect();
+                .drain_mailbox_deliveries_for_unload()
+                .await;
             let runtime = &thread.session.services.local_agent_runtime;
-            let _ = runtime.mailboxes.enqueue(thread_id, /*id*/ None, mail);
+            let _ = runtime
+                .mailboxes
+                .enqueue_deliveries(thread_id, /*id*/ None, mail);
             // Reuse the same effective configuration snapshot as a fork. This includes live
             // permissions and network restrictions that a profile name cannot reconstruct.
             let (config, ..) = thread.session.fork_config().await;
