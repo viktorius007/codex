@@ -1192,8 +1192,14 @@ async fn submit_turn_with_trigger(test: &TestCodex, prompt: &str, trigger: &str)
         )
         .await?;
     let turn_id = match submission {
-        codex_core::TurnInputSubmission::Started { turn_id }
-        | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+        codex_core::TurnInputSubmission::Started {
+            turn_id,
+            root_turn_id: _,
+        }
+        | codex_core::TurnInputSubmission::Steered {
+            turn_id,
+            root_turn_id: _,
+        } => turn_id,
         other => anyhow::bail!("expected turn admission, got {other:?}"),
     };
     wait_for_event(
@@ -3037,7 +3043,10 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         });
         let turn_id = loop {
             match test.codex.start_turn_if_idle(request.clone()).await? {
-                codex_core::StartIfIdleSubmission::Started { turn_id } => break turn_id,
+                codex_core::StartIfIdleSubmission::Started {
+                    turn_id,
+                    root_turn_id: _,
+                } => break turn_id,
                 codex_core::StartIfIdleSubmission::NotSubmitted {
                     reason: codex_core::NotSubmittedReason::NotIdle,
                 } => core_test_support::ThreadIdle::wait(&test.codex).await,
