@@ -308,6 +308,22 @@ impl Session {
         reserved_turn_state: Option<&Arc<Mutex<TurnState>>>,
         pending_input: Vec<TurnInput>,
     ) -> bool {
+        let parent_result_residency = self
+            .services
+            .local_agent_runtime
+            .control(self.session_id())
+            .parent_result_residency(
+                self.thread_id,
+                turn_context.multi_agent_version,
+                &turn_context.session_source,
+                self.as_ref(),
+            )
+            .await;
+        let (parent_result_residency_guard, parent_result_start_error) =
+            match parent_result_residency {
+                Ok(guard) => (guard, None),
+                Err(error) => (None, Some(error)),
+            };
         // Inherited or recovered roots are applied before task start. Otherwise this
         // task owns its turn, including background work. Later mail cannot change it.
         turn_context
@@ -397,6 +413,13 @@ impl Session {
             turn_context.multi_agent_version,
             &turn_context.session_source,
         );
+        if parent_result_start_error.is_some() {
+            // A failed parent restore must await explicit admission rather than retry immediately.
+            self.mark_interrupted();
+            self.input_queue
+                .extend_pending_input_for_turn_state(turn_state.as_ref(), input.clone())
+                .await;
+        }
         let done_clone = Arc::clone(&done);
         let session = Arc::clone(self);
         let ctx = Arc::clone(&turn_context);
@@ -424,7 +447,9 @@ impl Session {
         let storage_originator = AuthStorageOriginator::from_client_name(&turn_context.originator);
         let task_future = async move {
             let ctx_for_finish = Arc::clone(&ctx);
-            let task_result = task_for_run
+            let task_result = match parent_result_start_error {
+                Some(error) => Err(error),
+                None => task_for_run
                 .run(
                     Arc::clone(&session),
                     ctx,
@@ -432,7 +457,8 @@ impl Session {
                     task_cancellation_token.child_token(),
                 )
                 .instrument(trace_span!("session_task.run"))
-                .await;
+                .await,
+            };
             let sess = Arc::clone(&session);
             // Private reviewers save their transcript together with the terminal event.
             // Errors and cancellation retain their existing save path.
@@ -473,6 +499,7 @@ impl Session {
             cancellation_token,
             turn_context: Arc::clone(&turn_context),
             _agent_execution_guard: agent_execution_guard,
+            parent_result_residency_guard,
             _diagnostics_guard: ACTIVE_TURNS.track(),
             _timer: timer,
         };
@@ -828,16 +855,19 @@ impl Session {
 
         let finishing = CancellationToken::new();
         let finish_recording = finishing.clone().drop_guard();
-        let turn_state = {
+        let finished_turn = {
             let mut active = self.active_turn.lock().await;
             active.as_mut().and_then(|active_turn| {
                 let task = active_turn.task.take()?;
                 task.handle.detach();
                 active_turn.finishing = Some(finishing);
-                Some(Arc::clone(&active_turn.turn_state))
+                Some((
+                    Arc::clone(&active_turn.turn_state),
+                    task.parent_result_residency_guard,
+                ))
             })
         };
-        let Some(turn_state) = turn_state else {
+        let Some((turn_state, _parent_result_residency_guard)) = finished_turn else {
             return;
         };
         let pending_input = self
