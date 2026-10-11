@@ -54,7 +54,9 @@ def verify_polling_data():
     records = load_jsonl(ROOT / "polling-records.jsonl")
     stored = load_json(ROOT / "polling-summary.json")
     groups = {
-        "empty_write_stdin": [row for row in records if row["kind"] == "empty_write_stdin"],
+        "empty_write_stdin": [
+            row for row in records if row["kind"] == "empty_write_stdin"
+        ],
         "code_wait": [row for row in records if row["kind"] == "code_wait"],
         "wait_agent_all": [row for row in records if row["kind"] == "wait_agent"],
         "wait_agent_timed_out": [
@@ -85,7 +87,9 @@ def verify_polling_data():
             computed[name]["fresh_tokens"],
         )
         if actual != values:
-            raise RuntimeError(f"published aggregate mismatch for {name}: {actual} != {values}")
+            raise RuntimeError(
+                f"published aggregate mismatch for {name}: {actual} != {values}"
+            )
     if computed["wasted_total"]["turns"] != 74:
         raise RuntimeError("published conservative parent-turn count is not 74")
     return computed
