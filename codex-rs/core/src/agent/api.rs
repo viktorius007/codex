@@ -67,7 +67,7 @@ pub trait AgentControl: Send + Sync {
     /// the root. Legacy user input can address loaded threads outside the agent registry.
     fn send(&self, request: SendRequest) -> BoxFuture<'_, Result<DeliveryReceipt>>;
 
-    /// Take queued, non-turn-starting mail in order, without loading the recipient.
+    /// Take retained communications and asynchronous results without loading the recipient.
     /// This in-memory operation performs no I/O; returning transfers ownership to the caller.
     fn take_mailbox(&self, agent: ThreadId) -> Vec<AgentMailboxDelivery>;
 
