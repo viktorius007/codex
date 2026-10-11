@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used)]
+
 use std::collections::HashMap;
 use std::fs;
 use std::io::BufRead;
