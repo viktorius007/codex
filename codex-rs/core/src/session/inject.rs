@@ -8,20 +8,21 @@ use codex_history::CodexHarnessMetadata;
 use codex_history::ResponseItemEnvelope;
 use codex_protocol::models::ResponseItem;
 use codex_protocol::openai_models::ModelInfo;
+use futures::future::BoxFuture;
 use std::sync::Arc;
 
 impl Session {
+    /// Retains a result and returns its wake operation for execution after caller locks release.
     pub(crate) async fn enqueue_async_result(
         self: &Arc<Self>,
         input: PendingTurnInput,
         origin_turn_store: Arc<ExtensionData>,
         sub_id: String,
-    ) {
+    ) -> BoxFuture<'_, ()> {
         self.input_queue
             .enqueue_async_result(vec![input], origin_turn_store)
             .await;
-        self.maybe_start_turn_for_pending_work_with_sub_id(sub_id)
-            .await;
+        Box::pin(self.maybe_start_turn_for_pending_work_with_sub_id(sub_id))
     }
 
     /// Retains model input and starts a turn when the session is idle.
