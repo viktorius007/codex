@@ -59,12 +59,14 @@ impl CacheDiagnostics {
         &self,
         metadata: &CodexResponsesMetadata,
         request: &ResponsesApiRequest,
+        instructions: &str,
         retry_ordinal: u32,
         previous_response_id: Option<&str>,
     ) -> Arc<CacheDiagnosticAttempt> {
         self.start_responses_attempt_with_kind(
             metadata,
             request,
+            instructions,
             retry_ordinal,
             previous_response_id,
             request_kind(metadata.request_kind),
@@ -75,12 +77,14 @@ impl CacheDiagnostics {
         &self,
         metadata: &CodexResponsesMetadata,
         request: &ResponsesApiRequest,
+        instructions: &str,
         retry_ordinal: u32,
         previous_response_id: Option<&str>,
     ) -> Arc<CacheDiagnosticAttempt> {
         self.start_responses_attempt_with_kind(
             metadata,
             request,
+            instructions,
             retry_ordinal,
             previous_response_id,
             RequestKind::Warmup,
@@ -91,6 +95,7 @@ impl CacheDiagnostics {
         &self,
         metadata: &CodexResponsesMetadata,
         request: &ResponsesApiRequest,
+        instructions: &str,
         retry_ordinal: u32,
         previous_response_id: Option<&str>,
         request_kind: RequestKind,
@@ -98,6 +103,7 @@ impl CacheDiagnostics {
         let parent_id = metadata.parent_thread_id.map(|id| id.to_string());
         let attempt = self.collector.start_attempt(
             AttemptContext {
+                instructions,
                 request_kind,
                 retry_ordinal,
                 thread_id: Some(&metadata.thread_id),
