@@ -1122,7 +1122,7 @@ async fn terminal_async_result_is_retained_while_recipient_is_unloaded() {
         .deliver_async_result(
             recipient_id,
             crate::session::TurnInput::InterAgentCommunication(communication),
-            Arc::new(codex_extension_api::ExtensionData::default()),
+            Arc::new(codex_extension_api::ExtensionData::new("origin-turn")),
             "terminal-result-submission".to_string(),
         )
         .await

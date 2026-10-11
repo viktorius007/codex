@@ -165,9 +165,6 @@ impl CacheDiagnosticAttempt {
         self.attempt.terminal(TerminalOutcome::Failed);
     }
 
-    pub(crate) fn completed_without_usage(&self) {
-        self.attempt.completed_without_usage(None);
-    }
 }
 
 impl Drop for CacheDiagnosticAttempt {
