@@ -70,9 +70,9 @@ pub trait AgentControl: Send + Sync {
     /// the root. Legacy user input can address loaded threads outside the agent registry.
     fn send(&self, request: SendRequest) -> BoxFuture<'_, Result<DeliveryReceipt>>;
 
-    /// Take queued, non-turn-starting mail in order, without loading the recipient.
+    /// Take retained communications and asynchronous results without loading the recipient.
     /// This in-memory operation performs no I/O; returning transfers ownership to the caller.
-    fn take_mailbox(&self, agent: ThreadId) -> Vec<crate::PendingAgentMessage>;
+    fn take_mailbox(&self, agent: ThreadId) -> Vec<AgentMailboxDelivery>;
 
     /// Observe whether unread mail is available. Subscribe before the first read so
     /// arrivals cannot be missed; notifications do not consume mail or start a turn.
@@ -160,6 +160,44 @@ pub trait AgentControl: Send + Sync {
         window: &'a str,
         reminder: RolloutBudgetReminder,
     ) -> BoxFuture<'a, ()>;
+}
+
+/// An unread delivery retained across local runtime unloading. Taking mail transfers
+/// ownership; delivery payloads stay internal to the runtime.
+pub struct AgentMailboxDelivery(pub(crate) AgentMailboxPayload);
+
+pub(crate) enum AgentMailboxPayload {
+    Communication {
+        communication: Box<crate::PendingAgentMessage>,
+        start_options: TurnStartOptions,
+        async_result_origin: Option<Arc<ExtensionData>>,
+    },
+    AsyncResult {
+        input: Vec<crate::session::TurnInput>,
+        origin: Arc<ExtensionData>,
+    },
+}
+
+impl AgentMailboxDelivery {
+    /// Retain ordinary mail with the turn settings and optional completion origin.
+    pub fn communication(
+        communication: crate::PendingAgentMessage,
+        start_options: TurnStartOptions,
+        async_result_origin: Option<Arc<ExtensionData>>,
+    ) -> Self {
+        Self(AgentMailboxPayload::Communication {
+            communication: Box::new(communication),
+            start_options,
+            async_result_origin,
+        })
+    }
+
+    pub(crate) fn async_result(
+        input: Vec<crate::session::TurnInput>,
+        origin: Arc<ExtensionData>,
+    ) -> Self {
+        Self(AgentMailboxPayload::AsyncResult { input, origin })
+    }
 }
 
 /// References resolve relative to the registered caller. IDs retain each operation's

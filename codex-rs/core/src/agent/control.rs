@@ -78,6 +78,9 @@ mod inspection;
 mod interrupt;
 mod legacy;
 mod mailbox;
+mod parent_result;
+pub(crate) use parent_result::ParentResultResidencyGuard;
+pub(crate) use parent_result::cancel_parent_result_residency;
 mod residency;
 pub use residency::ThreadEvictionOutcome;
 mod resume;
@@ -279,6 +282,10 @@ impl LocalAgentControl {
         Ok(())
     }
 
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "thread publication must remain stable until the queue accepts delivery; wake runs after map release"
+    )]
     pub(crate) async fn deliver_async_result(
         &self,
         agent_id: ThreadId,
@@ -287,9 +294,40 @@ impl LocalAgentControl {
         sub_id: String,
     ) -> CodexResult<()> {
         let state = self.runtime.upgrade()?;
-        let thread = state.get_thread(agent_id).await?;
-        Box::pin(thread.session.enqueue_async_result(input, origin, sub_id)).await;
-        Ok(())
+        let _membership = self.runtime.admit_start()?;
+        loop {
+            let thread = {
+                let threads = state.threads.read().await;
+                let Some(thread) = threads.get(&agent_id) else {
+                    self.runtime.ensure_agent_known(agent_id)?;
+                    return self.runtime.mailboxes.enqueue_deliveries(
+                        agent_id,
+                        Some(sub_id),
+                        vec![crate::agent::api::AgentMailboxDelivery::async_result(
+                            vec![input],
+                            origin,
+                        )],
+                    );
+                };
+                Arc::clone(thread)
+            };
+            let _residency_guard = Arc::clone(&thread.residency_gate).read_owned().await;
+            let wake = {
+                let threads = state.threads.read().await;
+                if !threads
+                    .get(&agent_id)
+                    .is_some_and(|current| Arc::ptr_eq(current, &thread))
+                {
+                    continue;
+                }
+                thread
+                    .session
+                    .enqueue_async_result(input, origin, sub_id)
+                    .await
+            };
+            wake.await;
+            return Ok(());
+        }
     }
 }
 
