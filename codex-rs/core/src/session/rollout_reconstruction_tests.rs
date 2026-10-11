@@ -461,6 +461,7 @@ async fn resumed_history_restores_last_accepted_token_usage_boundary() {
             conversation_id: thread_id,
             history: Arc::new(rollout_items),
             rollout_path: None,
+            history_revision: None,
         }))
         .await;
 
@@ -545,6 +546,7 @@ async fn resumed_history_without_positioned_usage_recomputes_full_context(
             conversation_id: ThreadId::new(),
             history: Arc::new(rollout_items),
             rollout_path: None,
+            history_revision: None,
         }))
         .await;
 

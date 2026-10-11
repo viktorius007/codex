@@ -188,6 +188,7 @@ async fn selected_tool_catalog_change_persists_once_and_restores_digest_on_resum
             conversation_id: session.thread_id,
             history: Arc::new(resumed_history),
             rollout_path: Some(rollout_path.clone()),
+            history_revision: None,
         }))
         .await;
 
