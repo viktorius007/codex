@@ -241,8 +241,14 @@ fn provider(base_url: String) -> Provider {
 fn api_request() -> ResponsesApiRequest {
     ResponsesApiRequest {
         model: "gpt-test".to_string(),
-        instructions: "observer fixture".to_string(),
-        input: Vec::new(),
+        input: vec![
+            serde_json::from_value(json!({
+                "type": "message",
+                "role": "developer",
+                "content": [{"type": "input_text", "text": "observer fixture"}],
+            }))
+            .expect("fixture base instructions should deserialize"),
+        ],
         tools: None,
         tool_choice: "auto".to_string(),
         parallel_tool_calls: false,
@@ -272,7 +278,7 @@ fn bytes(value: &str) -> Option<Vec<u8>> {
 
 #[tokio::test]
 async fn http_observer_sees_one_exact_prepared_request_before_retry_cloning() -> Result<()> {
-    const EXPECTED_JSON: &[u8] = br#"{"model":"gpt-test","instructions":"observer fixture","input":[],"tool_choice":"auto","parallel_tool_calls":false,"reasoning":null,"store":false,"stream":true,"include":[]}"#;
+    const EXPECTED_JSON: &[u8] = br#"{"model":"gpt-test","input":[{"type":"message","role":"developer","content":[{"type":"input_text","text":"observer fixture"}]}],"tool_choice":"auto","parallel_tool_calls":false,"reasoning":null,"store":false,"stream":true,"include":[]}"#;
 
     let transport = RetryRecordingTransport::default();
     let observer = Arc::new(RecordingObserver::default());
@@ -476,8 +482,8 @@ async fn drain_completed(mut stream: codex_api::ResponseStream) -> Result<()> {
 
 #[tokio::test]
 async fn websocket_observers_are_send_scoped_and_ignore_interrupt_frames() -> Result<()> {
-    const FIRST_WIRE_JSON: &[u8] = br#"{"type":"response.create","model":"gpt-test","instructions":"observer fixture","input":[],"tool_choice":"auto","parallel_tool_calls":false,"reasoning":null,"store":false,"stream":true,"include":[]}"#;
-    const SECOND_WIRE_JSON: &[u8] = br#"{"type":"response.create","model":"gpt-test","instructions":"observer fixture","previous_response_id":"resp-1","input":[],"tool_choice":"auto","parallel_tool_calls":false,"reasoning":null,"store":false,"stream":true,"include":[],"client_metadata":{"ws_request_header_x_openai_internal_codex_responses_lite":"true"}}"#;
+    const FIRST_WIRE_JSON: &[u8] = br#"{"type":"response.create","model":"gpt-test","input":[{"type":"message","role":"developer","content":[{"type":"input_text","text":"observer fixture"}]}],"tool_choice":"auto","parallel_tool_calls":false,"reasoning":null,"store":false,"stream":true,"include":[]}"#;
+    const SECOND_WIRE_JSON: &[u8] = br#"{"type":"response.create","model":"gpt-test","previous_response_id":"resp-1","input":[{"type":"message","role":"developer","content":[{"type":"input_text","text":"observer fixture"}]}],"tool_choice":"auto","parallel_tool_calls":false,"reasoning":null,"store":false,"stream":true,"include":[],"client_metadata":{"ws_request_header_x_openai_internal_codex_responses_lite":"true"}}"#;
 
     let (base_url, handshake_headers, server) = spawn_websocket_server().await;
     let first_observer = Arc::new(RecordingObserver::default());
