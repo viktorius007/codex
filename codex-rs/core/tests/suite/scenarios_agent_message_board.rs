@@ -411,8 +411,14 @@ async fn board_is_shared_with_children_and_skips_idle_notices(
         }]))
         .await?;
     let child_turn = match submission {
-        codex_core::TurnInputSubmission::Started { turn_id }
-        | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+        codex_core::TurnInputSubmission::Started {
+            turn_id,
+            root_turn_id: _,
+        }
+        | codex_core::TurnInputSubmission::Steered {
+            turn_id,
+            root_turn_id: _,
+        } => turn_id,
         other => anyhow::bail!("expected child turn admission, got {other:?}"),
     };
     wait_for_event(&child, |event| {
@@ -615,8 +621,14 @@ async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) -> 
         }]))
         .await?;
     let target_turn = match submission {
-        codex_core::TurnInputSubmission::Started { turn_id }
-        | codex_core::TurnInputSubmission::Steered { turn_id } => turn_id,
+        codex_core::TurnInputSubmission::Started {
+            turn_id,
+            root_turn_id: _,
+        }
+        | codex_core::TurnInputSubmission::Steered {
+            turn_id,
+            root_turn_id: _,
+        } => turn_id,
         other => anyhow::bail!("expected answer turn admission, got {other:?}"),
     };
     wait_for_event(&root.codex, |event| match event {
