@@ -1077,6 +1077,54 @@ async fn send_inter_agent_communication_without_turn_queues_message_without_trig
 }
 
 #[tokio::test]
+async fn terminal_async_result_is_retained_while_recipient_is_unloaded() {
+    let (home, mut config) = test_config().await;
+    config
+        .features
+        .enable(Feature::MultiAgentV2)
+        .expect("enable multi-agent v2");
+    let harness = AgentControlHarness::new_with_config(home, config).await;
+    let (recipient_id, recipient) = harness.start_thread().await;
+    let control = recipient
+        .session
+        .services
+        .local_agent_runtime
+        .control(recipient.session.session_id());
+    recipient
+        .shutdown_and_wait()
+        .await
+        .expect("shut down recipient");
+    assert!(harness.manager.remove_thread(&recipient_id).await.is_some());
+    assert_thread_not_loaded(&harness.manager, recipient_id).await;
+    let pending = control.watch_mailbox(recipient_id);
+    assert!(
+        !*pending.borrow(),
+        "fixture starts with an empty recipient mailbox"
+    );
+    let communication = InterAgentCommunication::new(
+        AgentPath::try_from("/root/worker").expect("worker path"),
+        AgentPath::root(),
+        Vec::new(),
+        "bounded terminal result".to_string(),
+        true,
+    );
+    control
+        .deliver_async_result(
+            recipient_id,
+            crate::session::TurnInput::InterAgentCommunication(communication),
+            Arc::new(codex_extension_api::ExtensionData::default()),
+            "terminal-result-submission".to_string(),
+        )
+        .await
+        .expect("known unloaded recipient must retain the terminal result");
+    assert!(
+        *pending.borrow(),
+        "retained result must wake the recipient mailbox subscriber"
+    );
+    assert_thread_not_loaded(&harness.manager, recipient_id).await;
+}
+
+#[tokio::test]
 async fn ensure_v2_agent_loaded_reloads_registered_unloaded_agent() {
     check_v2_agent_reload(V2ReloadRoute::Sender).await;
 }
