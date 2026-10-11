@@ -1,0 +1,16 @@
+{
+  "originalSource": "78e6a94a1d1a815d2a659f302fedd9c91dfe6c90",
+  "baseCommit": "d27764b82f7118f674371e6d6e76271d9d606edb",
+  "targetCommit": "092d3acd6bec3e3a14bdc7e7a2810ab628ab759d",
+  "rollbackPackage": "/Users/viktor/.local/lib/codex-local/0.160.1+local.10-c446343404e8",
+  "binaries": {
+    "codex": {
+      "path": "/Users/viktor/.local/lib/codex-local/0.160.1+local.10-c446343404e8/bin/codex",
+      "sha256": "2c71be52e78232f35fd898ae53d58da9055625b6df2bac693c9a7cd7cc0f8f4c"
+    },
+    "codex-code-mode-host": {
+      "path": "/Users/viktor/.local/lib/codex-local/0.160.1+local.10-c446343404e8/bin/codex-code-mode-host",
+      "sha256": "33aa49c923ffbe88d0fd9223697f37d4718a37f0b3d6ec5b1690c7c5169d48df"
+    }
+  }
+}
