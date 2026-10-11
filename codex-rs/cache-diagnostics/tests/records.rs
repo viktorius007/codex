@@ -31,7 +31,7 @@ const PRIVATE_CANARY: &str = "PRIVATE-CACHE-DIAGNOSTIC-CANARY";
 const MAX_RECORD_BYTES: usize = 256 * 1024;
 
 fn request(canary: &str, input_count: usize, tool_count: usize) -> ResponsesApiRequest {
-    let input = (0..input_count)
+    let mut input = (0..input_count)
         .map(|index| {
             serde_json::from_value::<ResponseItem>(json!({
                 "type": "message",
@@ -43,7 +43,19 @@ fn request(canary: &str, input_count: usize, tool_count: usize) -> ResponsesApiR
             }))
             .expect("fixture response item should deserialize")
         })
-        .collect();
+        .collect::<Vec<_>>();
+    input.insert(
+        0,
+        serde_json::from_value(json!({
+            "type": "message",
+            "role": "developer",
+            "content": [{"type": "input_text", "text": format!("instructions-{canary}")}],
+            "internal_chat_message_metadata_passthrough": {
+                "content_item_kinds": ["model.base_instructions"]
+            },
+        }))
+        .expect("fixture base instructions should deserialize"),
+    );
     let tools = (0..tool_count)
         .map(|index| {
             json!({
@@ -66,7 +78,6 @@ fn request(canary: &str, input_count: usize, tool_count: usize) -> ResponsesApiR
 
     ResponsesApiRequest {
         model: format!("model-{canary}"),
-        instructions: format!("instructions-{canary}"),
         input,
         tools: Some(ResponsesApiTools::from(Arc::<RawValue>::from(raw_tools))),
         tool_choice: format!("choice-{canary}"),
@@ -89,6 +100,7 @@ fn request(canary: &str, input_count: usize, tool_count: usize) -> ResponsesApiR
 
 fn context(identity: &str) -> AttemptContext<'_> {
     AttemptContext {
+        instructions: "instructions-PRIVATE-CACHE-DIAGNOSTIC-CANARY",
         request_kind: RequestKind::Turn,
         retry_ordinal: 0,
         thread_id: Some(identity),
@@ -374,4 +386,40 @@ fn maximal_request_stays_bounded_and_keeps_safe_tool_decision_evidence() {
     assert!(retained[0]["description"]["hmac"].is_string());
     assert!(retained[0]["parameters"]["bytes"].is_u64());
     assert!(retained[0]["parameters"]["hmac"].is_string());
+}
+
+#[test]
+fn instruction_fingerprint_uses_private_provenance_when_wire_metadata_is_absent() {
+    let home = TempDir::new().unwrap();
+    let collector = Collector::open(home.path()).unwrap();
+    let mut logical = request(PRIVATE_CANARY, 1, 0);
+    for item in &mut logical.input {
+        item.clear_internal_chat_message_metadata_passthrough();
+    }
+    for instructions in [
+        PRIVATE_CANARY,
+        "changed-private-instructions",
+        PRIVATE_CANARY,
+    ] {
+        let mut attempt_context = context("identity");
+        attempt_context.instructions = instructions;
+        collector
+            .start_attempt(attempt_context, &logical)
+            .terminal(TerminalOutcome::Cancelled);
+    }
+    let path = &jsonl_paths(home.path())[0];
+    let records = request_records(path);
+    assert_eq!(records.len(), 3);
+    assert_eq!(records[0]["logical"]["body"], records[1]["logical"]["body"]);
+    assert_ne!(
+        records[0]["logical"]["instructions"],
+        records[1]["logical"]["instructions"]
+    );
+    assert_eq!(
+        records[0]["logical"]["instructions"],
+        records[2]["logical"]["instructions"]
+    );
+    for line in record_lines(path) {
+        assert!(!String::from_utf8(line).unwrap().contains(PRIVATE_CANARY));
+    }
 }

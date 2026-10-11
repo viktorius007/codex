@@ -130,13 +130,13 @@ impl LogicalManifest {
     pub(crate) fn new(
         fingerprinter: &Fingerprinter,
         request: &ResponsesApiRequest,
+        instructions: &str,
     ) -> serde_json::Result<Self> {
         let tool_manifests = tools_manifest(fingerprinter, request.tools.as_ref());
         Ok(Self {
             body: fingerprinter.fingerprint_json("logical.body", request)?,
             model: fingerprinter.fingerprint_json("logical.model", &request.model)?,
-            instructions: fingerprinter
-                .fingerprint_json("logical.instructions", &request.instructions)?,
+            instructions: fingerprinter.fingerprint_json("logical.instructions", instructions)?,
             input: fingerprinter.list_manifest(
                 "logical.input",
                 "logical.input.item",
