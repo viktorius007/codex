@@ -504,13 +504,15 @@ async fn sampled_mcp_call_executes_after_equivalent_runtime_republish() -> anyho
     let test = sampled_mcp_call_fixture().await?;
     test.reverse_equivalent_catalog_order
         .store(true, Ordering::SeqCst);
-    test.fixture
+    let outcome = test
+        .fixture
         .codex
         .refresh_runtime_config(
             test.fixture.codex.config().await,
             test.fixture.config.clone(),
         )
         .await;
+    assert_eq!(outcome, codex_core::ConfigRefreshOutcome::Published);
     wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
 
     let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
@@ -536,10 +538,12 @@ async fn sampled_mcp_call_does_not_switch_to_replacement_server() -> anyhow::Res
     };
     *url = test.new_url.clone();
     refreshed_config.mcp_servers.set(refreshed_servers)?;
-    test.fixture
+    let outcome = test
+        .fixture
         .codex
         .refresh_runtime_config(test.fixture.codex.config().await, refreshed_config)
         .await;
+    assert_eq!(outcome, codex_core::ConfigRefreshOutcome::Published);
     wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
 
     let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
@@ -559,10 +563,12 @@ async fn sampled_mcp_call_does_not_bypass_narrowed_tool_allowlist() -> anyhow::R
         .expect("configured MCP server")
         .enabled_tools = Some(Vec::new());
     refreshed_config.mcp_servers.set(refreshed_servers)?;
-    test.fixture
+    let outcome = test
+        .fixture
         .codex
         .refresh_runtime_config(test.fixture.codex.config().await, refreshed_config)
         .await;
+    assert_eq!(outcome, codex_core::ConfigRefreshOutcome::Published);
 
     let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
     assert_stale_sampled_call_failed(&output, &old_calls, &new_calls);
