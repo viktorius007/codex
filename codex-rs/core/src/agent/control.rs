@@ -73,6 +73,9 @@ mod inspection;
 mod interrupt;
 mod legacy;
 mod mailbox;
+mod parent_result;
+pub(crate) use parent_result::ParentResultResidencyGuard;
+pub(crate) use parent_result::cancel_parent_result_residency;
 mod residency;
 mod resume;
 mod root_handoff;
@@ -299,7 +302,7 @@ impl LocalAgentControl {
                 Arc::clone(thread)
             };
             let _residency_guard = Arc::clone(&thread.residency_gate).read_owned().await;
-            {
+            let wake = {
                 let threads = state.threads.read().await;
                 if !threads
                     .get(&agent_id)
@@ -309,16 +312,10 @@ impl LocalAgentControl {
                 }
                 thread
                     .session
-                    .input_queue
-                    .enqueue_async_result(vec![input], origin)
-                    .await;
-            }
-            Box::pin(
-                thread
-                    .session
-                    .maybe_start_turn_for_pending_work_with_sub_id(sub_id),
-            )
-            .await;
+                    .enqueue_async_result(input, origin, sub_id)
+                    .await
+            };
+            wake.await;
             return Ok(());
         }
     }
