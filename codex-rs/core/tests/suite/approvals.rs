@@ -2806,12 +2806,12 @@ async fn shell_startup_credentials_are_brokered(
              export AUTH_HEADER=\"Bearer $GH_ENTERPRISE_TOKEN\"\n\
              export BROKERED_STARTUP_CWD=\"$PWD\"\n\
              if {untrusted_snapshot_condition}; then\n\
-                 print -r -- escaped > {outside_path_arg} 2>/dev/null || true\n\
+                 print -r -- startup-zshenv > {outside_path_arg} 2>/dev/null || true\n\
              fi\n\
              function setopt() {{\n\
                  builtin setopt \"$@\"\n\
                  if {untrusted_snapshot_condition}; then\n\
-                     print -r -- escaped > {outside_path_arg} 2>/dev/null || true\n\
+                     print -r -- startup-setopt > {outside_path_arg} 2>/dev/null || true\n\
                  fi\n\
              }}\n"
         ),
@@ -2849,7 +2849,7 @@ async fn shell_startup_credentials_are_brokered(
         home.path().join("config.toml"),
         format!(
             r#"default_permissions = "brokered"
-permissions = {{ brokered = {{ extends = ":workspace", network = {{ enabled = true, allow_local_binding = true }} }} }}
+permissions = {{ brokered = {{ extends = ":workspace", file_system = {{ ":slash_tmp" = "read", ":tmpdir" = "read" }}, network = {{ enabled = true, allow_local_binding = true }} }} }}
 
 [features.network_proxy]
 enabled = true
@@ -2876,6 +2876,19 @@ ZDOTDIR = "{}"
         builder = builder.with_user_shell(bash);
     }
     let mut builder = builder.with_config(move |config| {
+        let network = config
+            .permissions
+            .permission_profile()
+            .network_sandbox_policy();
+        config
+            .permissions
+            .set_permission_profile(PermissionProfile::workspace_write_with(
+                &[],
+                network,
+                /*exclude_tmpdir_env_var*/ true,
+                /*exclude_slash_tmp*/ true,
+            ))
+            .expect("test config should restrict writes to the command workspace");
         config.permissions.allow_login_shell = allow_login_shell;
         config.permissions.shell_environment_policy.exclude.push(
             EnvironmentVariablePattern::new_case_insensitive("EXCLUDED_SETTING"),
@@ -2911,6 +2924,15 @@ ZDOTDIR = "{}"
     });
     let server = start_mock_server().await;
     let mut test = builder.build(&server).await?;
+    let file_system = test
+        .config
+        .permissions
+        .permission_profile()
+        .file_system_sandbox_policy();
+    assert!(
+        !file_system.can_write_local_path_with_cwd(&outside_path, test.config.cwd.as_path()),
+        "outside sentinel unexpectedly writable: {file_system:?}"
+    );
     let metrics = if login {
         // Keep the collector local to this thread so parallel tests cannot affect counts.
         let metrics = MetricsClient::new(
@@ -2940,7 +2962,7 @@ ZDOTDIR = "{}"
         "APP_SETTING=production; EXCLUDED_SETTING=denied; [ \"$(/usr/bin/printenv APP_SETTING)\" = production ] || exit 1; if /usr/bin/printenv EXCLUDED_SETTING >/dev/null; then exit 1; fi; {command}"
     );
     let command = if request_extra_permissions {
-        let script = format!("{command}\nprintf escaped 2>/dev/null > {outside_path_arg} || true");
+        let script = format!("{command}\nprintf command 2>/dev/null > {outside_path_arg} || true");
         format!("/bin/sh -c {}", shlex::try_quote(&script)?)
     } else {
         command.to_string()
@@ -3096,7 +3118,8 @@ ZDOTDIR = "{}"
     assert_eq!(values[7], if login { "ready" } else { "unset" });
     assert!(
         !outside_path.exists(),
-        "shell snapshot startup wrote outside the command sandbox"
+        "shell snapshot startup wrote outside the command sandbox: {:?}",
+        fs::read_to_string(&outside_path)
     );
 
     let snapshot = fs::read_to_string(workdir.join("captured-snapshot"))?;

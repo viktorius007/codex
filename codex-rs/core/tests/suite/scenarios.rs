@@ -680,7 +680,7 @@ async fn astra_kickoff_with_skills_plugins_and_remote_compaction() -> Result<()>
     let test = builder.build(&server).await?;
     test.thread_manager
         .skills_service()
-        .set_extra_roots(vec![test.config.codex_home.join("skills").try_into()?]);
+        .set_extra_roots(vec![test.config.codex_home.join("skills")]);
 
     for input in [
         vec![
@@ -2191,7 +2191,7 @@ async fn model_catalog_refresh_preserves_tools_and_history() -> Result<()> {
     )
     .await?;
     insta::assert_snapshot!(context_snapshot::format_request_history_snapshot(
-        "Catalog refreshes append the updated listing once while preserving tools and prior input.",
+        "Catalog refreshes retain the thread’s admitted listing while preserving tools and prior input.",
         &requests,
         &ContextSnapshotOptions::default().include_request_settings(),
     ));

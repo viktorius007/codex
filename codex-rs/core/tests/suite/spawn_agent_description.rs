@@ -331,7 +331,7 @@ pub(super) async fn model_catalog_refresh_requests(
         );
     }
 
-    // Only the opt-in path keeps the tool schema stable across a catalog refresh.
+    // The manager refreshes while the admitted thread retains its catalog snapshot.
     let manager = test.thread_manager.get_models_manager();
     let mut refreshed = manager
         .raw_model_catalog(RefreshStrategy::Offline, test.config.http_client_factory())
@@ -354,28 +354,13 @@ pub(super) async fn model_catalog_refresh_requests(
         .message_input_texts("developer")
         .into_iter()
         .filter(|text| text.starts_with("<model_catalog>"))
-        .flat_map(|catalog| {
-            [
-                catalog.clone(),
-                catalog.replace("Fast and capable", "Updated picker copy"),
-            ]
-        })
         .collect::<Vec<_>>();
     let mut requests = vec![request];
     for turn in ["after catalog refresh", "without another catalog change"] {
         let response = mount_sse_once(&server, sse(vec![ev_completed(turn)])).await;
         test.submit_turn(turn).await?;
         let current = response.single_request();
-        if model_catalog_in_context {
-            assert_eq!(current.body_json()["tools"], body["tools"]);
-        } else {
-            let expected_tools = serde_json::to_string(&body["tools"])?
-                .replace("Fast and capable", "Updated picker copy");
-            assert_eq!(
-                current.body_json()["tools"],
-                serde_json::from_str::<Value>(&expected_tools)?
-            );
-        }
+        assert_eq!(current.body_json()["tools"], body["tools"]);
         assert!(
             current
                 .input()
