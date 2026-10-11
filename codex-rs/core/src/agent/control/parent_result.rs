@@ -69,7 +69,7 @@ impl LocalAgentControl {
         child_id: ThreadId,
         version: MultiAgentVersion,
         source: &SessionSource,
-        expected_child_session: &crate::session::Session,
+        expected_child_session: &crate::session::session::Session,
     ) -> CodexResult<Option<ParentResultResidencyGuard>> {
         let SessionSource::SubAgent(SubAgentSource::ThreadSpawn {
             parent_thread_id, ..
@@ -127,7 +127,7 @@ impl LocalAgentControl {
             .get(&child_id)
             .ok_or(CodexErr::ThreadNotFound(child_id))?;
         if !std::ptr::eq(child.session.as_ref(), expected_child_session) {
-            return Err(CodexErr::ThreadNotFound(child_id).into());
+            return Err(CodexErr::ThreadNotFound(child_id));
         }
         child
             .session
