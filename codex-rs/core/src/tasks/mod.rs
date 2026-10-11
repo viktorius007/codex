@@ -353,7 +353,12 @@ impl Session {
         {
             return false;
         }
-        self.record_started_turn(&turn_context.sub_id, (task_kind == TaskKind::Regular).then(|| turn_context.attribution())).await;
+        self.activate_plugin_selection(&turn_context).await;
+        self.record_started_turn(
+            &turn_context.sub_id,
+            (task_kind == TaskKind::Regular).then(|| turn_context.attribution()),
+        )
+        .await;
         let (pending_items, _, child_result_origins) = self
             .input_queue
             .drain_mailbox_input_items_with_origins()
@@ -553,7 +558,17 @@ impl Session {
                     return;
                 }
                 let active_turn = active_turn.get_or_insert_with(ActiveTurn::default);
-                let previous_options = if self.input_queue.has_trigger_turn_mailbox_items().await { Default::default() } else { self.state.lock().await.turn_attribution.as_ref().map(codex_history::TurnAttribution::start_options).unwrap_or_default() };
+                let previous_options = if self.input_queue.has_trigger_turn_mailbox_items().await {
+                    Default::default()
+                } else {
+                    self.state
+                        .lock()
+                        .await
+                        .turn_attribution
+                        .as_ref()
+                        .map(codex_history::TurnAttribution::start_options)
+                        .unwrap_or_default()
+                };
                 (Arc::clone(&active_turn.turn_state), previous_options)
             };
 
@@ -620,14 +635,18 @@ impl Session {
                 turn_context.turn_metadata_state.set_turn_trigger(trigger);
             }
             if let Some(id) = start_options.parent_turn_id {
-                if let Some(initiating_agent_path) = input.iter().find_map(|item| {
-                    let TurnInput::InterAgentCommunication(communication) = item else {
-                        return None;
-                    };
-                    communication
-                        .trigger_turn
-                        .then(|| communication.author.clone())
-                }) {
+                if let Some(initiating_agent_path) = input
+                    .iter()
+                    .find_map(|item| {
+                        let TurnInput::InterAgentCommunication(communication) = item else {
+                            return None;
+                        };
+                        communication
+                            .trigger_turn
+                            .then(|| communication.author.clone())
+                    })
+                    .or(start_options.initiating_agent_path)
+                {
                     turn_context
                         .turn_metadata_state
                         .set_initiating_agent_path(initiating_agent_path);

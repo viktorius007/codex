@@ -4736,7 +4736,10 @@ impl Session {
                 items.push(contextual_user_message);
             }
             if let Some(fragment) = initial_multi_agent_usage_hint
-                && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![fragment.render_fragment()])
+                && let Some(message) =
+                    crate::context_manager::updates::build_rendered_message(vec![
+                        fragment.render_fragment(),
+                    ])
             {
                 items.push(message);
             }

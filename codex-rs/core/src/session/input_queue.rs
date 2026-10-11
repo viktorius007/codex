@@ -301,11 +301,11 @@ impl InputQueue {
         let mut pending = self.mailbox_pending_mails.lock().await;
         self.read_mailbox(&mut pending);
         pending.push_back(PendingMailboxCommunication {
-                communication,
-                start_options,
-                _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
-                async_result_origin,
-            });
+            communication,
+            start_options,
+            _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
+            async_result_origin,
+        });
         self.activity_tx.send_replace(InputQueueActivity::Mailbox);
     }
 
@@ -318,11 +318,9 @@ impl InputQueue {
     }
 
     pub(crate) async fn has_trigger_turn_mailbox_items(&self) -> bool {
-        self.mailbox_pending_mails
-            .lock()
-            .await
-            .iter()
-            .any(|mail| mail.communication.trigger_turn)
+        let mut pending = self.mailbox_pending_mails.lock().await;
+        self.read_mailbox(&mut pending);
+        pending.iter().any(|mail| mail.communication.trigger_turn)
     }
 
     pub(crate) async fn drain_mailbox(&self) -> Vec<PendingMailboxCommunication> {

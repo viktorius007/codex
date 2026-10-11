@@ -120,12 +120,11 @@ pub(crate) async fn run_inline_auto_compact_task(
     sess: Arc<Session>,
     turn_context: Arc<TurnContext>,
     replacement_step_context: Arc<StepContext>,
-    world_state: Arc<WorldState>,
     step_context: Arc<StepContext>,
+    world_state: Arc<WorldState>,
     reason: CompactionReason,
     phase: CompactionPhase,
 ) -> CodexResult<()> {
-    let turn_context = &turn_context;
     let prompt = turn_context
         .config
         .compact_prompt

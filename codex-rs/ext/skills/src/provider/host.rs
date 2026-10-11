@@ -97,15 +97,14 @@ impl SkillProvider for HostSkillProvider {
                 let package_root = skill.path_to_skills_md.parent().ok_or_else(|| {
                     SkillProviderError::new("host skill package has no parent directory")
                 })?;
-                let requested_path = package_root.join(relative_resource).map_err(|_| outside_package())?;
+                let requested_path = package_root
+                    .join(relative_resource)
+                    .map_err(|_| outside_package())?;
                 let file_system = outcome
                     .file_system_for_skill(skill)
                     .unwrap_or_else(|| Arc::clone(&LOCAL_FS));
                 let resource = file_system
-                    .canonicalize(
-                        &requested_path,
-                        /*sandbox*/ None,
-                    )
+                    .canonicalize(&requested_path, /*sandbox*/ None)
                     .await
                     .map_err(|_| read_error())?;
                 if !resource.starts_with(&package_root) {
@@ -179,8 +178,11 @@ fn catalog_from_outcome(outcome: &SkillLoadOutcome) -> SkillCatalog {
             if let Some(discovery_path) =
                 outcome.skill_discovery_path_for_path(&skill.path_to_skills_md)
             {
-                entry =
-                    entry.with_display_path(discovery_path.inferred_native_path_string().replace('\\', "/"));
+                entry = entry.with_display_path(
+                    discovery_path
+                        .inferred_native_path_string()
+                        .replace('\\', "/"),
+                );
             }
             if let Some(root) = outcome.skill_root_for_path(&skill.path_to_skills_md) {
                 entry = entry.with_alias_root(root.to_string_lossy().replace('\\', "/"));
