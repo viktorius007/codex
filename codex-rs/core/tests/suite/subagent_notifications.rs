@@ -3226,6 +3226,7 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    core_test_support::ThreadIdle::wait(worker_thread.as_ref()).await;
 
     let requester_spawn_args = serde_json::to_string(&json!({
         "message": REQUESTER_TASK,
@@ -3318,6 +3319,19 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         );
     }
 
+    mount_sse_once_match(
+        &server,
+        move |request: &wiremock::Request| {
+            let body: Value = serde_json::from_slice(&request.body).expect("request body");
+            body["client_metadata"]["thread_id"] == json!(root_thread_id)
+                && body_contains(request, "Sender: /root/worker")
+                && body_contains(request, "peer follow-up finished")
+                && !body_contains(request, READ_RESULT_PROMPT)
+        },
+        sse(vec![ev_completed("resp-routing-root-auto-result")]),
+    )
+    .await;
+
     submit_idle_turn_with_trigger(&test, SPAWN_REQUESTER_PROMPT, "composer").await?;
     let requester_thread_id = created_threads.recv().await?;
     let requester_thread = test.thread_manager.get_thread(requester_thread_id).await?;
@@ -3338,6 +3352,7 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         matches!(event, EventMsg::TurnComplete(_))
     })
     .await;
+    core_test_support::ThreadIdle::wait(worker_thread.as_ref()).await;
 
     let mut worker_followup_turn_id = worker_followup_request
         .requests()
@@ -3404,6 +3419,7 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
                 _ => None,
             })
             .await;
+        core_test_support::ThreadIdle::wait(worker_thread.as_ref()).await;
         let request = wake_request.single_request();
         assert_parent_turn(&request.body_json(), Some(&requester_turn_id))?;
     }
@@ -3446,8 +3462,8 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         )
     );
 
-    // Fresh turn input is sampled before queued mail is drained. Let that first
-    // request complete successfully so the next request can include the result.
+    // Allow a read request without the result to finish while routing catches up;
+    // the result request below still verifies the worker author and recipient.
     mount_sse_once_match(
         &server,
         |request: &wiremock::Request| {
@@ -3471,7 +3487,7 @@ async fn multi_agent_v2_peer_followup_completion_notifies_initiating_turn(
         ]),
     )
     .await;
-    test.submit_turn(READ_RESULT_PROMPT).await?;
+    submit_idle_turn_with_trigger(&test, READ_RESULT_PROMPT, "composer").await?;
     let root_request = root_result_request
         .requests()
         .into_iter()
