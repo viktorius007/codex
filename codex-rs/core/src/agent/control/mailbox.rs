@@ -1,6 +1,7 @@
 //! Retains queue-only mail while local sessions are unloaded.
 //! Eviction transfers mail before releasing the recipient's residency guard.
 
+use crate::agent::api::AgentMailboxDelivery;
 use crate::agent_communication::PENDING_MAILBOX_MESSAGES;
 use codex_diagnostics::GaugeGuard;
 use codex_protocol::ThreadId;
@@ -28,7 +29,7 @@ struct Mailbox {
 
 struct StoredMail {
     id: Option<String>,
-    communication: InterAgentCommunication,
+    delivery: AgentMailboxDelivery,
     _diagnostics_guard: GaugeGuard,
 }
 
@@ -39,6 +40,24 @@ impl Mailboxes {
         id: Option<String>,
         messages: Vec<InterAgentCommunication>,
     ) -> Result<()> {
+        self.enqueue_deliveries(
+            agent,
+            id,
+            messages
+                .into_iter()
+                .map(|communication| {
+                    AgentMailboxDelivery::communication(communication, Default::default(), None)
+                })
+                .collect(),
+        )
+    }
+
+    pub(super) fn enqueue_deliveries(
+        &self,
+        agent: ThreadId,
+        id: Option<String>,
+        deliveries: Vec<AgentMailboxDelivery>,
+    ) -> Result<()> {
         let mut mailboxes = self.0.lock().unwrap_or_else(PoisonError::into_inner);
         let mailbox = mailboxes
             .as_mut()
@@ -47,16 +66,16 @@ impl Mailboxes {
             .or_default();
         mailbox
             .pending
-            .extend(messages.into_iter().map(|communication| StoredMail {
+            .extend(deliveries.into_iter().map(|delivery| StoredMail {
                 id: id.clone(),
-                communication,
+                delivery,
                 _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
             }));
         mailbox.state.send_replace(!mailbox.pending.is_empty());
         Ok(())
     }
 
-    pub(super) fn take(&self, agent: ThreadId) -> Vec<InterAgentCommunication> {
+    pub(super) fn take(&self, agent: ThreadId) -> Vec<AgentMailboxDelivery> {
         let mut mailboxes = self.0.lock().unwrap_or_else(PoisonError::into_inner);
         let Some(mailbox) = mailboxes
             .as_mut()
@@ -73,7 +92,7 @@ impl Mailboxes {
                 if let Some(id) = mail.id {
                     crate::agent_communication::emit_agent_communication_receive(&id);
                 }
-                mail.communication
+                mail.delivery
             })
             .collect()
     }
@@ -110,5 +129,48 @@ impl Mailboxes {
                 mailbox.state.send_replace(false);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::agent::api::AgentMailboxPayload;
+    use crate::session::TurnInput;
+    use codex_extension_api::ExtensionData;
+    use codex_protocol::models::ResponseItem;
+    use std::sync::Arc;
+
+    #[test]
+    fn async_mail_preserves_payload_origin_and_is_taken_once() {
+        let mailboxes = Mailboxes::default();
+        let agent = ThreadId::new();
+        let updates = mailboxes.watch(agent);
+        let origin = Arc::new(ExtensionData::new("origin-turn"));
+        let input = vec![TurnInput::ResponseItem(ResponseItem::Other.into())];
+        mailboxes
+            .enqueue_deliveries(
+                agent,
+                None,
+                vec![AgentMailboxDelivery::async_result(
+                    input.clone(),
+                    Arc::clone(&origin),
+                )],
+            )
+            .expect("enqueue async result");
+        assert!(*updates.borrow());
+        let mut deliveries = mailboxes.take(agent);
+        assert_eq!(deliveries.len(), 1);
+        let AgentMailboxDelivery(AgentMailboxPayload::AsyncResult {
+            input: delivered,
+            origin: delivered_origin,
+        }) = deliveries.pop().unwrap()
+        else {
+            panic!("expected async result");
+        };
+        assert_eq!(delivered, input);
+        assert!(Arc::ptr_eq(&delivered_origin, &origin));
+        assert!(!*updates.borrow());
+        assert!(mailboxes.take(agent).is_empty());
     }
 }

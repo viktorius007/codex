@@ -1,4 +1,6 @@
 use crate::agent::api::AgentControl;
+use crate::agent::api::AgentMailboxDelivery;
+use crate::agent::api::AgentMailboxPayload;
 use crate::agent_communication::PENDING_MAILBOX_MESSAGES;
 use crate::state::ActiveTurn;
 use crate::state::MailboxDeliveryPhase;
@@ -148,19 +150,32 @@ impl InputQueue {
         self.activity_tx.send_replace(InputQueueActivity::Mailbox);
     }
 
-    fn read_mailbox(&self, pending: &mut VecDeque<PendingMailboxCommunication>) {
-        if let Some((thread_id, control, _)) = &self.controller {
-            pending.extend(
-                control
-                    .take_mailbox(*thread_id)
-                    .into_iter()
-                    .map(|communication| PendingMailboxCommunication {
-                        communication,
-                        start_options: TurnStartOptions::default(),
-                        async_result_origin: None,
-                        _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
-                    }),
-            );
+    async fn import_controller_mailbox(&self) {
+        let Some((thread_id, control, _)) = &self.controller else {
+            return;
+        };
+        let mut pending = self.mailbox_pending_mails.lock().await;
+        let mut async_results = self.pending_async_results.lock().await;
+        for AgentMailboxDelivery(payload) in control.take_mailbox(*thread_id) {
+            match payload {
+                AgentMailboxPayload::Communication {
+                    communication,
+                    start_options,
+                    async_result_origin,
+                } => pending.push_back(PendingMailboxCommunication {
+                    communication,
+                    start_options,
+                    async_result_origin,
+                    _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
+                }),
+                AgentMailboxPayload::AsyncResult { input, origin } => {
+                    async_results.push_back(PendingAsyncResult {
+                        id: self.next_async_result_id.fetch_add(1, Ordering::Relaxed),
+                        input,
+                        origin_turn_store: origin,
+                    });
+                }
+            }
         }
     }
 
@@ -169,6 +184,7 @@ impl InputQueue {
         input: Vec<TurnInput>,
         origin_turn_store: Arc<ExtensionData>,
     ) {
+        self.import_controller_mailbox().await;
         let id = self.next_async_result_id.fetch_add(1, Ordering::Relaxed);
         self.pending_async_results
             .lock()
@@ -182,6 +198,7 @@ impl InputQueue {
     }
 
     pub(crate) async fn pending_async_result_origins(&self) -> Vec<(u64, Arc<ExtensionData>)> {
+        self.import_controller_mailbox().await;
         self.pending_async_results
             .lock()
             .await
@@ -298,8 +315,8 @@ impl InputQueue {
         start_options: TurnStartOptions,
         async_result_origin: Option<Arc<ExtensionData>>,
     ) {
+        self.import_controller_mailbox().await;
         let mut pending = self.mailbox_pending_mails.lock().await;
-        self.read_mailbox(&mut pending);
         pending.push_back(PendingMailboxCommunication {
             communication,
             start_options,
@@ -318,15 +335,35 @@ impl InputQueue {
     }
 
     pub(crate) async fn has_trigger_turn_mailbox_items(&self) -> bool {
-        let mut pending = self.mailbox_pending_mails.lock().await;
-        self.read_mailbox(&mut pending);
+        self.import_controller_mailbox().await;
+        let pending = self.mailbox_pending_mails.lock().await;
         pending.iter().any(|mail| mail.communication.trigger_turn)
     }
 
     pub(crate) async fn drain_mailbox(&self) -> Vec<PendingMailboxCommunication> {
+        self.import_controller_mailbox().await;
         let mut pending = self.mailbox_pending_mails.lock().await;
-        self.read_mailbox(&mut pending);
         pending.drain(..).collect()
+    }
+
+    pub(crate) async fn drain_mailbox_deliveries_for_unload(&self) -> Vec<AgentMailboxDelivery> {
+        self.import_controller_mailbox().await;
+        let mut pending = self.mailbox_pending_mails.lock().await;
+        let mut async_results = self.pending_async_results.lock().await;
+        let mut deliveries: Vec<_> = pending
+            .drain(..)
+            .map(|mail| {
+                AgentMailboxDelivery::communication(
+                    mail.communication,
+                    mail.start_options,
+                    mail.async_result_origin,
+                )
+            })
+            .collect();
+        deliveries.extend(async_results.drain(..).map(|result| {
+            AgentMailboxDelivery::async_result(result.input, result.origin_turn_store)
+        }));
+        deliveries
     }
 
     #[cfg(test)]
@@ -510,6 +547,7 @@ impl InputQueue {
         TurnStartOptions,
         Vec<Option<Arc<ExtensionData>>>,
     ) {
+        self.import_controller_mailbox().await;
         let (pending_input, accepts_mailbox_delivery) = {
             let mut active = active_turn.lock().await;
             match active.as_mut() {
@@ -549,6 +587,7 @@ impl InputQueue {
         reason = "active turn checks and turn state reads must remain atomic"
     )]
     pub(crate) async fn has_pending_input(&self, active_turn: &Mutex<Option<ActiveTurn>>) -> bool {
+        self.import_controller_mailbox().await;
         let (has_turn_pending_input, accepts_mailbox_delivery) = {
             let active = active_turn.lock().await;
             match active.as_ref() {
@@ -684,6 +723,57 @@ mod tests {
             content.to_string(),
             trigger_turn,
         )
+    }
+
+    #[tokio::test]
+    async fn unloading_transfers_both_queues_with_original_completion_origins_once() {
+        let queue = InputQueue::new();
+        let communication = make_mail(AgentPath::root(), AgentPath::root(), "completion", true);
+        let options = TurnStartOptions {
+            parent_turn_id: Some("parent-turn".into()),
+            root_turn_id: Some("root-turn".into()),
+            ..Default::default()
+        };
+        let mail_origin = Arc::new(ExtensionData::new("mail-origin"));
+        let async_origin = Arc::new(ExtensionData::new("async-origin"));
+        let input = vec![TurnInput::ResponseItem(ResponseItem::Other.into())];
+        queue
+            .enqueue_mailbox_communication_with_origin(
+                communication.clone(),
+                options.clone(),
+                Some(Arc::clone(&mail_origin)),
+            )
+            .await;
+        queue
+            .enqueue_async_result(input.clone(), Arc::clone(&async_origin))
+            .await;
+        let deliveries = queue.drain_mailbox_deliveries_for_unload().await;
+        let mut deliveries = deliveries.into_iter();
+        let AgentMailboxDelivery(AgentMailboxPayload::Communication {
+            communication: delivered,
+            start_options,
+            async_result_origin: Some(origin),
+        }) = deliveries.next().expect("mail")
+        else {
+            panic!("expected communication");
+        };
+        assert_eq!(delivered, communication);
+        assert_eq!(
+            (start_options.parent_turn_id, start_options.root_turn_id),
+            (options.parent_turn_id, options.root_turn_id),
+        );
+        assert!(Arc::ptr_eq(&origin, &mail_origin));
+        let AgentMailboxDelivery(AgentMailboxPayload::AsyncResult {
+            input: delivered,
+            origin,
+        }) = deliveries.next().expect("async result")
+        else {
+            panic!("expected async result");
+        };
+        assert_eq!(delivered, input);
+        assert!(Arc::ptr_eq(&origin, &async_origin));
+        assert!(deliveries.next().is_none());
+        assert!(queue.drain_mailbox_deliveries_for_unload().await.is_empty());
     }
 
     #[tokio::test]

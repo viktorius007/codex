@@ -69,13 +69,12 @@ impl ThreadManagerState {
             let mail = thread
                 .session
                 .input_queue
-                .drain_mailbox()
-                .await
-                .into_iter()
-                .map(|mail| mail.communication)
-                .collect();
+                .drain_mailbox_deliveries_for_unload()
+                .await;
             let runtime = &thread.session.services.local_agent_runtime;
-            let _ = runtime.mailboxes.enqueue(thread_id, /*id*/ None, mail);
+            let _ = runtime
+                .mailboxes
+                .enqueue_deliveries(thread_id, /*id*/ None, mail);
             let environments = thread.environment_selections().await;
             let mut threads = manager.threads.write().await;
             if threads
