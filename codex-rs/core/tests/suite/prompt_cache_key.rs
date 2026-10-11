@@ -170,8 +170,15 @@ async fn fresh_subagent_reuses_root_cache_prefix_until_its_role_boundary() -> Re
     let child_body = child_request.body_json();
     assert_eq!(root_body["model"], MODEL);
     assert_eq!(child_body["model"], MODEL);
-    assert_eq!(root_body["instructions"], BASE_INSTRUCTIONS);
-    assert_eq!(child_body["instructions"], BASE_INSTRUCTIONS);
+    let root_input = cache_prefix_input_projection(&root_request);
+    let child_input = cache_prefix_input_projection(&child_request);
+    let base_instructions = json!({
+        "type": "message",
+        "role": "developer",
+        "content": [{"type": "input_text", "text": BASE_INSTRUCTIONS}],
+    });
+    assert_eq!(root_input.first(), Some(&base_instructions));
+    assert_eq!(child_input.first(), Some(&base_instructions));
     assert_eq!(root_body["reasoning"]["effort"], "high");
     assert_eq!(child_body["reasoning"], root_body["reasoning"]);
     assert!(
@@ -182,8 +189,6 @@ async fn fresh_subagent_reuses_root_cache_prefix_until_its_role_boundary() -> Re
     );
     assert_eq!(child_body["tools"], root_body["tools"]);
 
-    let root_input = cache_prefix_input_projection(&root_request);
-    let child_input = cache_prefix_input_projection(&child_request);
     let first_divergence = root_input
         .iter()
         .zip(&child_input)
