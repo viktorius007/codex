@@ -57,7 +57,6 @@ use codex_utils_output_truncation::TruncationPolicy;
 use codex_utils_output_truncation::approx_token_count;
 use codex_utils_output_truncation::truncate_text;
 use futures::prelude::*;
-use tokio_util::sync::CancellationToken;
 use tracing::error;
 
 pub use codex_prompts::SUMMARIZATION_PROMPT;
