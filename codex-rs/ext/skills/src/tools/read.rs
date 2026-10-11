@@ -136,7 +136,12 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     .unwrap_or_else(|| SkillResourceId::new(resource)),
             };
             let (context, access_key) = match output_authority {
-                None => (SkillReadContext::Host { host_snapshot: self.context.host_snapshot.clone() }, None),
+                None => (
+                    SkillReadContext::Host {
+                        host_snapshot: self.context.host_snapshot.clone(),
+                    },
+                    None,
+                ),
                 Some(SkillToolAuthoritySelector::Cloud) => (
                     SkillReadContext::Cloud {
                         mcp_resources: self.context.mcp_resources.clone(),
