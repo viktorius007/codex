@@ -596,7 +596,10 @@ async fn submit_with_text(
     });
     let turn_id = loop {
         match test.codex.start_turn_if_idle(request.clone()).await? {
-            StartIfIdleSubmission::Started { turn_id } => break turn_id,
+            StartIfIdleSubmission::Started {
+                turn_id,
+                root_turn_id: _,
+            } => break turn_id,
             StartIfIdleSubmission::NotSubmitted {
                 reason: NotSubmittedReason::NotIdle,
             } => {

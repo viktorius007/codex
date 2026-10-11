@@ -506,7 +506,10 @@ async fn sampled_mcp_call_executes_after_equivalent_runtime_republish() -> anyho
         .store(true, Ordering::SeqCst);
     test.fixture
         .codex
-        .refresh_runtime_config(test.fixture.config.clone())
+        .refresh_runtime_config(
+            test.fixture.codex.config().await,
+            test.fixture.config.clone(),
+        )
         .await;
     wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
 
@@ -535,7 +538,7 @@ async fn sampled_mcp_call_does_not_switch_to_replacement_server() -> anyhow::Res
     refreshed_config.mcp_servers.set(refreshed_servers)?;
     test.fixture
         .codex
-        .refresh_runtime_config(refreshed_config)
+        .refresh_runtime_config(test.fixture.codex.config().await, refreshed_config)
         .await;
     wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
 
@@ -558,7 +561,7 @@ async fn sampled_mcp_call_does_not_bypass_narrowed_tool_allowlist() -> anyhow::R
     refreshed_config.mcp_servers.set(refreshed_servers)?;
     test.fixture
         .codex
-        .refresh_runtime_config(refreshed_config)
+        .refresh_runtime_config(test.fixture.codex.config().await, refreshed_config)
         .await;
 
     let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;

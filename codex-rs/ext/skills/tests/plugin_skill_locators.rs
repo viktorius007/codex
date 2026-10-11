@@ -198,6 +198,7 @@ async fn render_host_catalog(
             session_store,
             thread_store,
             turn_store: &turn_store,
+            step_store: &turn_store,
             previous_world_state: None,
         })
         .await;
@@ -206,6 +207,7 @@ async fn render_host_catalog(
         .find(|section| section.id() == "host_skills")
         .ok_or("host catalog section should exist")?
         .render_diff(PreviousWorldStateSection::Absent)
+        .1
         .ok_or("host catalog should render")?
         .body()
         .to_string();

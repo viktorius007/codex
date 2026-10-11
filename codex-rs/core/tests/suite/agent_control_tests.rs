@@ -105,17 +105,13 @@ impl AgentControl for TestAgentControl {
         Box::pin(async { Err(CodexErr::InvalidRequest("host send rejection".to_string())) })
     }
 
-    fn take_mailbox(&self, _agent: ThreadId) -> Vec<codex_core::agent::api::AgentMailboxDelivery> {
+    fn take_mailbox(&self, _agent: ThreadId) -> Vec<codex_core::AgentMailboxDelivery> {
         let messages = std::mem::take(&mut *self.mail.lock().expect("mail lock"));
         self.mailbox_state.send_if_modified(std::mem::take);
         messages
             .into_iter()
             .map(|message| {
-                codex_core::agent::api::AgentMailboxDelivery::communication(
-                    message,
-                    Default::default(),
-                    None,
-                )
+                codex_core::AgentMailboxDelivery::communication(message, Default::default(), None)
             })
             .collect()
     }
