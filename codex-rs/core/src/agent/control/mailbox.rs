@@ -58,6 +58,24 @@ impl Mailboxes {
         id: Option<String>,
         deliveries: Vec<AgentMailboxDelivery>,
     ) -> Result<()> {
+        self.enqueue_deliveries(
+            agent,
+            id,
+            messages
+                .into_iter()
+                .map(|communication| {
+                    AgentMailboxDelivery::communication(communication, Default::default(), None)
+                })
+                .collect(),
+        )
+    }
+
+    pub(super) fn enqueue_deliveries(
+        &self,
+        agent: ThreadId,
+        id: Option<String>,
+        deliveries: Vec<AgentMailboxDelivery>,
+    ) -> Result<()> {
         let mut mailboxes = self.0.lock().unwrap_or_else(PoisonError::into_inner);
         let mailbox = mailboxes
             .as_mut()
