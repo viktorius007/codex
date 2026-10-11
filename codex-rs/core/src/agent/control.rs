@@ -277,6 +277,10 @@ impl LocalAgentControl {
         Ok(())
     }
 
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "thread publication must remain stable until the queue accepts delivery; wake runs after map release"
+    )]
     pub(crate) async fn deliver_async_result(
         &self,
         agent_id: ThreadId,

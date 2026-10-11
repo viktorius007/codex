@@ -150,6 +150,10 @@ impl InputQueue {
         self.activity_tx.send_replace(InputQueueActivity::Mailbox);
     }
 
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "both queues must receive controller mail atomically in mailbox then result lock order"
+    )]
     async fn import_controller_mailbox(&self) {
         let Some((thread_id, control, _)) = &self.controller else {
             return;
@@ -163,7 +167,7 @@ impl InputQueue {
                     start_options,
                     async_result_origin,
                 } => pending.push_back(PendingMailboxCommunication {
-                    communication,
+                    communication: *communication,
                     start_options,
                     async_result_origin,
                     _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
@@ -346,6 +350,10 @@ impl InputQueue {
         pending.drain(..).collect()
     }
 
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "eviction transfers both queues atomically in the same lock order as import"
+    )]
     pub(crate) async fn drain_mailbox_deliveries_for_unload(&self) -> Vec<AgentMailboxDelivery> {
         self.import_controller_mailbox().await;
         let mut pending = self.mailbox_pending_mails.lock().await;
@@ -757,7 +765,7 @@ mod tests {
         else {
             panic!("expected communication");
         };
-        assert_eq!(delivered, communication);
+        assert_eq!(*delivered, communication);
         assert_eq!(
             (start_options.parent_turn_id, start_options.root_turn_id),
             (options.parent_turn_id, options.root_turn_id),

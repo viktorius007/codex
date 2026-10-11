@@ -536,6 +536,10 @@ impl Session {
     ///
     /// The turn is created only when the session is idle and mailbox mail either requests a turn
     /// or can wake an outstanding durable sleep.
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "reservation rollback must check task ownership and reclaim its pending input atomically"
+    )]
     pub(crate) fn maybe_start_turn_for_pending_work_with_sub_id(
         self: &Arc<Self>,
         sub_id: String,
