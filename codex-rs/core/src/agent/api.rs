@@ -165,7 +165,7 @@ pub struct AgentMailboxDelivery(pub(crate) AgentMailboxPayload);
 
 pub(crate) enum AgentMailboxPayload {
     Communication {
-        communication: codex_protocol::protocol::InterAgentCommunication,
+        communication: Box<codex_protocol::protocol::InterAgentCommunication>,
         start_options: TurnStartOptions,
         async_result_origin: Option<Arc<ExtensionData>>,
     },
@@ -183,7 +183,7 @@ impl AgentMailboxDelivery {
         async_result_origin: Option<Arc<ExtensionData>>,
     ) -> Self {
         Self(AgentMailboxPayload::Communication {
-            communication,
+            communication: Box::new(communication),
             start_options,
             async_result_origin,
         })
