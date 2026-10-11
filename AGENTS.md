@@ -621,3 +621,9 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable 0.162.1 original provenance](research/stable-0.162.1-evidence/preflight.json) — Records the original source, selected stable commit and rollback binary hashes.
 - [Stable 0.162.1 patch inventory](research/stable-0.162.1-evidence/preservation.json) — Lists retained behaviors and upstream interface hazards.
 - [Stable 0.162.1 fixture obligations](research/stable-0.162.1-evidence/fixture-refresh-obligations.txt) — Lists conflicting generated outputs requiring review.
+
+- [Stable 0.162.1 validation archive](research/stable-0.162.1-evidence/validation-evidence.tar.gz) — Preserves complete test/build evidence, causal failures, reviewed fixtures and worker patches.
+- [Stable 0.162.1 evidence manifest](research/stable-0.162.1-evidence/manifest.json) — Records checksums for the preserved archive and individual evidence files.
+- [Stable local.11 installed provenance](/Users/viktor/.local/lib/codex-local/0.162.1+local.11-e9fb3d6e2e28/provenance.json) — Records installed binaries, validation, rollback, publication and daemon activation.
+- [Stable local.11 daemon activation](/Users/viktor/.local/lib/codex-local/0.162.1+local.11-e9fb3d6e2e28/daemon-update.log) — Preserves the final managed-daemon package switch output.
+- [Stable local.11 daemon versions](/Users/viktor/.local/lib/codex-local/0.162.1+local.11-e9fb3d6e2e28/daemon-version.json) — Records CLI and managed-daemon versions after activation.
