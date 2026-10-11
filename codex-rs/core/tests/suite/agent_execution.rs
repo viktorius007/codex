@@ -231,6 +231,33 @@ async fn v2_nested_spawn_checks_shared_active_execution_capacity() -> Result<()>
 #[tokio::test]
 #[tracing_test::traced_test]
 async fn child_turn_start_preserves_root_attribution() -> Result<()> {
+    struct RetainAsyncResults;
+
+    impl codex_extension_api::AsyncResultAdmissionContributor for RetainAsyncResults {
+        fn decide<'a>(
+            &'a self,
+            input: codex_extension_api::AsyncResultAdmissionInput<'a>,
+        ) -> codex_extension_api::ExtensionFuture<
+            'a,
+            codex_extension_api::AsyncResultAdmissionDecision,
+        > {
+            Box::pin(async move {
+                codex_extension_api::AsyncResultAdmissionDecision {
+                    denied_ids: input
+                        .candidates
+                        .iter()
+                        .map(|candidate| candidate.id)
+                        .collect(),
+                    permit: None,
+                }
+            })
+        }
+    }
+
+    let mut extensions = ExtensionRegistryBuilder::new();
+    extensions.async_result_admission_contributor(Arc::new(RetainAsyncResults));
+    extensions.thread_lifecycle_contributor(Arc::new(ThreadIdle));
+
     let server = start_mock_server().await;
     mount_root_collaboration_call(
         &server,
@@ -244,6 +271,7 @@ async fn child_turn_start_preserves_root_attribution() -> Result<()> {
     .await;
     let worker = mount_completed_worker(&server, FIRST_TASK, "first-call").await;
     let test = test_codex()
+        .with_extensions(Arc::new(extensions.build()))
         .with_model("gpt-5.6-sol")
         .with_config(|config| {
             config.otel.log_agent_responses = true;
@@ -265,6 +293,7 @@ async fn child_turn_start_preserves_root_attribution() -> Result<()> {
         let thread = test.thread_manager.get_thread(thread_id).await?;
         if thread_id != test.session_configured.thread_id {
             wait_for_event(&thread, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+            ThreadIdle::wait(&thread).await;
         }
         thread.flush_rollout().await?;
         let history = test

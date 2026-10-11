@@ -102,11 +102,11 @@ async fn initial_context_preserves_world_state_items_and_snapshot() {
         strip_metadata_from_items(&merge_world_state_updates(context)),
         strip_metadata_from_items(&[
             ContextualUserFragment::into(DeveloperInstructions::new("before item")),
-            ContextualUserFragment::into(DeveloperInstructions::new("separate before item")),
             ContextualUserFragment::into(UserInstructions {
                 directory: None,
                 text: "user before item".to_string(),
             }),
+            ContextualUserFragment::into(DeveloperInstructions::new("separate before item")),
             additional_tools("middle"),
             additional_tools("adjacent"),
             ContextualUserFragment::into(DeveloperInstructions::new("after item")),
