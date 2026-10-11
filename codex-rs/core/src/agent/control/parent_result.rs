@@ -112,8 +112,8 @@ impl LocalAgentControl {
         for descendant_id in missing.into_iter().rev() {
             restoration_pins.push(direct_pin.take());
             let config = parent.session.get_config().await.as_ref().clone();
-            self.ensure_v2_agent_loaded(config, descendant_id, Some(parent))
-                .await?;
+            // Keep session restoration out of the turn-start future's inline layout.
+            Box::pin(self.ensure_v2_agent_loaded(config, descendant_id, Some(parent))).await?;
             parent = state.get_thread(descendant_id).await?;
             direct_pin = self.runtime.pin_v2_residency(&state, &parent).await?;
         }
