@@ -452,6 +452,7 @@ impl TurnContext {
             originator: self.originator.clone(),
             initial_environments: self.initial_environments.clone(),
             available_models,
+            available_models_lock_contention_fallback: false,
             unified_exec_shell_mode,
             current_date: self.current_date.clone(),
             timezone: self.timezone.clone(),

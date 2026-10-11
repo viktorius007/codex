@@ -551,24 +551,11 @@ impl Session {
                 Some(admission)
             };
 
-            let (turn_state, previous_options) = {
-                let mut active_turn = self.active_turn.lock().await;
-                if active_turn.is_some() || self.is_interrupted() {
-                    return;
-                }
-                let active_turn = active_turn.get_or_insert_with(ActiveTurn::default);
-                let previous_options = if self.input_queue.has_trigger_turn_mailbox_items().await {
-                    Default::default()
-                } else {
-                    self.state
-                        .lock()
-                        .await
-                        .turn_attribution
-                        .as_ref()
-                        .map(codex_history::TurnAttribution::start_options)
-                        .unwrap_or_default()
-                };
-                (Arc::clone(&active_turn.turn_state), previous_options)
+            let Some((turn_state, previous_options)) = self
+                .reserve_pending_work_turn(&admitted_async_result_ids)
+                .await
+            else {
+                return;
             };
 
             self.services
