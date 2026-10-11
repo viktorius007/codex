@@ -17,13 +17,20 @@ WINDOW_START = "2026-09-18T14:00:00Z"
 WINDOW_END = "2026-09-19T14:00:00Z"
 
 USER_ROLLOUTS = [
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T11-53-16-01a0b75e-2a0d-7ca0-bddb-f59049ce1530.jsonl",
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T12-12-20-01a0b76f-9e55-7060-a4a5-74c923840d81.jsonl",
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T12-26-27-01a0b77c-8c00-76c1-be80-26d140fc209c.jsonl",
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T12-37-29-01a0b786-a3f3-7120-b40d-33196c23e7ea.jsonl",
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T21-37-26-01a0b974-fc5f-7c01-8999-b2dd73c0a686.jsonl",
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T22-56-20-01a0b9bd-35e4-7f32-a73e-5acbe0a1f658.jsonl",
-    CODEX_DATA / "sessions/2026/09/19/rollout-2026-09-19T22-59-12-01a0b9bf-d50c-7bd2-a600-0960d73b43ec.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T11-53-16-01a0b75e-2a0d-7ca0-bddb-f59049ce1530.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T12-12-20-01a0b76f-9e55-7060-a4a5-74c923840d81.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T12-26-27-01a0b77c-8c00-76c1-be80-26d140fc209c.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T12-37-29-01a0b786-a3f3-7120-b40d-33196c23e7ea.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T21-37-26-01a0b974-fc5f-7c01-8999-b2dd73c0a686.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T22-56-20-01a0b9bd-35e4-7f32-a73e-5acbe0a1f658.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/19/rollout-2026-09-19T22-59-12-01a0b9bf-d50c-7bd2-a600-0960d73b43ec.jsonl",
 ]
 
 POLLING_ROLLOUTS = [USER_ROLLOUTS[2], USER_ROLLOUTS[3], USER_ROLLOUTS[4]]
@@ -34,16 +41,31 @@ AUDIT_ROLLOUT = (
 )
 
 LIVE_PROBE_ROLLOUTS = [
-    CODEX_DATA / "sessions/2026/09/20/rollout-2026-09-20T08-38-44-01a0bbd2-6b78-70b2-bd6a-bb57be40955b.jsonl",
-    CODEX_DATA / "sessions/2026/09/20/rollout-2026-09-20T08-38-48-01a0bbd2-7c09-7161-bc1b-533139333f24.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/20/rollout-2026-09-20T08-38-44-01a0bbd2-6b78-70b2-bd6a-bb57be40955b.jsonl",
+    CODEX_DATA
+    / "sessions/2026/09/20/rollout-2026-09-20T08-38-48-01a0bbd2-7c09-7161-bc1b-533139333f24.jsonl",
 ]
 
 EXPECTED = {
-    "empty_write_stdin": {"records": 127, "total_tokens": 16_368_566, "fresh_tokens": 378_550},
+    "empty_write_stdin": {
+        "records": 127,
+        "total_tokens": 16_368_566,
+        "fresh_tokens": 378_550,
+    },
     "code_wait": {"records": 43, "total_tokens": 3_803_025, "fresh_tokens": 186_001},
-    "wait_agent_timed_out": {"records": 148, "total_tokens": 18_471_910, "fresh_tokens": 217_702},
+    "wait_agent_timed_out": {
+        "records": 148,
+        "total_tokens": 18_471_910,
+        "fresh_tokens": 217_702,
+    },
     "wait_agent_all": {"records": 216},
-    "wasted_total": {"records": 318, "total_tokens": 38_643_501, "fresh_tokens": 782_253, "turns": 74},
+    "wasted_total": {
+        "records": 318,
+        "total_tokens": 38_643_501,
+        "fresh_tokens": 782_253,
+        "turns": 74,
+    },
     "exec_completion_notifications": 76,
 }
 
@@ -67,7 +89,9 @@ def json_lines(path: Path):
             try:
                 yield line_number, json.loads(line)
             except json.JSONDecodeError as error:
-                raise RuntimeError(f"invalid JSON at {path}:{line_number}: {error}") from error
+                raise RuntimeError(
+                    f"invalid JSON at {path}:{line_number}: {error}"
+                ) from error
 
 
 def text_value(value) -> str:
@@ -90,11 +114,13 @@ def message_content_text(content) -> str:
 def classify_output(kind: str, output) -> str:
     text = text_value(output)
     if kind == "wait_agent":
-        if re.search(r'timed_out[^a-z]*true', text):
+        if re.search(r"timed_out[^a-z]*true", text):
             return "timed_out"
         if "interrupted" in text.lower():
             return "interrupted"
-        if re.search(r"completed|completed_tasks|agent_status|wait completed", text, re.I):
+        if re.search(
+            r"completed|completed_tasks|agent_status|wait completed", text, re.I
+        ):
             return "activity"
         return "other"
     if "Script running with cell ID" in text:
@@ -169,13 +195,17 @@ def extract_polling_records(path: Path):
 
             if payload_type == "custom_tool_call" and payload.get("name") == "exec":
                 tool_input = payload.get("input", "")
-                if "tools.write_stdin" in tool_input and EMPTY_WRITE_RE.search(tool_input):
+                if "tools.write_stdin" in tool_input and EMPTY_WRITE_RE.search(
+                    tool_input
+                ):
                     kind = "empty_write_stdin"
                     arguments = {"classification": "tools.write_stdin with empty chars"}
             elif payload_type == "function_call" and payload.get("name") == "wait":
                 kind = "code_wait"
                 arguments = payload.get("arguments")
-            elif payload_type == "function_call" and payload.get("name") == "wait_agent":
+            elif (
+                payload_type == "function_call" and payload.get("name") == "wait_agent"
+            ):
                 kind = "wait_agent"
                 arguments = payload.get("arguments")
 
@@ -193,7 +223,10 @@ def extract_polling_records(path: Path):
                 }
                 continue
 
-            if payload_type in {"custom_tool_call_output", "function_call_output"} and call_id in calls:
+            if (
+                payload_type in {"custom_tool_call_output", "function_call_output"}
+                and call_id in calls
+            ):
                 call = calls.pop(call_id)
                 call["output_line"] = line_number
                 call["output_timestamp"] = timestamp
@@ -215,14 +248,18 @@ def extract_polling_records(path: Path):
                 record["input_tokens"] = usage.get("input_tokens", 0)
                 record["cached_input_tokens"] = usage.get("cached_input_tokens", 0)
                 record["output_tokens"] = usage.get("output_tokens", 0)
-                record["reasoning_output_tokens"] = usage.get("reasoning_output_tokens", 0)
+                record["reasoning_output_tokens"] = usage.get(
+                    "reasoning_output_tokens", 0
+                )
                 record["total_tokens"] = usage.get("total_tokens", 0)
                 record["fresh_tokens"] = (
                     record["input_tokens"]
                     - record["cached_input_tokens"]
                     + record["output_tokens"]
                 )
-                record["usage_attribution_rule"] = "first token_count.last_token_usage after matching tool output"
+                record["usage_attribution_rule"] = (
+                    "first token_count.last_token_usage after matching tool output"
+                )
                 records.append(record)
             ready = []
 
@@ -239,7 +276,9 @@ def summarize(records):
         "code_wait": [r for r in records if r["kind"] == "code_wait"],
         "wait_agent_all": [r for r in records if r["kind"] == "wait_agent"],
         "wait_agent_timed_out": [
-            r for r in records if r["kind"] == "wait_agent" and r["outcome"] == "timed_out"
+            r
+            for r in records
+            if r["kind"] == "wait_agent" and r["outcome"] == "timed_out"
         ],
     }
     groups["wasted_total"] = (
@@ -400,7 +439,9 @@ def source_snapshot():
         "4d7e3e90d9781514f9b3b99c95169a2386868ad9",
         "ffde91b0c52241cf0b746fe3524c52b82ddd099a",
     ]:
-        fields = git("show", "-s", "--format=%H%x00%P%x00%aI%x00%cI%x00%s", commit).split("\x00")
+        fields = git(
+            "show", "-s", "--format=%H%x00%P%x00%aI%x00%cI%x00%s", commit
+        ).split("\x00")
         commits.append(
             {
                 "commit": fields[0],
@@ -451,7 +492,9 @@ def relevant_config_snapshot():
 
 
 def write_json(path: Path, value):
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def write_jsonl(path: Path, records):
@@ -468,16 +511,23 @@ def main():
     polling_records = []
     for path in POLLING_ROLLOUTS:
         polling_records.extend(extract_polling_records(path))
-    polling_records.sort(key=lambda record: (record["call_timestamp"], record["call_id"]))
+    polling_records.sort(
+        key=lambda record: (record["call_timestamp"], record["call_id"])
+    )
     polling_summary = summarize(polling_records)
     completion_records = extract_completion_notifications(POLLING_ROLLOUTS)
 
     source_manifest = {
         "captured_at": datetime.now(timezone.utc).isoformat(),
-        "window": {"start_utc_inclusive": WINDOW_START, "end_utc_exclusive": WINDOW_END},
+        "window": {
+            "start_utc_inclusive": WINDOW_START,
+            "end_utc_exclusive": WINDOW_END,
+        },
         "user_rollouts": [record_session_meta(path) for path in USER_ROLLOUTS],
         "polling_rollouts": [str(path) for path in POLLING_ROLLOUTS],
-        "live_probe_rollouts": [record_session_meta(path) for path in LIVE_PROBE_ROLLOUTS],
+        "live_probe_rollouts": [
+            record_session_meta(path) for path in LIVE_PROBE_ROLLOUTS
+        ],
         "audit_rollout": str(AUDIT_ROLLOUT),
     }
 
@@ -485,7 +535,10 @@ def main():
     write_json(OUT / "polling-summary.json", polling_summary)
     write_jsonl(OUT / "exec-completion-notifications.jsonl", completion_records)
     write_json(OUT / "source-manifest.json", source_manifest)
-    write_jsonl(OUT / "original-audit-command-log.jsonl", extract_original_audit_log(AUDIT_ROLLOUT))
+    write_jsonl(
+        OUT / "original-audit-command-log.jsonl",
+        extract_original_audit_log(AUDIT_ROLLOUT),
+    )
     write_json(OUT / "source-snapshot.json", source_snapshot())
     write_json(OUT / "config-snapshot.json", relevant_config_snapshot())
 
@@ -502,7 +555,11 @@ def main():
         for name in generated:
             handle.write(f"{sha256(OUT / name)}  {name}\n")
 
-    print(json.dumps({"status": "ok", "summary": polling_summary}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {"status": "ok", "summary": polling_summary}, indent=2, sort_keys=True
+        )
+    )
 
 
 if __name__ == "__main__":

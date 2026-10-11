@@ -56,8 +56,12 @@ def actor(value):
 
 def normalize_issue(number: int):
     issue = gh(f"repos/{REPO_NAME}/issues/{number}")
-    comments = gh(f"repos/{REPO_NAME}/issues/{number}/comments?per_page=100", paginate=True)
-    timeline = gh(f"repos/{REPO_NAME}/issues/{number}/timeline?per_page=100", paginate=True)
+    comments = gh(
+        f"repos/{REPO_NAME}/issues/{number}/comments?per_page=100", paginate=True
+    )
+    timeline = gh(
+        f"repos/{REPO_NAME}/issues/{number}/timeline?per_page=100", paginate=True
+    )
     return {
         "number": number,
         "url": issue.get("html_url"),
@@ -89,7 +93,9 @@ def normalize_issue(number: int):
                 "commit_id": event.get("commit_id"),
                 "source_issue": (
                     {
-                        "number": event.get("source", {}).get("issue", {}).get("number"),
+                        "number": event.get("source", {})
+                        .get("issue", {})
+                        .get("number"),
                         "title": event.get("source", {}).get("issue", {}).get("title"),
                         "url": event.get("source", {}).get("issue", {}).get("html_url"),
                         "is_pull_request": bool(
@@ -101,17 +107,26 @@ def normalize_issue(number: int):
                 ),
             }
             for event in timeline
-            if event.get("event") in {"cross-referenced", "connected", "closed", "reopened"}
+            if event.get("event")
+            in {"cross-referenced", "connected", "closed", "reopened"}
         ],
     }
 
 
 def normalize_pull(number: int):
     pull = gh(f"repos/{REPO_NAME}/pulls/{number}")
-    issue_comments = gh(f"repos/{REPO_NAME}/issues/{number}/comments?per_page=100", paginate=True)
-    review_comments = gh(f"repos/{REPO_NAME}/pulls/{number}/comments?per_page=100", paginate=True)
-    reviews = gh(f"repos/{REPO_NAME}/pulls/{number}/reviews?per_page=100", paginate=True)
-    commits = gh(f"repos/{REPO_NAME}/pulls/{number}/commits?per_page=100", paginate=True)
+    issue_comments = gh(
+        f"repos/{REPO_NAME}/issues/{number}/comments?per_page=100", paginate=True
+    )
+    review_comments = gh(
+        f"repos/{REPO_NAME}/pulls/{number}/comments?per_page=100", paginate=True
+    )
+    reviews = gh(
+        f"repos/{REPO_NAME}/pulls/{number}/reviews?per_page=100", paginate=True
+    )
+    commits = gh(
+        f"repos/{REPO_NAME}/pulls/{number}/commits?per_page=100", paginate=True
+    )
     return {
         "number": number,
         "url": pull.get("html_url"),
@@ -135,7 +150,9 @@ def normalize_pull(number: int):
             {
                 "sha": commit.get("sha"),
                 "authored_at": commit.get("commit", {}).get("author", {}).get("date"),
-                "committed_at": commit.get("commit", {}).get("committer", {}).get("date"),
+                "committed_at": commit.get("commit", {})
+                .get("committer", {})
+                .get("date"),
                 "message": commit.get("commit", {}).get("message"),
             }
             for commit in commits
@@ -188,8 +205,12 @@ def main():
         "issues": [normalize_issue(number) for number in ISSUES],
         "pull_requests": [normalize_pull(number) for number in PULLS],
     }
-    OUT.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"status": "ok", "issues": len(ISSUES), "pull_requests": len(PULLS)}))
+    OUT.write_text(
+        json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        json.dumps({"status": "ok", "issues": len(ISSUES), "pull_requests": len(PULLS)})
+    )
 
 
 if __name__ == "__main__":
