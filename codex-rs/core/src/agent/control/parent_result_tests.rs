@@ -5,10 +5,9 @@ use crate::agent::types::AgentMetadata;
 use crate::codex_thread::CodexThread;
 use crate::config::Config;
 use crate::config::test_config;
+use crate::rollout::RolloutRecorder;
 use crate::session::SessionSettingsUpdate;
 use codex_features::Feature;
-use codex_history::InitialHistory;
-use codex_history::ResumedHistory;
 use codex_login::CodexAuth;
 use codex_protocol::ThreadId;
 use codex_protocol::protocol::EnvironmentConfigState;
@@ -202,12 +201,15 @@ async fn stopped_child_replacement_releases_old_parent_pin() {
     let fixture = Fixture::new().await;
     let guard = fixture.pin().await;
     fixture.child.ensure_rollout_materialized().await;
-    let history = fixture
+    let rollout_path = fixture.child.rollout_path().expect("child rollout path");
+    fixture
         .child
-        .load_history(/*include_archived*/ true)
+        .flush_rollout()
         .await
-        .expect("child history");
-    let rollout_path = fixture.child.rollout_path();
+        .expect("flush child rollout");
+    let history = RolloutRecorder::get_rollout_history(&rollout_path)
+        .await
+        .expect("child rollout history");
     fixture
         .child
         .shutdown_and_wait()
@@ -222,12 +224,7 @@ async fn stopped_child_replacement_releases_old_parent_pin() {
     let replacement = fixture
         .manager
         .start_thread(StartThreadOptions {
-            initial_history: InitialHistory::Resumed(ResumedHistory {
-                history_revision: history.revision,
-                conversation_id: fixture.child.session.thread_id,
-                history: Arc::new(history.items),
-                rollout_path,
-            }),
+            initial_history: history,
             session_source: Some(fixture.child.session_source.clone()),
             ..StartThreadOptions::new(fixture.config.clone())
         })
