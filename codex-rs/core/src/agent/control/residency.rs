@@ -205,18 +205,15 @@ impl V2Residency {
                 let mail = candidate_thread
                     .session
                     .input_queue
-                    .drain_mailbox()
-                    .await
-                    .into_iter()
-                    .map(|mail| mail.communication)
-                    .collect();
+                    .drain_mailbox_deliveries_for_unload()
+                    .await;
                 // A concurrent tree shutdown deliberately discards its unread mail.
                 let _ = candidate_thread
                     .session
                     .services
                     .local_agent_runtime
                     .mailboxes
-                    .enqueue(candidate_thread_id, /*id*/ None, mail);
+                    .enqueue_deliveries(candidate_thread_id, /*id*/ None, mail);
                 let environments = candidate_thread.environment_selections().await;
                 let mut threads = manager.threads.write().await;
                 if threads
