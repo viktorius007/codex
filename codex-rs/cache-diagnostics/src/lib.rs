@@ -65,7 +65,7 @@ impl Collector {
     ) -> Arc<Attempt> {
         let attempt_id = key::random_id().ok();
         let request = attempt_id.as_ref().and_then(|attempt_id| {
-            LogicalManifest::new(&self.fingerprinter, logical)
+            LogicalManifest::new(&self.fingerprinter, logical, context.instructions)
                 .ok()
                 .map(|logical| RequestRecord {
                     schema_version: SCHEMA_VERSION,
@@ -99,6 +99,8 @@ impl Collector {
 /// Raw request context accepted only long enough to create keyed fingerprints.
 #[derive(Clone, Copy)]
 pub struct AttemptContext<'a> {
+    /// Exact base instruction text, fingerprinted immediately and never retained as plaintext.
+    pub instructions: &'a str,
     /// The bounded category of logical request.
     pub request_kind: RequestKind,
     /// Zero-based retry number within the logical request.

@@ -1947,6 +1947,7 @@ impl ModelClientSession {
                     let attempt = diagnostics.start_responses_attempt(
                         responses_metadata,
                         &request,
+                        &prompt.base_instructions.text,
                         diagnostic_attempts.next(),
                         /*previous_response_id*/ None,
                     );
@@ -2253,6 +2254,7 @@ impl ModelClientSession {
                         diagnostics.start_warmup_attempt(
                             responses_metadata,
                             &request,
+                            &prompt.base_instructions.text,
                             retry_ordinal,
                             ws_payload.previous_response_id.as_deref(),
                         )
@@ -2260,6 +2262,7 @@ impl ModelClientSession {
                         diagnostics.start_responses_attempt(
                             responses_metadata,
                             &request,
+                            &prompt.base_instructions.text,
                             retry_ordinal,
                             ws_payload.previous_response_id.as_deref(),
                         )
