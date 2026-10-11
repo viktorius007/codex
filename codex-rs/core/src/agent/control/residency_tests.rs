@@ -168,12 +168,27 @@ async fn spawn_v2_subagent(
     parent_thread_id: ThreadId,
     label: &str,
 ) -> crate::thread_manager::NewThread {
+    spawn_v2_subagent_from_source(
+        control,
+        state,
+        config,
+        parent_thread_id,
+        SessionSource::SubAgent(SubAgentSource::Other(label.to_string())),
+    )
+    .await
+}
+
+async fn spawn_v2_subagent_from_source(
+    control: &LocalAgentControl,
+    state: &Arc<ThreadManagerState>,
+    config: Config,
+    parent_thread_id: ThreadId,
+    source: SessionSource,
+) -> crate::thread_manager::NewThread {
     state
         .spawn_child_thread(
             crate::thread_manager::StartThreadOptions {
-                session_source: Some(SessionSource::SubAgent(SubAgentSource::Other(
-                    label.to_string(),
-                ))),
+                session_source: Some(source),
                 thread_source: Some(ThreadSource::Subagent),
                 ..crate::thread_manager::StartThreadOptions::new(config)
             },
@@ -229,4 +244,91 @@ async fn mark_thread_interrupted(thread: &CodexThread) {
 async fn clear_active_turn(thread: &CodexThread) {
     // The fixture has no task runner to clear the turn after the terminal event.
     *thread.session.active_turn.lock().await = None;
+}
+
+struct WaitingChildResultTask(std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>);
+
+impl crate::tasks::SessionTask for WaitingChildResultTask {
+    fn kind(&self) -> crate::state::TaskKind {
+        crate::state::TaskKind::Regular
+    }
+    fn span_name(&self) -> &'static str {
+        "parent_result_residency_test"
+    }
+    async fn run(
+        self: Arc<Self>,
+        _session: Arc<crate::session::session::Session>,
+        _context: Arc<crate::session::turn_context::TurnContext>,
+        _input: Vec<crate::session::TurnInput>,
+        cancellation_token: tokio_util::sync::CancellationToken,
+    ) -> crate::tasks::SessionTaskResult {
+        self.0.lock().unwrap().take().unwrap().send(()).unwrap();
+        cancellation_token.cancelled().await;
+        Ok(None)
+    }
+}
+
+#[tokio::test]
+async fn running_child_turn_pins_parent_until_cancelled() {
+    let mut config = test_config().await;
+    config
+        .features
+        .enable(Feature::MultiAgentV2)
+        .expect("enable multi-agent v2");
+    let home = tempfile::tempdir().expect("temporary home");
+    config.codex_home = home.path().to_path_buf().try_into().unwrap();
+    config.cwd = home.path().to_path_buf().try_into().unwrap();
+    let manager = ThreadManager::with_models_provider_and_home_for_tests(
+        CodexAuth::from_api_key("dummy"),
+        config.model_provider.clone(),
+        config.codex_home.to_path_buf(),
+        Arc::new(codex_exec_server::EnvironmentManager::default_for_tests()),
+    );
+    let root = manager
+        .start_thread(StartThreadOptions::new(config.clone()))
+        .await
+        .expect("start root");
+    let control = manager.agent_control();
+    let state = control.runtime.upgrade().expect("live manager");
+    let parent =
+        spawn_v2_subagent(&control, &state, config.clone(), root.thread_id, "parent").await;
+    let source = crate::tools::handlers::multi_agents_common::thread_spawn_source(
+        parent.thread_id,
+        &parent.thread.session_source,
+        2,
+        None,
+        Some("worker".to_string()),
+    )
+    .expect("child source");
+    let child =
+        spawn_v2_subagent_from_source(&control, &state, config, parent.thread_id, source).await;
+    let context = child.thread.session.new_default_turn().await;
+    let (started, running) = tokio::sync::oneshot::channel();
+    child
+        .thread
+        .session
+        .start_task(
+            context,
+            Vec::new(),
+            WaitingChildResultTask(std::sync::Mutex::new(Some(started))),
+        )
+        .await;
+    running.await.expect("child task admitted");
+    assert!(
+        Arc::clone(&parent.thread.residency_gate)
+            .try_write_owned()
+            .is_err(),
+        "an admitted child turn must prevent its parent's eviction"
+    );
+    child
+        .thread
+        .session
+        .abort_all_tasks(TurnAbortReason::Replaced)
+        .await;
+    assert!(
+        Arc::clone(&parent.thread.residency_gate)
+            .try_write_owned()
+            .is_ok(),
+        "cancelling child work releases its parent's residency pin"
+    );
 }
