@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios_indirect_namespace_prefixes.rs
+assertion_line: 223
 expression: "context_snapshot::format_request_history_snapshot(\"Catalog namespace and raw MCP server prefixes annotate embedded docs and ALL_TOOLS; a model switch clears them without changing nested dispatch.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
 ---
 Scenario: Catalog namespace and raw MCP server prefixes annotate embedded docs and ALL_TOOLS; a model switch clears them without changing nested dispatch.
@@ -15,9 +16,9 @@ Settings:
   stream: true
   text: {"verbosity":"low"}
   tool_choice: "auto"
-  tools (4; hash=7707adf4d5cde816):
-    - custom/exec: Run JavaScript code to orchestrate/compose tool calls - Evaluates the provided JavaScript code in...; hash=66e0c24dd8b9010d
-    - function/wait: Waits on a yielded `exec` cell and returns new output or completion. - Use `wait` only after `exe...; args=[cell_id, max_tokens, terminate, yield_time_ms]; hash=6692d8f6c55be489
+  tools (4; hash=d40e032fcae808fe):
+    - custom/exec: Run JavaScript code to orchestrate/compose tool calls - Evaluates the provided JavaScript code in...; hash=2c4788cc06530f36
+    - function/wait: Waits on a yielded `exec` cell and returns new output or completion. - Use `wait` only after `exe...; args=[cell_id, max_tokens, terminate, yield_time_ms]; hash=9da8ac6734fa1dee
     - function/request_user_input: Request user input for one to three short questions and wait for the response. This tool is only ...; args=[questions]; hash=64a729b25c424fc6
     - web_search; hash=e214d4db1bc49e89
 -- request 1 (turn) --
@@ -25,12 +26,12 @@ Settings:
     <MODEL_INSTRUCTIONS>
 01:message/developer:
     <PERMISSIONS_INSTRUCTIONS>
-02:message/developer:
-    Coordinate sub-agents.
-03:message/developer:
-    <MULTI_AGENT_MODE>
-04:message/user:
+02:message/user:
     <ENVIRONMENT_CONTEXT>
+03:message/developer:
+    Coordinate sub-agents.
+04:message/developer:
+    <MULTI_AGENT_MODE>
 05:message/user:
     Find echo, call it, and list the agents.
 -- request 2 (turn) --
@@ -49,19 +50,19 @@ Settings:
 ## Window 2 (after request 2)
 Settings: relative to window 1
   model: "prefixes-cleared"
-  tools (4; hash=d878b195101dccae):
-    ~ custom/exec: Run JavaScript code to orchestrate/compose tool calls - Evaluates the provided JavaScript code in...; hash=881b443f5068d3fb
+  tools (4; hash=0023855743d10104):
+    ~ custom/exec: Run JavaScript code to orchestrate/compose tool calls - Evaluates the provided JavaScript code in...; hash=ebfb7c912d0cdfd2
 -- request 3 (turn) --
 00:message/developer:
     <MODEL_INSTRUCTIONS>
 01:message/developer:
     <PERMISSIONS_INSTRUCTIONS>
-02:message/developer:
-    Coordinate sub-agents.
-03:message/developer:
-    <MULTI_AGENT_MODE>
-04:message/user:
+02:message/user:
     <ENVIRONMENT_CONTEXT>
+03:message/developer:
+    Coordinate sub-agents.
+04:message/developer:
+    <MULTI_AGENT_MODE>
 05:message/user:
     Find echo, call it, and list the agents.
 06:custom_tool_call/exec:

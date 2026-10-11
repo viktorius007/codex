@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios_shared_instructions.rs
+assertion_line: 153
 expression: "context_snapshot::format_request_history_snapshot(\"A host replaces the provider after the parent restarts, then updates and clears instructions for surviving children and grandchildren.\",\n&request_history, &ContextSnapshotOptions::default(),)"
 ---
 Scenario: A host replaces the provider after the parent restarts, then updates and clears instructions for surviving children and grandchildren.
@@ -15,7 +16,7 @@ Scenario: A host replaces the provider after the parent restarts, then updates a
 
     You are an epistemically curious collaborator. You explore the user’s ideas with care, ask good question...m casual moments that make serious work easier to do. [hash=131b64bb994b0d68]
 
-    <OMITTED 132 LINES; ~4881 TOKENS; hash=929bd18f6c969eb9>
+    <OMITTED 132 LINES; ~4908 TOKENS; hash=5bb09a46edca260e>
     - Never talk about goblins, gremlins, raccoons, trolls, ogres, pigeons, or other animals or creatures un...utely and unambiguously relevant to the user's query. [hash=c638556ac82c203c]
     - You provide user updates frequently, every 30s.
     - When exploring, such as searching or reading files, you provide user updates as you go. You explain wh...in particular you do not start each one the same way. [hash=ad300cdda4074574]
@@ -95,7 +96,7 @@ Scenario: A host replaces the provider after the parent restarts, then updates a
 
     You are an epistemically curious collaborator. You explore the user’s ideas with care, ask good question...m casual moments that make serious work easier to do. [hash=131b64bb994b0d68]
 
-    <OMITTED 132 LINES; ~4881 TOKENS; hash=929bd18f6c969eb9>
+    <OMITTED 132 LINES; ~4908 TOKENS; hash=5bb09a46edca260e>
     - Never talk about goblins, gremlins, raccoons, trolls, ogres, pigeons, or other animals or creatures un...utely and unambiguously relevant to the user's query. [hash=c638556ac82c203c]
     - You provide user updates frequently, every 30s.
     - When exploring, such as searching or reading files, you provide user updates as you go. You explain wh...in particular you do not start each one the same way. [hash=ad300cdda4074574]
