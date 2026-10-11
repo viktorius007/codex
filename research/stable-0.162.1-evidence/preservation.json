@@ -1,0 +1,32 @@
+{
+  "oldTip": "78e6a94a1d1a815d2a659f302fedd9c91dfe6c90",
+  "oldBase": "rust-v0.160.1",
+  "target": "rust-v0.162.1",
+  "stage": "read-only source comparison; runtime verification pending",
+  "upstreamEquivalentProductionGroups": [],
+  "retain": [
+    "accepted usage at exact history boundary and cold resume",
+    "active compaction tool catalog and history projection",
+    "fresh child startup prefix",
+    "thread-frozen model and collaboration specifications",
+    "private prepared-request diagnostics",
+    "idle MCP startup recovery",
+    "sampled MCP execution authority",
+    "startup catalog ordering",
+    "stable plugin skill locators, symlink identity, enabled-only reads",
+    "bounded background exec wake and consumed-result disarming",
+    "internal empty Code Mode wait observations",
+    "Goal model-output empty continuation semantics",
+    "bounded asynchronous result admission and origin data",
+    "malformed tool-search call/output pairing",
+    "selected archive rollout crash recovery",
+    "SemVer local build metadata and deterministic package installation"
+  ],
+  "migrationHazards": [
+    "instructions moved from request field to input prefix",
+    "world state compaction/context representations changed",
+    "skills now use PathUri and SkillReadContext",
+    "pending-turn reservation now combines controller mailbox and explicit attribution"
+  ],
+  "upstreamFeatureChange": "Numeric fork_turns now maps to full history; repository already requires fresh context agents."
+}
