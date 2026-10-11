@@ -1095,6 +1095,11 @@ async fn terminal_async_result_is_retained_while_recipient_is_unloaded() {
         .services
         .local_agent_runtime
         .control(recipient.session.session_id());
+    control.runtime.register_session_root(recipient_id, None);
+    control
+        .runtime
+        .ensure_agent_known(recipient_id)
+        .expect("registered recipient");
     recipient
         .shutdown_and_wait()
         .await
