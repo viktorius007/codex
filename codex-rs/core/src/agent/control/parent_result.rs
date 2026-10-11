@@ -138,3 +138,7 @@ impl LocalAgentControl {
         Ok(Some(ParentResultResidencyGuard { _pin: pin }))
     }
 }
+
+#[cfg(test)]
+#[path = "parent_result_tests.rs"]
+mod tests;
