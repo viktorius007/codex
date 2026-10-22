@@ -1,0 +1,105 @@
+     Summary [ 200.056s] 105 tests run: 18 passed, 86 failed, 1 timed out, 8221 skipped
+PASS ( 12/105) codex-core::all suite::mcp_turn_metadata::auto_session_approval_is_scoped_to_tool_link_id
+PASS ( 48/105) codex-core::all suite::scenarios::agent_eviction::idle_eviction_preserves_worker_context_for_followup
+PASS ( 50/105) codex-core::all suite::scenarios::agent_message_board::remote::remote_board_effective_permissions_and_denials::direct
+PASS ( 52/105) codex-core::all suite::scenarios::astra_plugin_policy_limits_visible_skills
+PASS ( 54/105) codex-core::all suite::scenarios::astra_omits_disabled_executor_and_plugin_skills_from_model_context::config_refresh
+PASS ( 55/105) codex-core::all suite::scenarios::async_compaction_reuses_pending_work::pending_adoption_still_over_budget
+PASS ( 56/105) codex-core::all suite::scenarios::astra_async_compaction_keeps_work_added_after_its_snapshot::ready_adoption_still_over_budget
+PASS ( 57/105) codex-core::all suite::scenarios::astra_async_compaction_keeps_work_added_after_its_snapshot::newer_user
+PASS ( 58/105) codex-core::all suite::scenarios::multi_agent_catalog_parameters::host_tools
+PASS ( 59/105) codex-core::all suite::scenarios::incremental_tools::tool_removal_appends_a_standalone_notice_without_rewriting_history::catalog_messages
+PASS ( 60/105) codex-core::all suite::scenarios::partial_answers::partial_answers_survive_forked_child_requests::preserved_paginated
+PASS ( 61/105) codex-core::all suite::scenarios::guardian_sender_context::cross_host_sender_context::paginated
+PASS ( 62/105) codex-core::all suite::scenarios::incremental_tools::incremental_tools_append_changed_catalog_without_rewriting_history::responses_api
+PASS ( 63/105) codex-core::all suite::scenarios::prediction_fork_inherits_parent_context
+PASS ( 66/105) codex-core::all suite::scenarios::indirect_namespace_prefixes::catalog_namespace_prefixes_follow_the_selected_model::code_mode_only
+PASS ( 67/105) codex-core::all suite::scenarios::partial_answers::partial_answers_survive_forked_child_requests::preserved_legacy
+PASS ( 71/105) codex-core::all suite::scenarios::prediction_fork_preserves_context_above_compaction_threshold
+PASS ( 72/105) codex-core::all suite::scenarios::retained_tool_outputs::retained_tool_output_survives_compaction_and_resume
+TRY 2 FAIL (  1/105) codex-core::all suite::approvals::brokered_posix_startup_preserves_application_env::ordinary_application_env
+TRY 2 FAIL (  2/105) codex-core::all suite::approvals::approval_matrix_covers_group::read_only
+TRY 2 FAIL (  3/105) codex-core::all suite::approvals::approving_execpolicy_amendment_persists_policy_and_skips_future_prompts
+TRY 2 FAIL (  4/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_flat_disabled_proxy_expects
+TRY 2 FAIL (  5/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_flat_no_proxy_expects
+TRY 2 FAIL (  6/105) codex-core::all suite::approvals::spawned_subagent_execpolicy_amendment_propagates_to_parent_session
+TRY 2 FAIL (  7/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_flat_policy_without_proxy_expects
+TRY 2 FAIL (  8/105) codex-core::all suite::extension_sandbox::extension_tool_rebinds_granted_permissions_on_each_turn::session_grant
+TRY 2 FAIL (  9/105) codex-core::all suite::approvals::approval_matrix_covers_group::workspace_write
+TRY 2 FAIL ( 10/105) codex-core::all suite::extension_sandbox::extension_tool_respects_restrictions::file_access
+TRY 2 FAIL ( 11/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_flat_profile_transition_expects
+TRY 2 FAIL ( 13/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_enabled_expects
+TRY 2 FAIL ( 14/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_flat_managed_expects
+TRY 2 FAIL ( 15/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_failed_expects
+TRY 2 FAIL ( 16/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_flat_feature_expects
+TRY 2 FAIL ( 17/105) codex-core::all suite::approvals::brokered_shell_snapshot_fallback::_heredoc_expects
+TRY 2 FAIL ( 18/105) codex-core::all suite::guardian_review::guardian_requests_record_only_their_own_tool_calls
+TRY 2 FAIL ( 19/105) codex-core::all suite::hooks::permission_request_hook_denies_network_approval_with_custom_message
+TRY 2 FAIL ( 20/105) codex-core::all suite::network_approval::agent_started_proxy_denies_brokered_provider_alias
+TRY 2 FAIL ( 21/105) codex-core::all suite::approvals::brokered_posix_startup_preserves_application_env::credential_startup
+TRY 2 FAIL ( 22/105) codex-core::all suite::extension_sandbox::extension_tool_uses_granted_turn_permissions_without_host_local_persistence
+TRY 2 FAIL ( 23/105) codex-core::all suite::approvals::network_approval_flow_survives_danger_full_access_session_start
+TRY 2 FAIL ( 24/105) codex-core::all suite::network_approval::allowing_network_policy_amendment_persists_context_and_bypasses_prompt
+TRY 2 FAIL ( 25/105) codex-core::all suite::approvals::denying_network_policy_amendment_persists_policy_and_skips_future_network_prompt
+TRY 2 FAIL ( 26/105) codex-core::all suite::apply_patch_cli::apply_patch_cli_does_not_write_through_symlink_escape_outside_workspace
+TRY 2 FAIL ( 27/105) codex-core::all suite::network_approval::denying_network_policy_amendment_persists_and_blocks_request
+TRY 2 FAIL ( 28/105) codex-core::all suite::extension_sandbox::extension_tool_rebinds_granted_permissions_on_each_turn::turn_grant
+TRY 2 FAIL ( 29/105) codex-core::all suite::network_approval::failed_network_policy_amendment_denies_request_and_does_not_approve_host
+TRY 2 FAIL ( 30/105) codex-core::all suite::network_approval::cancelled_guardian_network_review_fails_closed_without_rewriting_turn_state
+TRY 2 FAIL ( 31/105) codex-core::all suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::latest_rejection
+TRY 2 FAIL ( 32/105) codex-core::all suite::network_approval::disconnected_network_request_explains_failure_to_model::connect
+TRY 2 FAIL ( 33/105) codex-core::all suite::network_approval::disconnected_network_request_explains_failure_to_model::plain_http
+TRY 2 FAIL ( 34/105) codex-core::all suite::network_approval::guardian_receives_exact_trigger_for_single_network_request
+TRY 2 FAIL ( 35/105) codex-core::all suite::network_approval::background_network_approval_uses_current_review_settings_and_original_execution::same_turn
+TRY 2 FAIL ( 36/105) codex-core::all suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::pending_review
+TRY 2 FAIL ( 37/105) codex-core::all suite::network_approval::ambiguous_unattributed_network_request_is_not_assigned_to_active_calls
+TRY 2 FAIL ( 38/105) codex-core::all suite::hooks::permission_request_hook_allows_network_approval_without_prompt
+TRY 2 FAIL ( 39/105) codex-core::all suite::network_approval::background_network_approval_uses_current_review_settings_and_original_execution::later_turn
+TRY 2 FAIL ( 40/105) codex-core::all suite::network_approval::strict_auto_review_routes_network_approval_to_guardian_when_user_reviewer_is_selected
+TRY 2 FAIL ( 41/105) codex-core::all suite::network_approval::user_network_approval_once_session_and_denial_semantics
+TRY 2 FAIL ( 42/105) codex-core::all suite::plugins::plugin_metrics_stdin_works_with_sandbox_approval_disabled::remote
+TRY 2 FAIL ( 43/105) codex-core::all suite::network_approval::guardian_receives_exact_triggers_for_concurrent_network_requests
+TRY 2 FAIL ( 44/105) codex-core::all suite::request_permissions::request_permissions_grants_apply_to_later_exec_command_calls
+TRY 2 FAIL ( 45/105) codex-core::all suite::request_permissions::partial_request_permissions_grants_do_not_preapprove_new_permissions
+TRY 2 FAIL ( 46/105) codex-core::all suite::plugins::persisted_remote_plugin_command_attribution_flows_through_turn_context
+TRY 2 FAIL ( 47/105) codex-core::all suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::accepted_review
+TRY 2 FAIL ( 49/105) codex-core::all suite::request_permissions::relative_additional_permissions_resolve_against_tool_workdir
+TRY 2 FAIL ( 51/105) codex-core::all suite::plugins::plugin_metrics_stdin_works_with_sandbox_approval_disabled::local
+TRY 2 FAIL ( 53/105) codex-core::all suite::network_approval::timed_out_guardian_network_review_uses_timeout_outcome_without_user_fallback
+TRY 2 FAIL ( 64/105) codex-core::all suite::network_approval::guardian_network_approval_preserves_action_and_outcome_routing
+TRY 2 FAIL ( 65/105) codex-core::all suite::request_permissions::workspace_write_with_additional_permissions_can_write_outside_cwd
+TRY 2 FAIL ( 68/105) codex-core::all suite::request_permissions::request_permissions_grants_apply_to_later_exec_command_calls_without_inline_permission_feature
+TRY 2 FAIL ( 69/105) codex-core::all suite::apply_patch_cli::apply_patch_cli_preserves_existing_hard_link_outside_workspace
+TRY 2 FAIL ( 70/105) codex-core::all suite::remote_env::environment_permissions_follow_configuration_ownership
+TRY 2 FAIL ( 73/105) codex-core::all suite::request_permissions::with_additional_permissions_requires_approval_under_on_request
+TRY 2 FAIL ( 74/105) codex-core::all suite::unified_exec::unified_exec_network_denial_emits_failed_background_end_event
+TRY 2 FAIL ( 75/105) codex-core::all suite::openai_file_mcp::codex_apps_file_params_retry_stream_under_restricted_read_policy
+TRY 2 FAIL ( 76/105) codex-core::all suite::unified_exec::unified_exec_runs_under_sandbox
+TRY 2 FAIL ( 77/105) codex-core::all suite::request_permissions::request_permissions_preapprove_explicit_exec_permissions_outside_on_request
+TRY 2 FAIL ( 78/105) codex-core::all suite::unified_exec_stdin_approval::stdin_reviews_retained_grants_after_turn_permissions_expire
+TRY 2 FAIL ( 79/105) codex-http-client route_aware_client_pool::tests::request_failures_classify_real_untrusted_certificate_handshakes
+TRY 2 FAIL ( 80/105) codex-core::all suite::unified_exec_stdin_approval::strict_stdin_review_reaches_guardian_with_sandbox_prompts_disabled
+TRY 2 FAIL ( 81/105) codex-http-client route_aware_client_pool::tls_fallback_tests::does_not_retry_a_non_replayable_streaming_request
+TRY 2 FAIL ( 82/105) codex-http-client route_aware_client_pool::tls_fallback_tests::retries_a_tls_protocol_failure_when_request_url_contains_certificate_markers
+TRY 2 FAIL ( 83/105) codex-http-client route_aware_client_pool::tls_fallback_tests::successful_rustls_fallback_replays_the_request_and_reuses_the_destination
+TRY 2 FAIL ( 84/105) codex-core::all suite::unified_exec::unified_exec_short_lived_network_denial_emits_failed_end_event
+TRY 2 FAIL ( 85/105) codex-tui ide_context::ipc::tests::fetch_ide_context_falls_back_to_legacy_socket
+TRY 2 FAIL ( 86/105) codex-http-client route_aware_client_pool::tls_fallback_tests::retries_a_native_tls_protocol_failure_once_with_rustls
+TRY 2 FAIL ( 87/105) codex-http-client route_aware_client_pool::tls_fallback_tests::retries_a_native_tls_failure_after_another_request_caches_rustls
+TRY 2 FAIL ( 88/105) codex-tui ide_context::ipc::tests::fetch_ide_context_falls_back_to_pre_migration_uid_zero_legacy_socket
+TRY 2 FAIL ( 89/105) codex-core::all suite::skills_extension::executor_skill_tool_reads_references_under_current_permissions::denied_continuation
+TRY 2 FAIL ( 90/105) codex-core::all suite::shell_snapshot::shell_snapshot_v2_guardian_uses_its_resolved_permissions_and_tools::reviewer_without_shell_tools
+TRY 2 FAIL ( 91/105) codex-tui ide_context::ipc::tests::fetch_ide_context_uses_unregistered_request_route
+TRY 2 FAIL ( 92/105) codex-tui ide_context::ipc::tests::fetch_ide_context_falls_back_to_uid_zero_legacy_socket
+TRY 2 FAIL ( 93/105) codex-tui pets::tests::kitty_local_file_pet_image_uses_file_reference_without_inline_payload
+TRY 2 FAIL ( 94/105) codex-tui ide_context::ipc::tests::fetch_ide_context_prefers_primary_socket
+TRY 2 FAIL ( 95/105) codex-core::all suite::rmcp_client::sandbox_tests::mcp_server_enforces_sandbox_state_with_codex_sandbox
+TRY 2 FAIL ( 96/105) codex-core::all suite::workspace_roots::workspace_roots_allow_patches_but_protect_metadata_directories
+TRY 2 FAIL ( 97/105) codex-core::all suite::apply_patch_cli::intercepted_apply_patch_updates_absolute_target_after_turn_cwd_is_removed
+TRY 2 FAIL ( 98/105) codex-core::all suite::workspace_roots::workspace_roots_deny_file_and_command_writes_outside_roots
+TRY 2 FAIL ( 99/105) codex-core::all suite::shell_snapshot::shell_snapshot_v2_prewarm_preserves_the_sandbox
+TRY 2 FAIL (100/105) codex-core::all suite::workspace_roots::workspace_roots_allow_file_and_command_writes_in_secondary_root::thread_owned_secondary_root
+TRY 2 FAIL (101/105) codex-core::all suite::view_image::view_image_tool_applies_local_sandbox_read_denies
+TRY 2 FAIL (102/105) codex-core::all suite::workspace_roots::workspace_roots_allow_file_and_command_writes
+TRY 2 FAIL (103/105) codex-core::all suite::workspace_roots::workspace_roots_allow_file_and_command_writes_in_secondary_root::owner_resolved_secondary_root
+TRY 2 FAIL (104/105) codex-core::all suite::apply_patch_cli::intercepted_apply_patch_verification_uses_local_sandbox
