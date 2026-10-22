@@ -627,3 +627,6 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable local.11 installed provenance](/Users/viktor/.local/lib/codex-local/0.162.1+local.11-e9fb3d6e2e28/provenance.json) — Records installed binaries, validation, rollback, publication and daemon activation.
 - [Stable local.11 daemon activation](/Users/viktor/.local/lib/codex-local/0.162.1+local.11-e9fb3d6e2e28/daemon-update.log) — Preserves the final managed-daemon package switch output.
 - [Stable local.11 daemon versions](/Users/viktor/.local/lib/codex-local/0.162.1+local.11-e9fb3d6e2e28/daemon-version.json) — Records CLI and managed-daemon versions after activation.
+
+- [Stable 0.163.0 update](research/stable-0.163.0-sync.md) — Records the local.12 rebase, regression fixes, validation limits on Linux, installation and rollback.
+- [Stable 0.163.0 evidence](research/stable-0.163.0-evidence/) — Stores the full-suite summary and failures, the upstream baseline comparison and the patch range-diff.

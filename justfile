@@ -46,7 +46,7 @@ assemble-codex-package *args:
 # Build the local CLI package and install it as the active local release.
 [no-cd]
 install-local-package:
-    RUSTY_V8_ARCHIVE={{ rusty_v8_cache }}/librusty_v8_ptrcomp_sandbox_release_{{ rusty_v8_target }}.a.gz RUSTY_V8_SRC_BINDING_PATH={{ rusty_v8_cache }}/src_binding_ptrcomp_sandbox_release_{{ rusty_v8_target }}.rs {{ python }} {{ justfile_directory() }}/scripts/build_codex_package.py --package-dir {{ justfile_directory() }}/codex-rs/target/local-package --cargo-profile dev-small --force
+    RUSTY_V8_ARCHIVE={{ rusty_v8_cache }}/librusty_v8_ptrcomp_sandbox_release_{{ rusty_v8_target }}.a.gz RUSTY_V8_SRC_BINDING_PATH={{ rusty_v8_cache }}/src_binding_ptrcomp_sandbox_release_{{ rusty_v8_target }}.rs {{ python }} {{ justfile_directory() }}/scripts/build_codex_package.py --package-dir {{ justfile_directory() }}/codex-rs/target/local-package --target {{ rusty_v8_target }} --cargo-profile dev-small --force
     sh {{ justfile_directory() }}/scripts/install/install_local_package.sh {{ justfile_directory() }}/codex-rs/target/local-package
 
 # Build the CLI and run the app-server test client
