@@ -79,7 +79,12 @@ fi
 point_link() {
   tmp="$1.new-$$"
   ln -s "$2" "$tmp"
-  mv -fh "$tmp" "$1"
+  # GNU mv spells "do not follow the destination link" -T; BSD mv spells it -h.
+  if mv --version >/dev/null 2>&1; then
+    mv -fT "$tmp" "$1"
+  else
+    mv -fh "$tmp" "$1"
+  fi
 }
 
 rollback() {
