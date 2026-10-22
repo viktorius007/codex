@@ -171,6 +171,13 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
                 ]),
             )
             .await;
+            // Terminal child results wake the idle parent with one completion turn.
+            responses::mount_sse_once_match(
+                &server,
+                wiremock::matchers::header("thread-id", parent_id.clone()),
+                sse(vec![ev_completed("parent-notified")]),
+            )
+            .await;
             child
                 .submit(Op::DynamicToolResponse {
                     id: call.call_id,
@@ -184,6 +191,11 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
                 .await?;
             wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
             ThreadIdle::wait(&child).await;
+            wait_for_event(&test.codex, |event| {
+                matches!(event, EventMsg::TurnComplete(_))
+            })
+            .await;
+            ThreadIdle::wait(&test.codex).await;
             submit_thread_settings(&test.codex, ThreadSettingsOverrides::default()).await?;
         }
     }
@@ -192,7 +204,7 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
     // Preserve each stream's complete history while removing parent/child scheduling order.
     requests
         .sort_by_key(|request| request.header("thread-id").as_deref() != Some(parent_id.as_str()));
-    assert_eq!(requests.len(), 10);
+    assert_eq!(requests.len(), 12);
     let history = context_snapshot::format_request_history_snapshot(
         "A parent delegates an API migration, queues a note while the worker is idle, and follows up after idle eviction. The same worker resumes with its earlier answer and the unread note. Complete model streams are grouped as parent, then worker.",
         &requests,
