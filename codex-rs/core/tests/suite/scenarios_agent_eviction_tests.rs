@@ -215,6 +215,13 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
                 ]),
             )
             .await;
+            // Terminal child results wake the idle parent with one completion turn.
+            responses::mount_sse_once_match(
+                &server,
+                wiremock::matchers::header("thread-id", parent_id.clone()),
+                sse(vec![ev_completed("parent-notified")]),
+            )
+            .await;
             child
                 .submit(Op::DynamicToolResponse {
                     id: call.call_id,
@@ -228,6 +235,11 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
                 .await?;
             wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
             ThreadIdle::wait(&child).await;
+            wait_for_event(&test.codex, |event| {
+                matches!(event, EventMsg::TurnComplete(_))
+            })
+            .await;
+            ThreadIdle::wait(&test.codex).await;
             submit_thread_settings(&test.codex, ThreadSettingsOverrides::default()).await?;
         }
     }
