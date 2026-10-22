@@ -301,7 +301,11 @@ async fn host_threads_preserve_lineage_settings_and_resume_routing() -> anyhow::
         &test.thread_manager.get_thread(child.thread_id).await?,
         &child.thread,
     ));
-    assert_eq!(controller.take_mailbox(child.thread_id), unread_mail);
+    // Deliveries are opaque outside core, so drain the fake host mailbox directly.
+    assert_eq!(
+        std::mem::take(&mut *controller.mail.lock().expect("mail lock")),
+        unread_mail
+    );
     child.thread.ensure_rollout_materialized().await;
     child.thread.flush_rollout().await?;
     let saved = test

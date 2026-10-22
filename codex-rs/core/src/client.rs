@@ -1615,7 +1615,8 @@ impl ModelClientSession {
                 NonIncrementalReason::RequestPropertyChanged { reason },
                 ContinuationDropReason::PropertiesMismatch,
             );
-            drop.first_mismatched_property = Some(reason.strip_suffix("_changed").unwrap_or(reason));
+            drop.first_mismatched_property =
+                Some(reason.strip_suffix("_changed").unwrap_or(reason));
             return Err(drop);
         }
 

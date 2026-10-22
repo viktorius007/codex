@@ -1165,6 +1165,7 @@ fn usage_less_response_does_not_move_last_accepted_token_usage_boundary() {
     let accepted_tool_call = ResponseItem::CustomToolCall {
         id: None,
         status: None,
+        encrypted_content: None,
         call_id: "accepted-call".to_string(),
         name: "test_tool".to_string(),
         namespace: None,
