@@ -48,3 +48,14 @@
   - The Linux `RUSTY_V8_*` paths. The archives live in `~/.cache/rusty-v8-codex/`, from `openai/codex` release `rusty-v8-v150.4.0`, and their sha256 was verified.
 - Tests that start workspace binaries look for them in Cargo's `build-dir`. Run `cargo build --workspace --exclude codex-voice-host --bins` before running suites.
 - [Patch comparison](stable-0.163.0-evidence/range-diff.txt) compares the old and the rebased local patch series.
+
+## Sandbox on this host (after installation)
+
+- The owner installed Ubuntu's `bubblewrap` package (0.11.1, `/usr/bin/bwrap`). Ubuntu's `/etc/apparmor.d/bwrap-userns-restrict` profile permits it to create user namespaces, so Codex now uses it in place of the blocked bundled copy.
+- Verified with the installed local.12 binary in `workspace-write` mode:
+  - The command ran.
+  - A write inside the workspace succeeded.
+  - A write to `/home/agent` was refused with `Read-only file system`.
+  - Network access was blocked.
+  - A `codex exec` turn ran `uname -s` in the sandbox.
+- The sandbox test failures recorded above came before this change, and the suite has not been rerun since.
