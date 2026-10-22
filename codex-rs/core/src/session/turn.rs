@@ -11,6 +11,7 @@ use crate::compact::AutoCompactionDisabled;
 use crate::compact::run_inline_auto_compact_task;
 use crate::compact_remote_v2::BackgroundCompactionCandidate;
 use crate::compact_remote_v2::run_inline_remote_auto_compact_task as run_inline_remote_auto_compact_task_v2;
+use crate::compact_retained_tool_outputs::is_retained_tool_output;
 use crate::connectors;
 use crate::context::ContextualUserFragment;
 use crate::context::UserVerificationNotice;
@@ -1420,11 +1421,22 @@ async fn run_pre_sampling_compact(
     {
         0
     } else {
+        // Compaction keeps enabled retained outputs whole, so counting them here only forces
+        // futile pre-turn compactions; send them first and let upstream trimming apply.
+        let retains_outputs = turn_context
+            .config
+            .features
+            .enabled(Feature::RetainClientToolOutputs);
         input
             .iter()
             .map(|input| match input {
                 TurnInput::UserInput { content, .. } => {
                     estimate_item_token_count(&sess.response_item_from_user_input(content.clone()))
+                }
+                TurnInput::FunctionCallOutput(item) | TurnInput::ResponseItem(item)
+                    if retains_outputs && is_retained_tool_output(item) =>
+                {
+                    0
                 }
                 TurnInput::FunctionCallOutput(item) => estimate_item_token_count(item),
                 TurnInput::ResponseItem(item) => estimate_item_token_count(&item.item),
