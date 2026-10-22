@@ -1,8 +1,3 @@
-[build]
-# Two build jobs per core reduced cold-worktree wall time without exceeding
-# this Mac's open-file limit; 64 jobs failed before compilation could start.
-jobs = 32
-
 [env]
 # The sandbox-enabled V8 artifacts for this local checkout are described in the
 # root AGENTS.md. Explicit shell environment variables can override these paths.
