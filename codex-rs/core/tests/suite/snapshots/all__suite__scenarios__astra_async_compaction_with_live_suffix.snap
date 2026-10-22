@@ -6,8 +6,8 @@ Scenario: Astra compacts a completed launch-notes turn in the background. The us
 
 ## Window 1
 -- request 1 (request) --
-00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
-        - namespace/functions; hash=fada4a476a3754dd
+00:additional_tools/developer (3; hash=4bf46b5a55c61c79):
+        - namespace/functions; hash=e51275c55b5d1947
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -26,12 +26,12 @@ Scenario: Astra compacts a completed launch-notes turn in the background. The us
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Draft the launch notes.
 07:configuration_update:reasoning={"effort":"low"}
@@ -42,8 +42,8 @@ Scenario: Astra compacts a completed launch-notes turn in the background. The us
 
 ## Window 2 (after request 2: input diverged at item 09)
 -- request 3 (request) --
-00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
-        - namespace/functions; hash=fada4a476a3754dd
+00:additional_tools/developer (3; hash=4bf46b5a55c61c79):
+        - namespace/functions; hash=e51275c55b5d1947
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -62,12 +62,12 @@ Scenario: Astra compacts a completed launch-notes turn in the background. The us
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Draft the launch notes.
 07:configuration_update:reasoning={"effort":"low"}
@@ -80,8 +80,8 @@ Scenario: Astra compacts a completed launch-notes turn in the background. The us
 
 ## Window 3 (after request 3: input diverged at item 02)
 -- request 4 (request) --
-00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
-        - namespace/functions; hash=fada4a476a3754dd
+00:additional_tools/developer (3; hash=4bf46b5a55c61c79):
+        - namespace/functions; hash=e51275c55b5d1947
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -103,12 +103,12 @@ Scenario: Astra compacts a completed launch-notes turn in the background. The us
 04:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-05:message/developer:
-    <MULTI_AGENT_ROLE>
-06:message/developer:
-    <MULTI_AGENT_MODE>
-07:message/user:
+05:message/user:
     <ENVIRONMENT_CONTEXT>
+06:message/developer:
+    <MULTI_AGENT_ROLE>
+07:message/developer:
+    <MULTI_AGENT_MODE>
 08:message/developer:
     <COLLABORATION_MODE>
 09:message/user:
