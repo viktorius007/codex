@@ -1,0 +1,3085 @@
+  1:  dafda2d4ea =   1:  6608839af9 Preserve local research and cache-audit tooling
+  2:  3b1414d0b8 =   2:  4c4b358ef4 Restore durable local repository policy
+  3:  3635c6011b =   3:  124e79f107 Port measured local build settings
+  4:  6a5d365fcb =   4:  b5140943aa test(goal): probe empty continuation semantics upstream
+  5:  2a3462292f =   5:  27d40cae12 test(core): probe accepted usage accounting upstream
+  6:  3c1bee71d6 =   6:  10b85abbd1 test(api): probe terminal SSE classification upstream
+  7:  261e9b5fb7 =   7:  20229f0930 test(core): probe malformed tool-search pairing upstream
+  8:  2422b413cf =   8:  ff1998b093 test(thread-store): probe archive crash recovery upstream
+  9:  105fd3b431 =   9:  2e37178867 test(core): probe code-mode empty wait handling upstream
+ 10:  c0f658edd4 =  10:  94d6661350 test(utils-string): probe SemVer tag preservation upstream
+ 11:  f9f1ec42ec =  11:  e13a17c074 test(core): format code-mode wait probe
+ 12:  3ddff8a28a =  12:  6038c56adb fix(utils-string): preserve SemVer build metadata in tags
+ 13:  78801dc1d6 !  13:  f50f9ef946 fix(core): track accepted usage against history
+    @@ codex-rs/core/src/session/rollout_reconstruction.rs
+      use codex_history::TurnAttribution;
+     @@ codex-rs/core/src/session/rollout_reconstruction.rs: use uuid::Uuid;
+      #[derive(Debug, PartialEq)]
+    - pub(super) struct RolloutReconstruction {
+    + pub(crate) struct RolloutReconstruction {
+          pub(super) history: Vec<ResponseItemEnvelope>,
+     +    pub(super) accepted_token_usage: Option<AcceptedTokenUsage>,
+    -     pub(super) retained_context: codex_history::RetainedContext,
+    +     pub(crate) retained_context: codex_history::RetainedContext,
+          pub(super) guardian_history: Option<codex_history::GuardianHistoryCheckpoint>,
+          pub(super) last_started_turn_id: Option<String>,
+    -@@ codex-rs/core/src/session/rollout_reconstruction.rs: impl Session {
+    -             &turn_context.session_source,
+    -             &turn_context.config.features,
+    -         );
+    +@@ codex-rs/core/src/session/rollout_reconstruction.rs: impl ContextManager {
+    +         .unwrap_or(u64::MAX);
+    + 
+    +         // Build model-visible history from the selected compaction and its newer suffix.
+     +        let mut accepted_token_usage = None;
+              let mut saw_legacy_compaction_without_replacement_history = false;
+              if let Some(checkpoint) = history_checkpoint
+                  && let Some(items) = &checkpoint.compacted.replacement_history
+    -@@ codex-rs/core/src/session/rollout_reconstruction.rs: impl Session {
+    +@@ codex-rs/core/src/session/rollout_reconstruction.rs: impl ContextManager {
+                              let retained_context = history.retained_context().clone();
+                              history.replace_annotated(rebuilt);
+                              history.restore_retained_context(Some(&retained_context));
+    @@ codex-rs/core/src/session/rollout_reconstruction.rs: impl Session {
+                      | RolloutItem::SessionMeta(_) => {}
+                  }
+              }
+    -@@ codex-rs/core/src/session/rollout_reconstruction.rs: impl Session {
+    +@@ codex-rs/core/src/session/rollout_reconstruction.rs: impl ContextManager {
+                  guardian_history: history.guardian_history_checkpoint(),
+                  last_started_turn_id,
+                  history: history.into_annotated_items(),
+ 14:  db1fdaa580 !  14:  662792978f Remove superseded Goal accounting test
+    @@ codex-rs/ext/goal/tests/accounting.rs: fn goal_accounting_ignores_plan_mode_turn
+     -        ("reset", 6),
+     -        ("missing final", 6),
+     -        ("partial answer", 6),
+    +-        ("abort", 3),
+    +-        ("mixed", 3),
+    +-        ("tool after abort", 6),
+    +-        ("user after abort", 6),
+     -    ] {
+     -        let state = GoalAccountingState::default();
+     -        for turn in 1..=blocking_turn {
+    @@ codex-rs/ext/goal/tests/accounting.rs: fn goal_accounting_ignores_plan_mode_turn
+     -            };
+     -            state.start_turn(&id, ModeKind::Default, &TokenUsage::default());
+     -            state.mark_turn_goal_active(&id, goal_id);
+    +-            let aborted = matches!(
+    +-                interruption,
+    +-                "abort" | "tool after abort" | "user after abort"
+    +-            ) || (interruption == "mixed" && turn == 2);
+     -            if turn == 3 && interruption == "partial answer" {
+     -                let mut partial = empty_final.clone();
+     -                if let TurnItem::AgentMessage(message) = &mut partial {
+     -                    message.phase = Some(MessagePhase::PartialAnswer);
+     -                }
+     -                state.record_item(&id, &partial);
+    --            } else if !(turn == 3 && interruption == "missing final") {
+    +-            } else if !(aborted || turn == 3 && interruption == "missing final") {
+     -                state.record_item(&id, &empty_final);
+     -            }
+    --            // Admission can finish after output arrives, but before turn-stop evaluation.
+    --            if !(turn == 3 && interruption == "user") {
+    +-            if aborted {
+    +-                state.interrupt_turn(&id);
+    +-            }
+    +-            // Admission can finish even after abort, but before idle evaluation.
+    +-            if !(turn == 3 && matches!(interruption, "user" | "user after abort")) {
+     -                state.mark_goal_continuation(id.clone());
+     -            }
+    --            if turn == 3 && interruption == "tool" {
+    +-            if turn == 3 && matches!(interruption, "tool" | "tool after abort") {
+     -                state.record_tool_outcome(
+     -                    &id,
+     -                    &ToolName::plain("shell"),
+ 15:  0210957434 !  15:  dd276c09c6 Count empty Goal turns by model output
+    @@ codex-rs/ext/goal/src/accounting.rs: impl GoalAccountingState {
+              let automatic = inner.automatic_goal_turn_id.as_deref() == Some(turn_id);
+              let turn = inner.turns.get_mut(turn_id)?;
+              let goal_id = turn.active_goal_id.clone()?;
+    --        let empty = automatic && turn.empty_final && !turn.has_activity;
+    +-        let empty = automatic && !turn.has_activity && (turn.empty_final || interrupted);
+     -        turn.empty_final = false;
+     +        let empty = automatic && !turn.has_model_output;
+              if !empty {
+ 16:  7f32828bd2 =  16:  c4ae2b1b6f Recover selected rollout after archive rename
+ 17:  f4ab8e973c !  17:  e668aa2644 Preserve terminal SSE failure classification
+    @@ codex-rs/codex-api/src/sse/responses.rs: async fn process_sse_with_treatment(
+                  Ok(None) => {}
+                  Err(error) => {
+                      let error = error.into_api_error();
+    --                if matches!(error, ApiError::FlexUnavailable) {
+    -+                if is_failed || matches!(error, ApiError::FlexUnavailable) {
+    +-                if matches!(
+    +-                    error,
+    +-                    ApiError::FlexUnavailable | ApiError::ResponseIncomplete(_)
+    +-                ) {
+    ++                if is_failed
+    ++                    || matches!(
+    ++                        error,
+    ++                        ApiError::FlexUnavailable | ApiError::ResponseIncomplete(_)
+    ++                    )
+    ++                {
+                          let _ = tx_event.send(Err(error)).await;
+                          return;
+                      }
+ 18:  60172e8449 =  18:  d4c295a29e Preserve malformed tool search output pairing
+ 19:  c383e09a7f =  19:  3999552ede Add cache diagnostic record contract tests
+ 20:  acf8877114 =  20:  0d138b814f Add request observer boundary regressions
+ 21:  0c4745a21b =  21:  04c9244bda Add plugin locator regression tests
+ 22:  ad692f43a9 =  22:  1ee182acf0 Pin fresh-child startup cache prefix
+ 23:  879013ed55 =  23:  b7642abd9e fix(core): keep empty code-mode waits internal
+ 24:  609e11252e =  24:  29df2a113d Add async result causal regression tests
+ 25:  b53e89ae7d =  25:  ca492917ee Test compaction projection and active tool parity
+ 26:  dad4007b07 !  26:  372cfe0704 Add MCP authority regression oracles
+    @@ codex-rs/core/tests/common/apps_test_server.rs: impl AppsTestServerStartupContro
+     +    }
+     +
+          /// Holds one successful startup without turning recovery into a fresh runtime refresh.
+    +     /// Multiple holds are consumed in order, so tests can gate startup and recovery in advance.
+          pub fn hold_next_successful_initialize(&self) -> mpsc::Sender<()> {
+    -         let (release, gate) = mpsc::channel();
+     @@ codex-rs/core/tests/common/apps_test_server.rs: impl AppsTestServer {
+              mount_connectors_directory(server).await;
+              let control = AppsTestServerStartupControl {
+                  initialize_attempts: Arc::new(AtomicUsize::new(0)),
+     +            initialize_attempted: Arc::new(Notify::new()),
+                  remaining_initialize_failures: Arc::new(AtomicUsize::new(0)),
+    -             successful_initialize_gate: Arc::new(Mutex::new(None)),
+    +             successful_initialize_gate: Arc::new(Mutex::new(VecDeque::new())),
+              };
+     @@ codex-rs/core/tests/common/apps_test_server.rs: impl AppsTestServer {
+                  /*include_app_only_tool*/ false,
+ 27:  1bc32a0d54 =  27:  55a369c6d8 Port private cache diagnostics records
+ 28:  7e2c437123 =  28:  642e7dc8c9 test(core): prove committed tool catalog changes
+ 29:  80a23a286c =  29:  9f6cae39ac Add red tests for thread-frozen collaboration specs
+ 30:  a34f1b5542 =  30:  71c1c6ba18 Test background exec completion delivery
+ 31:  8360b48e2a =  31:  fe77d81f19 Use stable locators for host plugin skills
+ 32:  13923ed55f =  32:  3124c5b34e Preserve local release accommodations
+ 33:  f15e5eb780 =  33:  45de1bba27 Restore accepted-usage replay coverage
+ 34:  331ab9fbb4 !  34:  c5fbafecfc Observe prepared Responses transport requests
+    @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: pub struct ResponsesWebs
+          }
+      
+          pub async fn connect(
+    -@@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: fn map_wrapped_websocket_error_event(
+    +@@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: struct InterruptAcknowledgement {
+      async fn run_websocket_response_stream(
+          ws_stream: &mut WsStream,
+          tx_event: mpsc::Sender<std::result::Result<ResponseEvent, ApiError>>,
+    @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: fn map_wrapped_websocket
+          telemetry: Option<Arc<dyn WebsocketTelemetry>>,
+          turn_state: Option<&OnceLock<String>>,
+     @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: async fn run_websocket_response_stream(
+    - ) -> Result<(), ApiError> {
+    -     let mut last_server_model: Option<String> = None;
+    -     let mut safety_buffering_treatment = SafetyBufferingTreatment::default();
+    +         // No request reached the backend, so this socket is still reusable.
+    +         return Ok(());
+    +     }
+     -    send_websocket_request(
+     -        ws_stream,
+     -        request_text,
+    @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: async fn run_websocket_r
+     +    send_websocket_request(ws_stream, request, idle_timeout, telemetry.as_ref()).await?;
+      
+          // A response owns its interrupt, and create must be sent before interrupt.
+    -     let mut interrupt = interrupt.fuse();
+    +     let mut interrupt_request = interrupt.clone().fuse();
+     @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: async fn run_websocket_response_stream(
+    -                 response.map_err(|_| ApiError::Stream("idle timeout waiting for websocket".into()))
+                  }
+    -             Ok(()) = &mut interrupt, if response_id.is_some() => {
+    +             request = &mut interrupt_request, if response_id.is_some() => {
+    +                 interruption = Some(request);
+     -                send_websocket_request(
+     -                    ws_stream,
+     -                    serde_json::json!({
+    @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: async fn run_websocket_r
+     +                .await
+     +                .map_err(|_| ApiError::Stream("idle timeout sending websocket request".into()))?
+     +                .map_err(map_ws_stream_error)?;
+    +                 awaiting_interrupt_ack = matches!(request, ResponseInterrupt::Cancel { .. });
+                      continue;
+                  }
+    -         };
+     @@ codex-rs/codex-api/src/endpoint/responses_websocket.rs: fn safety_buffering_for_event(
+      
+      async fn send_websocket_request(
+ 35:  0fae426be6 !  35:  0a3ada6a58 Align code-mode wait tests with internal yields
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_result_metadata_keeps
+          assert_eq!(
+              terminal_output["internal_chat_message_metadata_passthrough"]["tool_calls_complete"],
+              true
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+          let later_arguments = serde_json::json!({ "query": "later" });
+          let code = format!(
+              "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+          assert!(
+              text_item(&first_items, /*index*/ 0).starts_with("Script running with cell ID "),
+              "expected a running cell: {first_items:?}"
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+              .await
+              .context("first call did not reach the result gate")??;
+      
+     -    // The call may be dispatched after the first yield. Wait while its result is held so
+    --    // the request has already recorded the truncated call before accepting its metadata.
+    +-    // the request has already recorded the call before accepting its metadata.
+     -    let held = responses::mount_function_call_agent_response(
+     -        &server,
+     -        "call-2",
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+     +    let original_output = initial_calls[0];
+          let original_id = original_output["call_id"].as_str().unwrap().to_string();
+          let original_type = original_output["type"].as_str().unwrap().to_string();
+    -     let truncated =
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +     let recorded =
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+          release_tx.send(()).unwrap();
+          let resumed = responses::mount_function_call_agent_response(
+              &server,
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+              &serde_json::json!({"cell_id": cell_id, "yield_time_ms": 10_000}).to_string(),
+              "wait",
+          )
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+          test.submit_turn("Wait for the accepted results").await?;
+          let resumed_request = resumed.completion.single_request();
+          assert!(
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+                  .iter()
+                  .any(|item| item["text"] == "accepted")
+          );
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+          let resumed_input = resumed_request.input();
+          assert_eq!(result_metadata_fixture_calls(&resumed_input).count(), 2);
+          assert_result_metadata_call(
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+              &later_arguments,
+              /*expected_metadata*/ None,
+          );
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+                  .as_array()
+                  .unwrap()
+                  .iter()
+ 36:  a0d13d305a =  36:  8f13b7fc6d Port runtime cache diagnostic lifecycle tests
+ 37:  1bfc2ce63e !  37:  7593dc132e Port bounded asynchronous result delivery
+    @@ codex-rs/core/src/agent/control/completion.rs: impl LocalAgentControl {
+     
+      ## codex-rs/core/src/agent/control/spawn.rs ##
+     @@ codex-rs/core/src/agent/control/spawn.rs: impl LocalAgentControl {
+    -             }
+    -         };
+    +             .map_err(|err| err.with_agent_context(AgentErrorContext::ChildStartup))?;
+    +         let child_create = child_create_started_at.elapsed();
+              agent_metadata.agent_id = Some(new_thread.thread_id);
+     +        if let Some(origin) = options.parent_async_result_origin.clone() {
+     +            let origins =
+    @@ codex-rs/core/src/agent/control/spawn.rs: impl LocalAgentControl {
+     
+      ## codex-rs/core/src/agent/types.rs ##
+     @@ codex-rs/core/src/agent/types.rs: pub struct SpawnAgentOptions {
+    -     pub environments: Option<TurnEnvironmentSnapshot>,
+    +     pub disabled_plugin_ids: Option<Vec<String>>,
+          pub multi_agent_v2_usage_hints: Option<ResolvedMultiAgentV2UsageHints>,
+          pub cyber_access_program: Option<CyberAccessProgram>,
+     +    pub(crate) parent_async_result_origin: Option<crate::agent::control::ParentAsyncResultOrigin>,
+    @@ codex-rs/core/src/session/turn.rs: pub(crate) async fn run_turn(
+     
+      ## codex-rs/core/src/session/turn_input.rs ##
+     @@ codex-rs/core/src/session/turn_input.rs: async fn start_if_idle(
+    -     let mut task_input = merge_additional_context_input(session, additional_context).await;
+    +     let sender_messages = capture_sender_user_messages(session, &mut input).await;
+          match kind {
+              TurnStartKind::User => {
+     +            task_input.extend(session.input_queue.drain_next_async_results().await);
+    @@ codex-rs/core/src/session_prefix.rs: pub(crate) fn format_inter_agent_completion
+      pub(crate) fn format_guardian_interruption_message(
+     
+      ## codex-rs/core/src/state/turn.rs ##
+    -@@ codex-rs/core/src/state/turn.rs: use codex_protocol::protocol::TokenUsage;
+    - pub(crate) struct ActiveTurn {
+    -     pub(crate) task: Option<RunningTask>,
+    +@@ codex-rs/core/src/state/turn.rs: pub(crate) struct ActiveTurn {
+    +     /// Reservations that have not started still accept inputs.
+    +     pub(crate) finishing: Option<CancellationToken>,
+          pub(crate) turn_state: Arc<Mutex<TurnState>>,
+     +    pub(crate) cancelled_before_start: bool,
+      }
+      
+      /// Whether mailbox deliveries should still be folded into the current turn.
+     @@ codex-rs/core/src/state/turn.rs: impl Default for ActiveTurn {
+    -         Self {
+                  task: None,
+    +             finishing: None,
+                  turn_state: Arc::new(Mutex::new(TurnState::default())),
+     +            cancelled_before_start: false,
+              }
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+                  .await;
+     -            let turn = active.get_or_insert_with(ActiveTurn::default);
+     -            debug_assert!(turn.task.is_none());
+    +-            turn.finishing = None;
+     -            Arc::clone(&turn.turn_state)
+     -        };
+     +        if !child_result_origins.is_empty() {
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +        }
+     +        let turn = active.get_or_insert_with(ActiveTurn::default);
+     +        debug_assert!(turn.task.is_none());
+    ++        turn.finishing = None;
+     +        let turn_state = Arc::clone(&turn.turn_state);
+              turn_state.lock().await.token_usage_at_turn_start = token_usage_at_turn_start.clone();
+              self.input_queue
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+          }
+      
+     
+    + ## codex-rs/core/src/thread_spawn.rs ##
+    +@@ codex-rs/core/src/thread_spawn.rs: pub(crate) async fn spawn(
+    +                 disabled_plugin_ids: Some(turn.disabled_plugin_ids.clone()),
+    +                 multi_agent_v2_usage_hints,
+    +                 cyber_access_program: turn.cyber_access_program,
+    ++                parent_async_result_origin: Some(crate::agent::control::ParentAsyncResultOrigin {
+    ++                    parent_turn_id: turn.sub_id.clone(),
+    ++                    origin: Arc::new(turn.extension_data.snapshot()),
+    ++                }),
+    +             },
+    +         })
+    +         .await?;
+    +
+      ## codex-rs/core/src/tools/handlers/multi_agents/spawn.rs ##
+     @@ codex-rs/core/src/tools/handlers/multi_agents/spawn.rs: async fn handle_spawn_agent(
+    -                 environments: Some(step_context.environments.clone()),
+    +                 disabled_plugin_ids: Some(turn.disabled_plugin_ids.clone()),
+                      multi_agent_v2_usage_hints: None,
+                      cyber_access_program: turn.cyber_access_program,
+     +                parent_async_result_origin: None,
+    @@ codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs: pub(super) asy
+              FunctionCallError::RespondToModel("target agent is missing an agent_path".to_string())
+          })?;
+     
+    - ## codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs ##
+    -@@ codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs: use codex_protocol::ThreadId;
+    - use codex_protocol::protocol::MultiAgentVersion;
+    - use codex_tools::ToolSpec;
+    - use std::num::NonZeroUsize;
+    -+use std::sync::Arc;
+    - 
+    - #[derive(Default)]
+    - pub(crate) struct Handler {
+    -@@ codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs: async fn handle_spawn_agent(
+    -                 environments: Some(step_context.environments.clone()),
+    -                 multi_agent_v2_usage_hints,
+    -                 cyber_access_program: turn.cyber_access_program,
+    -+                parent_async_result_origin: Some(crate::agent::control::ParentAsyncResultOrigin {
+    -+                    parent_turn_id: turn.sub_id.clone(),
+    -+                    origin: Arc::new(turn.extension_data.snapshot()),
+    -+                }),
+    -             },
+    -         })
+    -         .await
+    -
+      ## codex-rs/ext/extension-api/src/async_result_admission.rs (new) ##
+     @@
+     +use crate::ExtensionData;
+ 38:  eca5e50e2a !  38:  8935af0b93 Set local build version to 0.159.2+local.9
+    @@ codex-rs/Cargo.toml: members = [
+      resolver = "2"
+      
+      [workspace.package]
+    --version = "0.162.1"
+    -+version = "0.162.1+local.11"
+    +-version = "0.163.0"
+    ++version = "0.163.0+local.11"
+      # Track the edition for all workspace crates in one place. Individual
+      # crates can still override this value, but keeping it here means new
+      # crates created with `cargo new -w ...` automatically inherit the 2024
+ 39:  0ead347cbe !  39:  eb507a9556 Freeze collaboration specs per thread
+    @@ codex-rs/core/src/session/turn_context.rs: impl TurnContext {
+                  windows_sandbox_level: self.windows_sandbox_level,
+     -            available_models,
+     +            available_models: self.available_models.clone(),
+    -             unified_exec_shell_mode: self.unified_exec_shell_mode.clone(),
+                  final_output_json_schema: self.final_output_json_schema.clone(),
+                  dynamic_tools: self.dynamic_tools.clone(),
+    +             turn_metadata_state: self.turn_metadata_state.clone(),
+     @@ codex-rs/core/src/session/turn_context.rs: impl Session {
+              config
+          }
+ 40:  0dd2c2e0a5 =  40:  bfd549618b Preserve plugin locators through symlinks
+ 41:  0504609b62 !  41:  022511fcca Wake agents when background exec completes
+    @@ codex-rs/core/src/unified_exec/process_manager.rs: impl UnifiedExecProcessManage
+                  plugin_metrics_sidecar,
+     +            wake_on_exit,
+              );
+    -     }
+    - 
+    +         // Install the watcher before cancellable cleanup, and outside the process-store lock.
+    +         if let Some(pruned_entry) = pruned_entry {
+     
+      ## codex-rs/models-manager/models.json ##
+     @@
+ 42:  acb60aa24a =  42:  7603a4d552 Adapt watcher tests to explicit wake control
+ 43:  b490af57c7 =  43:  6e5ab7e2be Complete exec watcher test adaptation
+ 44:  6a396065ec !  44:  fa9d1e2b3b Port catalog diagnostics and compaction parity
+    @@ codex-rs/core/src/client.rs: pub struct ModelClient {
+      }
+      
+      /// A turn-scoped streaming session created from a [`ModelClient`].
+    -@@ codex-rs/core/src/client.rs: struct WebsocketSession {
+    - // `client_metadata`, while websocket reuse compares input and late tool-result metadata separately.
+    - // Access programs are authorized per response, including continuations, without replaying input.
+    - // Keep the destructuring exhaustive so new request fields require an explicit reuse decision.
+    --fn responses_request_properties_match(
+    -+/// Returns the first non-input request property that differs, or `None` when
+    -+/// every continuation-relevant property matches.
+    -+fn first_mismatched_request_property(
+    -     previous: &ResponsesApiRequest,
+    -     current: &ResponsesApiRequest,
+    --) -> bool {
+    -+) -> Option<&'static str> {
+    -     let ResponsesApiRequest {
+    -         model: previous_model,
+    -         input: _,
+    -@@ codex-rs/core/src/client.rs: fn responses_request_properties_match(
+    +@@ codex-rs/core/src/client.rs: fn responses_request_properties_mismatch(
+              reasoning: current_reasoning,
+              store: current_store,
+              stream: current_stream,
+    @@ codex-rs/core/src/client.rs: fn responses_request_properties_match(
+              stream_options: _,
+              include: current_include,
+              service_tier: current_service_tier,
+    -@@ codex-rs/core/src/client.rs: fn responses_request_properties_match(
+    -         access_programs: _,
+    -     } = current;
+    +@@ codex-rs/core/src/client.rs: fn responses_request_properties_mismatch(
+    +     Some(reason)
+    + }
+      
+    --    previous_model == current_model
+    --        && previous_tools == current_tools
+    --        && previous_tool_choice == current_tool_choice
+    --        && previous_parallel_tool_calls == current_parallel_tool_calls
+    --        && previous_reasoning == current_reasoning
+    --        && previous_store == current_store
+    --        && previous_stream == current_stream
+    --        // Stream options control delivery for this response, not the context
+    --        // referenced by `previous_response_id`.
+    --        && previous_include == current_include
+    --        && previous_service_tier == current_service_tier
+    --        && previous_prompt_cache_key == current_prompt_cache_key
+    --        && previous_text == current_text
+    -+    if previous_model != current_model {
+    -+        return Some("model");
+    -+    }
+    -+    if previous_tools != current_tools {
+    -+        return Some("tools");
+    -+    }
+    -+    if previous_tool_choice != current_tool_choice {
+    -+        return Some("tool_choice");
+    -+    }
+    -+    if previous_parallel_tool_calls != current_parallel_tool_calls {
+    -+        return Some("parallel_tool_calls");
+    -+    }
+    -+    if previous_reasoning != current_reasoning {
+    -+        return Some("reasoning");
+    -+    }
+    -+    if previous_store != current_store {
+    -+        return Some("store");
+    -+    }
+    -+    if previous_stream != current_stream {
+    -+        return Some("stream");
+    -+    }
+    -+    if previous_include != current_include {
+    -+        return Some("include");
+    -+    }
+    -+    if previous_service_tier != current_service_tier {
+    -+        return Some("service_tier");
+    -+    }
+    -+    if previous_prompt_cache_key != current_prompt_cache_key {
+    -+        return Some("prompt_cache_key");
+    -+    }
+    -+    if previous_text != current_text {
+    -+        return Some("text");
+    -+    }
+    -+    None
+    -+}
+    -+
+     +/// Why the previous WebSocket continuation could not carry this request, with
+     +/// enough localization for cache-loss attribution.
+     +struct ContinuationDrop {
+    ++    failure: NonIncrementalReason,
+     +    reason: codex_cache_diagnostics::ContinuationDropReason,
+     +    first_mismatched_property: Option<&'static str>,
+     +    first_mismatched_input_index: Option<usize>,
+    @@ codex-rs/core/src/client.rs: fn responses_request_properties_match(
+     +}
+     +
+     +impl ContinuationDrop {
+    -+    fn new(reason: codex_cache_diagnostics::ContinuationDropReason) -> Self {
+    ++    fn new(
+    ++        failure: NonIncrementalReason,
+    ++        reason: codex_cache_diagnostics::ContinuationDropReason,
+    ++    ) -> Self {
+     +        Self {
+    ++            failure,
+     +            reason,
+     +            first_mismatched_property: None,
+     +            first_mismatched_input_index: None,
+    @@ codex-rs/core/src/client.rs: fn responses_request_properties_match(
+     +        }
+     +    }
+     +
+    -+    fn into_report(self) -> codex_cache_diagnostics::ContinuationReport {
+    -+        codex_cache_diagnostics::ContinuationReport {
+    -+            transport: codex_cache_diagnostics::ContinuationTransport::Websocket,
+    -+            decision: codex_cache_diagnostics::ContinuationDecision::Full,
+    -+            drop_reason: Some(self.reason),
+    -+            first_mismatched_property: self.first_mismatched_property,
+    -+            first_mismatched_input_index: self.first_mismatched_input_index,
+    -+            divergence: self.divergence,
+    -+        }
+    ++    /// Splits the drop into the metrics reason and the diagnostic report.
+    ++    fn into_parts(
+    ++        self,
+    ++    ) -> (
+    ++        NonIncrementalReason,
+    ++        codex_cache_diagnostics::ContinuationReport,
+    ++    ) {
+    ++        (
+    ++            self.failure,
+    ++            codex_cache_diagnostics::ContinuationReport {
+    ++                transport: codex_cache_diagnostics::ContinuationTransport::Websocket,
+    ++                decision: codex_cache_diagnostics::ContinuationDecision::Full,
+    ++                drop_reason: Some(self.reason),
+    ++                first_mismatched_property: self.first_mismatched_property,
+    ++                first_mismatched_input_index: self.first_mismatched_input_index,
+    ++                divergence: self.divergence,
+    ++            },
+    ++        )
+     +    }
+     +}
+     +
+    @@ codex-rs/core/src/client.rs: fn responses_request_properties_match(
+     +        previous_bytes: previous.len(),
+     +        current_bytes: current.len(),
+     +    })
+    - }
+    - 
+    ++}
+    ++
+      fn response_items_equal_ignoring_internal_metadata(
+    +     previous: &ResponseItem,
+    +     current: &ResponseItem,
+     @@ codex-rs/core/src/client.rs: impl ModelClient {
+                  executed_tool_calls: None,
+                  api_key_cyber_access_programs:
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+              &self,
+              request: &ResponsesApiRequest,
+              last_response: &LastResponse,
+    --    ) -> Option<Vec<ResponseItem>> {
+    --        let previous_request = self.websocket_session.last_request.as_ref()?;
+    --        if !responses_request_properties_match(previous_request, request) {
+    +-    ) -> std::result::Result<Vec<ResponseItem>, NonIncrementalReason> {
+    +-        let previous_request = self
+    +-            .websocket_session
+    +-            .last_request
+    +-            .as_ref()
+    +-            .ok_or(NonIncrementalReason::NoPreviousRequest)?;
+     +        allow_empty_delta: bool,
+     +    ) -> std::result::Result<Vec<ResponseItem>, ContinuationDrop> {
+     +        use codex_cache_diagnostics::ContinuationDropReason;
+     +        let Some(previous_request) = self.websocket_session.last_request.as_ref() else {
+     +            return Err(ContinuationDrop::new(
+    ++                NonIncrementalReason::NoPreviousRequest,
+     +                ContinuationDropReason::NoPreviousRequest,
+     +            ));
+     +        };
+    -+        if let Some(property) = first_mismatched_request_property(previous_request, request) {
+    -             trace!("incremental request failed, websocket reuse properties didn't match");
+    --            return None;
+    -+            let mut drop = ContinuationDrop::new(ContinuationDropReason::PropertiesMismatch);
+    -+            drop.first_mismatched_property = Some(property);
+    +         if let Some(reason) = responses_request_properties_mismatch(previous_request, request) {
+    +-            return Err(NonIncrementalReason::RequestPropertyChanged { reason });
+    ++            let mut drop = ContinuationDrop::new(
+    ++                NonIncrementalReason::RequestPropertyChanged { reason },
+    ++                ContinuationDropReason::PropertiesMismatch,
+    ++            );
+    ++            drop.first_mismatched_property = Some(reason.strip_suffix("_changed").unwrap_or(reason));
+     +            return Err(drop);
+              }
+      
+              let response_items = &last_response.items_added;
+    --        let previous_items_len = previous_request
+    -+        let Some(previous_items_len) = previous_request
+    -             .input
+    -             .len()
+    --            .checked_add(response_items.len())?;
+    ++        // Diagnostics attribute any shortened request to its length before prefix contents.
+    ++        let input_shorter_than_previous = previous_request
+    ++            .input
+    ++            .len()
+     +            .checked_add(response_items.len())
+    -+        else {
+    -+            return Err(ContinuationDrop::new(
+    -+                ContinuationDropReason::InputShorterThanPrevious,
+    -+            ));
+    -+        };
+    -         let Some((request_items_to_compare, incremental_items)) =
+    -             request.input.split_at_checked(previous_items_len)
+    -         else {
+    -             trace!("incremental request failed, incompatible request length");
+    --            return None;
+    -+            return Err(ContinuationDrop::new(
+    -+                ContinuationDropReason::InputShorterThanPrevious,
+    -+            ));
+    -         };
+    ++            .is_none_or(|previous_items_len| request.input.len() < previous_items_len);
+              let previous_items = previous_request.input.iter().chain(response_items);
+    --        if !previous_items
+    -+        if let Some((index, (previous, current))) = previous_items
+    -             .zip(request_items_to_compare)
+    --            .all(|(previous, current)| {
+    --                response_items_equal_ignoring_internal_metadata(previous, current)
+    -+            .enumerate()
+    -+            .find(|(_, (previous, current))| {
+    -+                !response_items_equal_ignoring_internal_metadata(previous, current)
+    -             })
+    -         {
+    -             trace!("incremental request failed, items didn't match");
+    --            return None;
+    -+            let mut drop = ContinuationDrop::new(ContinuationDropReason::InputPrefixMismatch);
+    -+            drop.first_mismatched_input_index = Some(index);
+    -+            drop.divergence = input_item_divergence(previous, current);
+    -+            return Err(drop);
+    +         let mut current_items = request.input.iter();
+    +-        for previous in previous_items {
+    ++        for (index, previous) in previous_items.enumerate() {
+    +             let Some(current) = current_items.next() else {
+    +-                return Err(NonIncrementalReason::InputShortened {
+    +-                    previous: previous.item_type(),
+    +-                });
+    ++                return Err(ContinuationDrop::new(
+    ++                    NonIncrementalReason::InputShortened {
+    ++                        previous: previous.item_type(),
+    ++                    },
+    ++                    ContinuationDropReason::InputShorterThanPrevious,
+    ++                ));
+    +             };
+    +             if !response_items_equal_ignoring_internal_metadata(previous, current) {
+    +-                return Err(NonIncrementalReason::InputMismatch {
+    ++                let failure = NonIncrementalReason::InputMismatch {
+    +                     previous: previous.item_type(),
+    +                     current: current.item_type(),
+    +-                });
+    ++                };
+    ++                if input_shorter_than_previous {
+    ++                    return Err(ContinuationDrop::new(
+    ++                        failure,
+    ++                        ContinuationDropReason::InputShorterThanPrevious,
+    ++                    ));
+    ++                }
+    ++                let mut drop =
+    ++                    ContinuationDrop::new(failure, ContinuationDropReason::InputPrefixMismatch);
+    ++                drop.first_mismatched_input_index = Some(index);
+    ++                drop.divergence = input_item_divergence(previous, current);
+    ++                return Err(drop);
+    +             }
+              }
+    --        Some(incremental_items.to_vec())
+    +-        Ok(current_items.cloned().collect())
+    ++        let incremental_items = current_items.cloned().collect::<Vec<_>>();
+     +        if !allow_empty_delta && incremental_items.is_empty() {
+     +            return Err(ContinuationDrop::new(
+    ++                NonIncrementalReason::InputShortened { previous: "none" },
+     +                ContinuationDropReason::InputShorterThanPrevious,
+     +            ));
+     +        }
+    -+        Ok(incremental_items.to_vec())
+    ++        Ok(incremental_items)
+          }
+      
+          fn get_last_response(&mut self) -> Option<LastResponse> {
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+          fn prepare_websocket_request(
+              &mut self,
+              request: &ResponsesApiRequest,
+    --    ) -> Option<WebsocketContinuation> {
+    --        let last_response = self.get_last_response()?;
+    +-    ) -> std::result::Result<WebsocketContinuation, NonIncrementalReason> {
+    +-        let last_response = self
+    +-            .get_last_response()
+    +-            .ok_or(NonIncrementalReason::NoPreviousResponse)?;
+     -        let items = self.get_incremental_items(request, &last_response)?;
+     +    ) -> (
+    -+        Option<WebsocketContinuation>,
+    ++        std::result::Result<WebsocketContinuation, NonIncrementalReason>,
+     +        codex_cache_diagnostics::ContinuationReport,
+     +    ) {
+     +        use codex_cache_diagnostics::ContinuationDropReason;
+     +        let Some(last_response) = self.get_last_response() else {
+    -+            return (
+    -+                None,
+    -+                ContinuationDrop::new(ContinuationDropReason::NoPreviousResponse).into_report(),
+    -+            );
+    ++            let (failure, report) = ContinuationDrop::new(
+    ++                NonIncrementalReason::NoPreviousResponse,
+    ++                ContinuationDropReason::NoPreviousResponse,
+    ++            )
+    ++            .into_parts();
+    ++            return (Err(failure), report);
+     +        };
+     +        let previous_response_id_from_untraced_warmup =
+     +            self.websocket_session.last_response_from_untraced_warmup;
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+     +            /*allow_empty_delta*/ true,
+     +        ) {
+     +            Ok(incremental_items) => incremental_items,
+    -+            Err(drop) => return (None, drop.into_report()),
+    ++            Err(drop) => {
+    ++                let (failure, report) = drop.into_parts();
+    ++                return (Err(failure), report);
+    ++            }
+     +        };
+      
+              if last_response.response_id.is_empty() {
+    -             trace!("incremental request failed, no previous response id");
+    --            return None;
+    -+            return (
+    -+                None,
+    -+                ContinuationDrop::new(ContinuationDropReason::EmptyPreviousResponseId)
+    -+                    .into_report(),
+    -+            );
+    +-            return Err(NonIncrementalReason::NoPreviousResponseId);
+    ++            let (failure, report) = ContinuationDrop::new(
+    ++                NonIncrementalReason::NoPreviousResponseId,
+    ++                ContinuationDropReason::EmptyPreviousResponseId,
+    ++            )
+    ++            .into_parts();
+    ++            return (Err(failure), report);
+              }
+      
+    --        Some(WebsocketContinuation {
+    +-        Ok(WebsocketContinuation {
+     -            response_id: last_response.response_id,
+     -            items,
+     -            from_untraced_warmup: self.websocket_session.last_response_from_untraced_warmup,
+     -        })
+     +        (
+    -+            Some(WebsocketContinuation {
+    ++            Ok(WebsocketContinuation {
+     +                response_id: last_response.response_id,
+     +                items: incremental_items,
+     +                from_untraced_warmup: previous_response_id_from_untraced_warmup,
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+          }
+      
+          /// Opportunistically preconnects a websocket for this turn-scoped client session.
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+              service_tier: Option<String>,
+              responses_metadata: &CodexResponsesMetadata,
+              inference_trace: &InferenceTraceContext,
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+          ) -> Result<ResponseStream> {
+              let auth_manager = self.client.state.provider.auth_manager();
+              let mut auth_recovery = auth_manager
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+                      request.input = input;
+                  }
+                  inference_trace_attempt.record_started(&request);
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+                  let stream_result = client.stream_request(request, options).await;
+      
+                  match stream_result {
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+                              inference_trace_attempt,
+                              Arc::clone(&self.client.state.provider),
+                              interceptors,
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+                          );
+                          return Ok(stream);
+                      }
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+                              response_debug_context.request_id.as_deref(),
+                              /*output_items*/ &[],
+                          );
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+                          pending_retry = PendingUnauthorizedRetry::from_recovery(
+                              handle_unauthorized(
+                                  unauthorized_transport,
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+                              response_debug_context.request_id.as_deref(),
+                              /*output_items*/ &[],
+                          );
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+                  if let Some(turn_state) = self.turn_state.get() {
+                      client_metadata.insert(X_CODEX_TURN_STATE_HEADER.to_string(), turn_state.clone());
+                  }
+    --            let continuation = self.prepare_websocket_request(&request);
+    -+            let (continuation, continuation_report) = self.prepare_websocket_request(&request);
+    -             let (mode, reason) = if continuation.is_some() {
+    -                 ("incremental", "incremental")
+    -             } else {
+    ++            let (continuation_result, continuation_report) =
+    ++                self.prepare_websocket_request(&request);
+    +             let (continuation, mode, reason, previous_item_type, current_item_type) =
+    +-                match self.prepare_websocket_request(&request) {
+    ++                match continuation_result {
+    +                     Ok(continuation) => (
+    +                         Some(continuation),
+    +                         "incremental",
+     @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+                      },
+                      &mut ws_payload.client_metadata,
+    @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+                              .await?
+                          {
+     @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    -                     service_tier,
+    -                     responses_metadata,
+    -                     inference_trace,
+    -+                    diagnostic_attempts,
+    -                 )
+    -                 .await
+    +                         service_tier,
+    +                         responses_metadata,
+    +                         inference_trace,
+    ++                        diagnostic_attempts,
+    +                     )
+    +                     .await
+                  }
+     @@ codex-rs/core/src/client.rs: fn map_response_stream(
+          inference_trace_attempt: InferenceTraceAttempt,
+    @@ codex-rs/core/src/client_common.rs: impl Default for Prompt {
+          }
+      }
+     
+    + ## codex-rs/core/src/client_tests.rs ##
+    +@@ codex-rs/core/src/client_tests.rs: fn websocket_incremental_reuse_tracks_raw_result_metadata() -> anyhow::Result<()
+    +             })
+    +             .unwrap();
+    +         session.websocket_session.last_response_rx = Some(receiver);
+    +-        let continuation = session.prepare_websocket_request(&current);
+    ++        let (continuation, _report) = session.prepare_websocket_request(&current);
+    +         assert_eq!(
+    +             continuation.map(|continuation| (
+    +                 continuation.response_id,
+    +@@ codex-rs/core/src/client_tests.rs: fn websocket_continuation_reports_unavailable_response_state() {
+    +     let mut session = client.new_session();
+    +     session.websocket_session.last_request = Some(request.clone());
+    +     assert_eq!(
+    +-        session.prepare_websocket_request(&request).err(),
+    ++        session.prepare_websocket_request(&request).0.err(),
+    +         Some(NonIncrementalReason::NoPreviousResponse),
+    +     );
+    + 
+    +     let (sender, receiver) = tokio::sync::oneshot::channel();
+    +     session.websocket_session.last_response_rx = Some(receiver);
+    +     assert_eq!(
+    +-        session.prepare_websocket_request(&request).err(),
+    ++        session.prepare_websocket_request(&request).0.err(),
+    +         Some(NonIncrementalReason::NoPreviousResponse),
+    +     );
+    +     drop(sender);
+    +@@ codex-rs/core/src/client_tests.rs: fn websocket_continuation_reports_unavailable_response_state() {
+    +     drop(sender);
+    +     session.websocket_session.last_response_rx = Some(receiver);
+    +     assert_eq!(
+    +-        session.prepare_websocket_request(&request).err(),
+    ++        session.prepare_websocket_request(&request).0.err(),
+    +         Some(NonIncrementalReason::NoPreviousResponse),
+    +     );
+    + 
+    +@@ codex-rs/core/src/client_tests.rs: fn websocket_continuation_reports_unavailable_response_state() {
+    +         .unwrap();
+    +     session.websocket_session.last_response_rx = Some(receiver);
+    +     assert_eq!(
+    +-        session.prepare_websocket_request(&request).err(),
+    ++        session.prepare_websocket_request(&request).0.err(),
+    +         Some(NonIncrementalReason::NoPreviousResponseId),
+    +     );
+    + }
+    +
+      ## codex-rs/core/src/compact.rs ##
+     @@ codex-rs/core/src/compact.rs: use std::sync::Arc;
+      use std::time::Instant;
+    @@ codex-rs/core/src/compact.rs: async fn drain_to_completed(
+          let mut output = Vec::new();
+     
+      ## codex-rs/core/src/compact_remote_v2.rs ##
+    -@@ codex-rs/core/src/compact_remote_v2.rs: use std::sync::Arc;
+    +@@ codex-rs/core/src/compact_remote_v2.rs: use crate::compact_retained_tool_outputs::is_retained_tool_output;
+      
+      use crate::Prompt;
+      use crate::ResponseStream;
+     +use crate::cache_diagnostics::CacheDiagnosticAttemptSequencer;
+      use crate::client::ModelClientSession;
+    + use crate::client::ResponsesHttpExecutor;
+      use crate::client_common::ResponseEvent;
+    - use crate::compact::CompactedHistoryMetadata;
+    +@@ codex-rs/core/src/compact_remote_v2.rs: async fn run_remote_compaction_request_v2(
+    +                 stream = http_executor.stream_responses_http(
+    +                     &turn_state, auth_owner_generation, /*event_sender*/ None, prompt, &settings.model_info, &step_context.session_telemetry, effort,
+    +                     settings.reasoning_summary, settings.service_tier.clone(), responses_metadata,
+    +-                    &trace,
+    ++                    &trace, &CacheDiagnosticAttemptSequencer::default(),
+    +                 ) => stream?,
+    +             };
+    +             return collect_compaction_output(
+     @@ codex-rs/core/src/compact_remote_v2.rs: async fn run_remote_compaction_request_v2(
+              .stream_max_retries()
+              .min(MAX_REMOTE_COMPACTION_V2_STREAM_RETRIES);
+    @@ codex-rs/core/src/compact_remote_v2.rs: async fn run_remote_compaction_request_v
+     -            .stream(
+     +            .stream_with_diagnostic_attempts(
+                      prompt,
+    -                 turn_context.model_info(),
+    +                 &settings.model_info,
+                      &turn_context.session_telemetry,
+     @@ codex-rs/core/src/compact_remote_v2.rs: async fn run_remote_compaction_request_v2(
+                      step_context.settings.service_tier.clone(),
+    @@ codex-rs/core/src/compact_remote_v2_attempt.rs: pub(super) async fn run_remote_c
+     +        tool_build_provenance: None,
+          };
+      
+    -     let mut responses_metadata = sess
+    +     let mut responses_metadata = match captured_window {
+     
+      ## codex-rs/core/src/lib.rs ##
+     @@
+    @@ codex-rs/core/src/session/mod.rs: impl Session {
+          /// The caller must retain it explicitly if it is selected for execution.
+          async fn capture_speculative_step_context(
+     
+    - ## codex-rs/core/src/session/review.rs ##
+    -@@ codex-rs/core/src/session/review.rs: pub(super) async fn spawn_review_thread(
+    -         per_turn_config,
+    -         step_settings,
+    -         available_models,
+    -+        available_models_lock_contention_fallback: false,
+    -         unified_exec_shell_mode,
+    -         turn_metadata_state,
+    -     );
+    -
+      ## codex-rs/core/src/session/session.rs ##
+     @@ codex-rs/core/src/session/session.rs: impl Session {
+                          &initial_history,
+    @@ codex-rs/core/src/session/turn.rs: pub(crate) async fn run_turn(
+     -    // when they would push the thread over the compaction threshold.
+     +    // Pre-turn compaction projects incoming turn input without recording it, so a compact request
+     +    // still contains only the stored history it will replace.
+    -     if let Err(err) = run_pre_sampling_compact(
+    -         &sess,
+    -         &turn_context,
+    -+        &input,
+    -         &mut client_session,
+    -         &cancellation_token,
+    -     )
+    +     if auto_compaction_enabled
+    +         && let Err(err) = run_pre_sampling_compact(
+    +             &sess,
+    +             &turn_context,
+    ++            &input,
+    +             &mut client_session,
+    +             &cancellation_token,
+    +         )
+     @@ codex-rs/core/src/session/turn.rs: async fn track_turn_resolved_config_analytics(
+      async fn run_pre_sampling_compact(
+          sess: &Arc<Session>,
+    @@ codex-rs/core/src/session/turn.rs: async fn track_turn_resolved_config_analytics
+     +        pending_tokens,
+     +    )
+     +    .await;
+    +     let candidate = super::async_compaction::take_ready(sess, turn_context).await;
+          // Compact if the configured auto-compaction budget or usable context window is exhausted.
+    -     if token_status.token_limit_reached {
+    -         // Pre-turn compaction runs before run_turn creates the normal sampling step.
+    +     if token_status.token_limit_reached || candidate.is_some() {
+     @@ codex-rs/core/src/session/turn.rs: async fn run_auto_compact(
+                      Arc::clone(sess),
+                      Arc::clone(turn_context),
+    @@ codex-rs/core/src/session/turn.rs: pub(crate) fn build_prompt(
+      }
+      
+     @@ codex-rs/core/src/session/turn.rs: async fn run_sampling_request(
+    -     );
+          let max_retries = turn_context.provider.info().stream_max_retries();
+    +     record_registration_metrics(&step_context.tool_router, &step_context.session_telemetry);
+          let mut retry_state = ResponsesStreamRetryState::default();
+     +    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
+          let mut initial_input = Some(input);
+    @@ codex-rs/core/src/session/turn_context.rs: pub struct TurnContext {
+     +    /// spawn-agent tool description and with it the cached prompt prefix, so
+     +    /// diagnostics must be able to attribute that change.
+     +    pub(crate) available_models_lock_contention_fallback: bool,
+    -     pub(crate) unified_exec_shell_mode: UnifiedExecShellMode,
+          pub(crate) final_output_json_schema: Option<Value>,
+          pub(crate) dynamic_tools: Vec<DynamicToolSpec>,
+    +     pub(crate) turn_metadata_state: Arc<TurnMetadataState>,
+    +@@ codex-rs/core/src/session/turn_context.rs: impl TurnContext {
+    +             originator: self.originator.clone(),
+    +             initial_environments: self.initial_environments.clone(),
+    +             available_models,
+    ++            available_models_lock_contention_fallback: false,
+    +             current_date: self.current_date.clone(),
+    +             timezone: self.timezone.clone(),
+    +             app_server_client_name: self.app_server_client_name.clone(),
+     @@ codex-rs/core/src/session/turn_context.rs: impl TurnContext {
+                  network: self.network.clone(),
+                  windows_sandbox_level: self.windows_sandbox_level,
+                  available_models: self.available_models.clone(),
+     +            available_models_lock_contention_fallback: self
+     +                .available_models_lock_contention_fallback,
+    -             unified_exec_shell_mode: self.unified_exec_shell_mode.clone(),
+                  final_output_json_schema: self.final_output_json_schema.clone(),
+                  dynamic_tools: self.dynamic_tools.clone(),
+    +             turn_metadata_state: self.turn_metadata_state.clone(),
+     @@ codex-rs/core/src/session/turn_context.rs: impl Session {
+              let model_info = &step_settings.model_info;
+              let session_telemetry_for_context = step_settings.telemetry(session_telemetry);
+    @@ codex-rs/core/src/session/turn_context.rs: impl Session {
+     +                Ok(models) => (models, false),
+     +                Err(_) => (Vec::new(), true),
+     +            };
+    -         let unified_exec_shell_mode = UnifiedExecShellMode::for_session(
+    -             per_turn_config.features.get(),
+    -             crate::tools::tool_user_shell_type(user_shell),
+    + 
+    +         let mut per_turn_config = per_turn_config;
+    +         let configured_token_budget = per_turn_config.token_budget.clone();
+     @@ codex-rs/core/src/session/turn_context.rs: impl Session {
+                  network,
+                  windows_sandbox_level: session_configuration.windows_sandbox_level,
+                  available_models,
+     +            available_models_lock_contention_fallback,
+    -             unified_exec_shell_mode,
+                  final_output_json_schema: None,
+                  dynamic_tools: session_configuration.dynamic_tools.clone(),
+    +             turn_metadata_state,
+     
+      ## codex-rs/core/src/state/session.rs ##
+     @@ codex-rs/core/src/state/session.rs: pub(crate) struct SessionState {
+ 45:  007f93b2dd !  45:  46b53de989 Preserve startup and MCP sampling authority
+    @@ codex-rs/codex-mcp/src/binding.rs: impl McpBinding {
+          pub fn has_servers(&self) -> bool {
+              self.connections.has_servers()
+          }
+    -@@ codex-rs/codex-mcp/src/binding.rs: pub struct PreparedMcpCall {
+    +@@ codex-rs/codex-mcp/src/binding.rs: impl From<ToolInfo> for PreparedToolInfo {
+      }
+      
+      impl PreparedMcpCall {
+ 46:  b95b34c97f !  46:  1ddb88042f Reconcile response stream diagnostics
+    @@ Commit message
+         Reconcile response stream diagnostics
+     
+      ## codex-rs/core/src/client.rs ##
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+                              Arc::clone(&self.client.state.provider),
+                              interceptors,
+                              cache_diagnostic_attempt,
+ 47:  cfd1af4e08 =  47:  6fed25ae6d Format integrated tool catalog port
+ 48:  7b48498bc2 !  48:  52f17c916b Align lockfile with local release version
+    @@ codex-rs/Cargo.lock: checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c079
+      [[package]]
+      name = "app_test_support"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-agent-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-core",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-agent-graph-store"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "codex-state",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-agent-identity"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-agent-message-board-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-agent-message-board-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "caseless",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-agent-roles"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-config",
+       "codex-file-system",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-analytics"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-app-server-protocol",
+       "codex-git-utils",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-ansi-escape"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "ansi-to-tui",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-api"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "assert_matches",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-app-server"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "app_test_support",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-app-server-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-app-server",
+       "codex-app-server-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-app-server-daemon"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "blake3",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-app-server-protocol"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-app-server-protocol-noop-macros",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-app-server-protocol-noop-macros"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      
+      [[package]]
+      name = "codex-app-server-test-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-app-server-transport"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "axum",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-apply-patch"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "assert_cmd",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-arg0"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-apply-patch",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-async-utils"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "rand 0.9.3",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-attachment-store"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "serde",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-aws-auth"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "aws-config",
+       "aws-credential-types",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-backend-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-api",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-backend-openapi-models"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "serde",
+       "serde_json",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-build-info"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-install-context",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-bwrap"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "cc",
+       "libc",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      
+     +[[package]]
+     +name = "codex-cache-diagnostics"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+     +dependencies = [
+     + "base64 0.22.1",
+     + "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-chatgpt"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-cli"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "app_test_support",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-http-client",
+       "eventsource-stream",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+    + [[package]]
+    + name = "codex-cloud-client"
+    +-version = "0.0.0"
+    ++version = "0.163.0+local.11"
+    + dependencies = [
+    +  "anyhow",
+    +  "async-stream",
+    +@@ codex-rs/Cargo.lock: dependencies = [
+    + 
+      [[package]]
+      name = "codex-cloud-config"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-cloud-tasks"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-cloud-tasks-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-cloud-tasks-mock-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "chrono",
+       "codex-cloud-tasks-client",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-code-mode"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-code-mode-protocol",
+       "codex-http-client",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-code-mode-host"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "axum",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-code-mode-protocol"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "glob",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-code-mode-runtime"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-code-mode-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-collaboration-mode-templates"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      
+      [[package]]
+      name = "codex-config"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-config-schema"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-connectors"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "arc-swap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-connectors-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-connectors",
+       "codex-core-plugins",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-context-fragments"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "codex-utils-string",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-core"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "arc-swap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-core-api"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-analytics",
+       "codex-app-server-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-core-plugin-common"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-utils-absolute-path",
+       "semver",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-core-plugins"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-diagnostics"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "libc",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-exec"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "assert_cmd",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-exec-server"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "arc-swap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-exec-server-protocol"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-file-system",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-exec-server-test-support"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-exec-server",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-execpolicy"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-experimental-api-macros"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "proc-macro2",
+       "quote",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-extension-api"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-api",
+       "codex-config",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-extension-items"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-utils-absolute-path",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-external-agent-migration"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "chrono",
+       "codex-analytics",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-features"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-network-proxy",
+       "codex-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-feedback"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "bytes",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-file-search"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-file-system"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "bytes",
+       "codex-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-file-watcher"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "notify",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-git-attribution"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-backend-client",
+       "codex-extension-api",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-git-utils"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-goal-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-guardian-context"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-context-fragments",
+       "codex-history",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-guardian-reviewer"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-analytics",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-guardian-v2"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-analytics",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-history"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-history-notes-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-analytics",
+       "codex-client",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-home"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-extension-api",
+       "codex-utils-absolute-path",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-hooks"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "async-channel",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-http-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "bytes",
+       "codex-utils-cargo-bin",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-image-generation-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-api",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-install-context"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-utils-absolute-path",
+       "codex-utils-home-dir",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-keyring-store"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "keyring",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-linux-sandbox"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "clap",
+       "codex-core",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-lmstudio"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-core",
+       "codex-http-client",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-login"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-mcp"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "arc-swap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-mcp-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "axum",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-memories-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-core",
+       "codex-extension-api",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-memories-read"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "codex-shell-command",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-memories-write"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-mermaid"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "insta",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-message-history"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-config",
+       "memchr",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-model-provider"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-model-provider-info"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-client",
+       "codex-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-models-manager"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "chrono",
+       "codex-http-client",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-mxc-sandbox"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "appcontainer_common",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-network-proxy"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-ollama"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "assert_matches",
+       "async-stream",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-otel"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "bytes",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-otel-trace-websocket"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "axum",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-plugin"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-config",
+       "codex-core-plugin-common",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-process-hardening"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "libc",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-prompts"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-collaboration-mode-templates",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-protocol"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chardetng",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-queue-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-core",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-realtime-webrtc"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-build-info",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-response-debug-context"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-api",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-responses-api-proxy"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-rmcp-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "axum",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-rollout"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-rollout-trace"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-code-mode",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-sandboxing"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-mxc-sandbox",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-secrets"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "age",
+       "anyhow",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-shell-command"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+    - [[package]]
+    - name = "codex-shell-escalation"
+    --version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    - dependencies = [
+    -  "anyhow",
+    -  "clap",
+    -@@ codex-rs/Cargo.lock: dependencies = [
+    - 
+      [[package]]
+      name = "codex-skills"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "codex-shell-command",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-skills-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "assert_matches",
+       "blake3",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-state"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "chrono",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-stdio-to-uds"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-uds",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-tcp-tunnel"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "bytes",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-terminal-detection"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "tracing",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-test-binary-support"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-arg0",
+       "tempfile",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-thread-manager-sample"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "clap",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-thread-store"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "chrono",
+       "codex-app-server-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-tools"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "bitflags 2.13.1",
+       "codex-code-mode",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-tui"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "app_test_support",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-uds"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "async-io",
+       "libc",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-user-verification"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "core-foundation 0.10.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-absolute-path"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "dirs",
+       "dunce",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-approval-presets"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+      ]
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-audio"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-cache"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "lru",
+       "sha1 0.10.6",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-cargo-bin"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "assert_cmd",
+       "runfiles",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-cli"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "clap",
+       "codex-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-elapsed"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      
+      [[package]]
+      name = "codex-utils-fuzzy-match"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      
+      [[package]]
+      name = "codex-utils-git-discovery"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-git-utils",
+       "codex-utils-absolute-path",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-home-dir"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-utils-absolute-path",
+       "dirs",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-image"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-utils-cache",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-json-to-toml"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "serde_json",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-oss"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-core",
+       "codex-lmstudio",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-output-truncation"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "codex-utils-string",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-path"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-utils-absolute-path",
+       "dunce",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-path-uri"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+       "codex-utils-absolute-path",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-plugins"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-exec-server",
+       "codex-exec-server-protocol",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-process"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "tokio",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-pty"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-utils-cargo-bin",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-readiness"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "assert_matches",
+       "thiserror 2.0.18",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-redacted-string"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "schemars 0.8.22",
+       "serde",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-rustls-provider"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "rustls",
+      ]
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-sandbox-summary"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+       "codex-utils-absolute-path",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-sleep-inhibitor"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "core-foundation 0.9.4",
+       "libc",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-stream-parser"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+      ]
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-string"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "regex-lite",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-utils-template"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+      ]
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-v8-poc"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "pretty_assertions",
+       "v8",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-voice-host"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-install-context",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-web-search-extension"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-api",
+       "codex-core",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-websocket-auth"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-websocket-client"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-http-client",
+       "codex-utils-rustls-provider",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-windows-sandbox"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "base64 0.22.1",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-windows-sandbox-service"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-cloud-config",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+    + [[package]]
+    + name = "codex-windows-sandbox-test-support"
+    +-version = "0.0.0"
+    ++version = "0.163.0+local.11"
+    + dependencies = [
+    +  "dirs",
+    + ]
+    + 
+      [[package]]
+      name = "codex-workload-identity"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "codex-http-client",
+       "pretty_assertions",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "codex-worktree"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "codex-git-utils",
+    @@ codex-rs/Cargo.lock: dependencies = [
+      [[package]]
+      name = "core_test_support"
+     -version = "0.0.0"
+    -+version = "0.159.2+local.9"
+    ++version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+       "assert_cmd",
+ 49:  aaccafc728 =  49:  5b7a02c339 Index local.9 installation record
+ 50:  f3c9ffb264 <   -:  ---------- Align the stable workspace lock with local.10
+ 51:  87478bae11 =  50:  932c775bd3 Restore catalog digest attribution on cold resume
+ 52:  43754bcfc2 !  51:  08d4bf402e Make asynchronous turn reservation admission atomic
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+              self.record_started_turn(&turn_context.sub_id, (task_kind == TaskKind::Regular).then(|| turn_context.attribution())).await;
+              let (pending_items, _, child_result_origins) = self
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -         debug_assert!(turn.task.is_none());
+    +         turn.finishing = None;
+              let turn_state = Arc::clone(&turn.turn_state);
+              turn_state.lock().await.token_usage_at_turn_start = token_usage_at_turn_start.clone();
+     +        self.input_queue
+ 53:  37531c9f86 =  52:  a8834cc492 Budget finalized Guardian review context at sampling
+ 54:  e16b275857 <   -:  ---------- Preserve denied-read authority for persistent terminals
+  -:  ---------- >  53:  c31dc97058 Preserve denied-read authority for persistent terminals
+ 55:  cd8a297114 !  54:  18123473c1 Correlate fixture responses and completion with admitted turns
+    @@ codex-rs/core/src/agent/role_tests.rs: fn spawn_tool_spec_omits_role_service_tie
+      }
+     
+      ## codex-rs/core/src/client_tests.rs ##
+    -@@ codex-rs/core/src/client_tests.rs: fn websocket_incremental_reuse_tracks_raw_result_metadata() -> anyhow::Result<()
+    -             })
+    -             .unwrap();
+    -         session.websocket_session.last_response_rx = Some(receiver);
+    --        let continuation = session.prepare_websocket_request(&current);
+    -+        let (continuation, _report) = session.prepare_websocket_request(&current);
+    -         assert_eq!(
+    -             continuation.map(|continuation| (
+    -                 continuation.response_id,
+     @@ codex-rs/core/src/client_tests.rs: async fn intercepted_output_reaches_trace_and_websocket_bookkeeping() -> anyhow:
+              attempt,
+              test_model_provider(),
+ 56:  c5c11fe954 !  55:  5d8b8306bc Sample refreshed app authority in a fresh Code Mode cell
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_result_metadata_keeps
+          assert_eq!(
+              terminal_output["internal_chat_message_metadata_passthrough"]["tool_calls_complete"],
+              true
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+                  protocol_mode: None,
+              }),
+              gate: Mutex::new(Some((reached_tx, release_rx))),
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+              .with_code_mode_host_program(codex_utils_cargo_bin::cargo_bin("codex-code-mode-host")?)
+              .with_config(|config| {
+                  config.features.enable(Feature::CodeModeHost).unwrap();
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+          let later_arguments = serde_json::json!({ "query": "later" });
+          let code = format!(
+              "const tool = ALL_TOOLS.find(({{ name }}) => name.endsWith(\"{RESULT_METADATA_TOOL}\")); \
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+               await tools[tool.name]({later_arguments}); text(\"accepted\"); \
+               yield_control(); await new Promise(() => {{}});"
+          );
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+              .context("first call did not reach the result gate")??;
+      
+          let first_input = first_request.input();
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+          let original_output = initial_calls[0];
+          let original_id = original_output["call_id"].as_str().unwrap().to_string();
+          let original_type = original_output["type"].as_str().unwrap().to_string();
+    -     let truncated =
+    +     let recorded =
+     -        &original_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"][0];
+     +        original_output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"]
+     +            .as_array()
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+     +            })
+     +            .expect("the prepared app call");
+          assert!(
+    -         truncated["name"]
+    +         recorded["name"]
+                  .as_str()
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+                  .find(|item| item["type"] == original_type && item["call_id"] == original_id)
+                  .expect("captured original output");
+              let captured_calls =
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+     +                .filter(|call| call["name"] != "test_sync_tool")
+     +                .collect::<Vec<_>>();
+     +        assert_eq!(captured_calls.len(), 1);
+    -         assert_eq!(captured_calls[0]["arguments"], truncated["arguments"]);
+    +         assert_eq!(captured_calls[0]["arguments"], recorded["arguments"]);
+              assert_eq!(captured_calls[0]["tool_result_metadata"], metadata);
+              assert_ne!(
+    -@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result_metadata_survives_waits() -> Result<()>
+    +@@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
+                  let terminal_input = terminal_request.input();
+                  assert_eq!(result_metadata_fixture_calls(&terminal_input).count(), 2);
+                  let original = terminal_request.call_output(&original_id, &original_type);
+     -            assert_eq!(
+     -                original["internal_chat_message_metadata_passthrough"]["executed_tool_calls"][0]["arguments"],
+    --                truncated["arguments"]
+    +-                recorded["arguments"]
+     -            );
+     -            assert!(
+     -                original["internal_chat_message_metadata_passthrough"]["executed_tool_calls"][0]
+    @@ codex-rs/core/tests/suite/code_mode.rs: async fn code_mode_late_truncated_result
+     +                    .filter(|call| call["name"] != "test_sync_tool")
+     +                    .collect::<Vec<_>>();
+     +            assert_eq!(original_calls.len(), 1);
+    -+            assert_eq!(original_calls[0]["arguments"], truncated["arguments"]);
+    ++            assert_eq!(original_calls[0]["arguments"], recorded["arguments"]);
+     +            assert!(original_calls[0].get("tool_result_metadata").is_none());
+              }
+          }
+ 57:  b010f40f55 =  56:  26df71229d Synchronize child fixtures with terminal parent continuations
+ 58:  18e9a9c8aa =  57:  7d91b88214 Route board fixture phases without stealing parent continuations
+ 59:  67c31562c6 =  58:  cf030a4313 Keep Guardian fixtures aligned with current root authorization
+ 60:  b57494044d !  59:  197a8d6ba9 Isolate selected catalog and review fixtures from host configuration
+    @@ codex-rs/core/tests/suite/review.rs: async fn review_uses_custom_review_model_fr
+          server.verify().await;
+     
+      ## codex-rs/core/tests/suite/scenarios.rs ##
+    -@@ codex-rs/core/tests/suite/scenarios.rs: use std::time::Duration;
+    - use anyhow::Result;
+    +@@ codex-rs/core/tests/suite/scenarios.rs: use anyhow::Result;
+      use base64::Engine;
+      use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+    + use codex_analytics::CompactionTrigger;
+     +use codex_config::ConfigLayerEntry;
+      use codex_config::ConfigLayerSource;
+      use codex_config::ConfigLayerStack;
+    @@ codex-rs/core/tests/suite/scenarios.rs: async fn astra_refreshes_plugin_tools_an
+              )
+          );
+     
+    - ## codex-rs/core/tests/suite/skill_approval.rs ##
+    -@@ codex-rs/core/tests/suite/skill_approval.rs: async fn shell_zsh_fork_skill_scripts_ignore_declared_permissions() -> Result<()
+    -         "expected skill script execution to skip the removed skill approval path"
+    -     );
+    - 
+    --    wait_for_turn_complete(&test).await;
+    --
+    -     let call_output = mocks
+    -         .completion
+    -         .single_request()
+    -
+      ## codex-rs/ext/skills/src/host_service_tests.rs ##
+     @@ codex-rs/ext/skills/src/host_service_tests.rs: async fn snapshot_for_config_merges_extension_host_and_legacy_plugin_roots() {
+          );
+ 61:  8e262c8496 !  60:  4767f9b2a5 Align stable validation with local Goal and diagnostic behavior
+    @@ codex-rs/.config/nextest.toml: slow-timeout = { period = "1m", terminate-after =
+     
+      ## codex-rs/app-server/tests/suite/v2/remote_thread_store.rs ##
+     @@ codex-rs/app-server/tests/suite/v2/remote_thread_store.rs: fn assert_no_local_persistence_artifacts(codex_home: &Path) -> Result<()> {
+    -     // initialize shell snapshot storage. Neither is thread persistence.
+    -     entries.remove(".sandbox_migration");
+    +     #[cfg(windows)]
+    +     entries.remove(".sandbox");
+          entries.remove("shell_snapshots");
+     +    // Local request diagnostics contain no thread persistence.
+     +    entries.remove("cache-diagnostics");
+    @@ codex-rs/app-server/tests/suite/v2/thread_goal_empty_responses.rs: use tokio::ti
+      async fn empty_goal_continuations_block_after_three_without_activity(
+          recovery: Option<&str>,
+      ) -> Result<()> {
+    --    let turns = if recovery.is_some() { 6 } else { 3 };
+     +    // Tool activity alone does not reset the local empty-output breaker.
+    -+    let turns = if matches!(recovery, Some("final_answer" | "commentary")) {
+    -+        6
+    -+    } else {
+    -+        3
+    -+    };
+    +     let turns = match recovery {
+    +         Some("interrupt") => 4,
+    +-        Some(_) => 6,
+    +-        None => 3,
+    ++        Some("final_answer" | "commentary") => 6,
+    ++        Some(_) | None => 3,
+    +     };
+          let mut scripts = Vec::new();
+          for turn in 1..=turns {
+    -         let mut id = format!("response-{turn}");
+ 62:  116709c5b2 =  61:  2e26242a09 Refresh stable fixtures for preserved local context
+ 63:  b010455183 =  62:  43f6f4298d Record stable local.10 validation and installation
+ 64:  630d7ae52f =  63:  88ee63c351 Record verified publication and final build cleanup
+ 65:  24e16f3a71 =  64:  4180b515ae Record verified local.10 managed daemon replacement
+ 66:  a7556ff845 =  65:  6c04a55547 Install local packages deterministically
+ 67:  1a7fa4f957 <   -:  ---------- Adapt preserved local patches to stable 0.162.1 interfaces
+  -:  ---------- >  66:  1f060d988e Adapt preserved local patches to stable 0.162.1 interfaces
+ 68:  688763bde3 =  67:  a65cb1758b Record stable 0.162.1 preservation plan and original provenance
+ 69:  7ac1861559 =  68:  c3169b5273 Assert fresh child base instructions in upstream input prefix
+ 70:  ed5d41067d =  69:  756d7ff348 Pin terminal result retention for unloaded recipients
+ 71:  d70fbbe10c !  70:  e00148a5e5 Preserve private instruction fingerprints across request migration
+    @@ codex-rs/core/src/cache_diagnostics.rs: impl CacheDiagnostics {
+                      thread_id: Some(&metadata.thread_id),
+     
+      ## codex-rs/core/src/client.rs ##
+    -@@ codex-rs/core/src/client.rs: impl ModelClientSession {
+    +@@ codex-rs/core/src/client.rs: impl ResponsesHttpExecutor<'_> {
+                          let attempt = diagnostics.start_responses_attempt(
+                              responses_metadata,
+                              &request,
+ 72:  7df4a6bac6 =  71:  d03bd38465 Register unloaded result recipient in regression fixture
+ 73:  293ad72136 !  72:  0079d0c7b1 Compose atomic async admission with upstream turn attribution
+    @@ Commit message
+     
+         Reuse Session::reserve_pending_work_turn rather than accessing private state from tasks. The existing helper retains attribution under the admission lock; accepted async result IDs extend its wake conditions without changing Goal admission. Review construction initializes the local frozen-model diagnostic in the new initializer. Cargo regenerated versions for two newly inherited workspace crates.
+     
+    - ## codex-rs/Cargo.lock ##
+    -@@ codex-rs/Cargo.lock: dependencies = [
+    - 
+    - [[package]]
+    - name = "codex-cloud-client"
+    --version = "0.0.0"
+    -+version = "0.162.1+local.11"
+    - dependencies = [
+    -  "anyhow",
+    -  "async-stream",
+    -@@ codex-rs/Cargo.lock: dependencies = [
+    - 
+    - [[package]]
+    - name = "codex-windows-sandbox-test-support"
+    --version = "0.0.0"
+    -+version = "0.162.1+local.11"
+    - dependencies = [
+    -  "dirs",
+    - ]
+    -
+    - ## codex-rs/core/src/session/review.rs ##
+    -@@ codex-rs/core/src/session/review.rs: pub(super) async fn spawn_review_thread(
+    -         per_turn_config,
+    -         step_settings,
+    -         available_models,
+    --        available_models_lock_contention_fallback: false,
+    -         unified_exec_shell_mode,
+    -         turn_metadata_state,
+    -     );
+    -
+    - ## codex-rs/core/src/session/turn_context.rs ##
+    -@@ codex-rs/core/src/session/turn_context.rs: impl TurnContext {
+    -             originator: self.originator.clone(),
+    -             initial_environments: self.initial_environments.clone(),
+    -             available_models,
+    -+            available_models_lock_contention_fallback: false,
+    -             unified_exec_shell_mode,
+    -             current_date: self.current_date.clone(),
+    -             timezone: self.timezone.clone(),
+    -
+      ## codex-rs/core/src/session/turn_input.rs ##
+     @@ codex-rs/core/src/session/turn_input.rs: impl Session {
+          )]
+ 74:  1fffedf05c =  73:  fd8f41b132 Adapt local fixture constructors to upstream history and turn metadata
+ 75:  69d47ecc06 =  74:  848cdfd618 Retain terminal results across unloaded recipient delivery
+ 76:  0406d513ed =  75:  e5bc0e6331 Assert unloaded result payload origin and single consumption
+ 77:  d026276c5d !  76:  9e5c73a565 Preserve asynchronous deliveries across agent unloading
+    @@ codex-rs/core/src/agent/control/mailbox.rs: impl Mailboxes {
+     +}
+     
+      ## codex-rs/core/src/agent/control/residency.rs ##
+    -@@ codex-rs/core/src/agent/control/residency.rs: impl V2Residency {
+    -                 let mail = candidate_thread
+    -                     .session
+    -                     .input_queue
+    --                    .drain_mailbox()
+    --                    .await
+    --                    .into_iter()
+    --                    .map(|mail| mail.communication)
+    --                    .collect();
+    -+                    .drain_mailbox_deliveries_for_unload()
+    -+                    .await;
+    -                 // A concurrent tree shutdown deliberately discards its unread mail.
+    -                 let _ = candidate_thread
+    -                     .session
+    -                     .services
+    -                     .local_agent_runtime
+    -                     .mailboxes
+    --                    .enqueue(candidate_thread_id, /*id*/ None, mail);
+    -+                    .enqueue_deliveries(candidate_thread_id, /*id*/ None, mail);
+    -                 let environments = candidate_thread.environment_selections().await;
+    -                 let mut threads = manager.threads.write().await;
+    -                 if threads
+    +@@ codex-rs/core/src/agent/control/residency.rs: impl ThreadManagerState {
+    +             let mail = thread
+    +                 .session
+    +                 .input_queue
+    +-                .drain_mailbox()
+    +-                .await
+    +-                .into_iter()
+    +-                .map(|mail| mail.communication)
+    +-                .collect();
+    ++                .drain_mailbox_deliveries_for_unload()
+    ++                .await;
+    +             let runtime = &thread.session.services.local_agent_runtime;
+    +-            let _ = runtime.mailboxes.enqueue(thread_id, /*id*/ None, mail);
+    ++            let _ = runtime
+    ++                .mailboxes
+    ++                .enqueue_deliveries(thread_id, /*id*/ None, mail);
+    +             let environments = thread.environment_selections().await;
+    +             let mut threads = manager.threads.write().await;
+    +             if threads
+     
+      ## codex-rs/core/src/session/input_queue.rs ##
+     @@
+ 78:  e03967ce3a =  77:  904d5073cc Describe typed retained mailbox delivery contract
+ 79:  d6f33ad6de !  78:  d26a67a401 Pin parent residency protection through child cancellation
+    @@ codex-rs/core/src/agent/control/residency_tests.rs: async fn spawn_v2_subagent(
+     +    source: SessionSource,
+      ) -> crate::thread_manager::NewThread {
+          state
+    -         .spawn_new_thread_with_source(
+    -             config,
+    -             control.clone(),
+    --            SessionSource::SubAgent(SubAgentSource::Other(label.to_string())),
+    -+            source,
+    -             /*history_mode*/ None,
+    -             /*dynamic_tools*/ Vec::new(),
+    -             Some(parent_thread_id),
+    +         .spawn_child_thread(
+    +             crate::thread_manager::StartThreadOptions {
+    +-                session_source: Some(SessionSource::SubAgent(SubAgentSource::Other(
+    +-                    label.to_string(),
+    +-                ))),
+    ++                session_source: Some(source),
+    +                 thread_source: Some(ThreadSource::Subagent),
+    +                 ..crate::thread_manager::StartThreadOptions::new(config)
+    +             },
+     @@ codex-rs/core/src/agent/control/residency_tests.rs: async fn clear_active_turn(thread: &CodexThread) {
+          // The fixture has no task runner to clear the turn after the terminal event.
+          *thread.session.active_turn.lock().await = None;
+ 80:  edbe157df0 =  79:  eaaaebab6a Apply required formatting after stable interface migration
+ 81:  4b117098d4 =  80:  0ad51d3a87 Adapt preserved integration fixtures to current upstream contracts
+ 82:  c8a57887ef =  81:  18099c26e9 Keep result parents resident through child task delivery
+ 83:  97d45fca37 !  82:  8dec561669 fix(core): hold parent residency through child terminal delivery
+    @@ codex-rs/core/src/agent/control.rs: mod inspection;
+     +pub(crate) use parent_result::ParentResultResidencyGuard;
+     +pub(crate) use parent_result::cancel_parent_result_residency;
+      mod residency;
+    + pub use residency::ThreadEvictionOutcome;
+      mod resume;
+    - mod root_handoff;
+     @@ codex-rs/core/src/agent/control.rs: impl LocalAgentControl {
+                      Arc::clone(thread)
+                  };
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+                  _timer: timer,
+              };
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -             .turn_metadata_state
+    -             .cancel_git_enrichment_task();
+      
+    +         let finishing = CancellationToken::new();
+    +         let finish_recording = finishing.clone().drop_guard();
+     -        let turn_state = {
+     +        let finished_turn = {
+                  let mut active = self.active_turn.lock().await;
+                  active.as_mut().and_then(|active_turn| {
+                      let task = active_turn.task.take()?;
+                      task.handle.detach();
+    +                 active_turn.finishing = Some(finishing);
+     -                Some(Arc::clone(&active_turn.turn_state))
+     +                Some((
+     +                    Arc::clone(&active_turn.turn_state),
+ 84:  21fc8ed717 =  83:  28571f6ff0 Cover parent result pin release and owner restoration
+ 85:  37d457ce59 =  84:  0948d68507 Align observer wire fixtures with upstream routing field order
+ 86:  d706c8a751 =  85:  10fe138e7c test(core): load replacement fixture from materialized rollout
+ 87:  effd10aef8 =  86:  2c92629f70 Keep mailbox entries compact and document atomic delivery guards
+ 88:  e6916754ae !  87:  d63aa3f0c0 Align preservation fixtures with frozen catalogs and causal routing
+    @@ codex-rs/core/tests/suite/guardian_context_budget.rs: enum ReviewerResponse {
+      #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+      #[test_case(1, ReviewerResponse::Decision; "required_context_fails_closed")]
+     -#[test_case(4_500, ReviewerResponse::ToolContinuation; "oversized_tool_continuation_compacts")]
+    --#[test_case(4_500, ReviewerResponse::FileImageContinuation; "uploaded_original_image_history_compacts")]
+     +#[test_case(5_000, ReviewerResponse::ToolContinuation; "oversized_tool_continuation_compacts")]
+    + #[test_case(7_000, ReviewerResponse::CachedCompactionContinuation; "cached_compaction_fits_reviewer_budget")]
+    +-#[test_case(4_500, ReviewerResponse::FileImageContinuation; "uploaded_original_image_history_compacts")]
+     +#[test_case(5_000, ReviewerResponse::FileImageContinuation; "uploaded_original_image_history_compacts")]
+      #[test_case(5_000, ReviewerResponse::UncompactableContinuation; "ineffective_compaction_fails_closed")]
+      #[test_case(5_000, ReviewerResponse::CompactionError; "compaction_service_error_does_not_request_user_approval")]
+ 89:  cab02caed7 !  88:  ac172ed140 Refresh independently reviewed stable protocol and request fixtures
+    @@ Commit message
+     
+         Accept 49 reviewed snapshots preserving permission evidence, local completion guidance, frozen catalogs and active compaction tool parity. Regenerate the canonical compressed stable protocol bundle: decoded semantic comparison changes only RolloutLine to retain ToolCatalogChanged. Python SDK generation produces no diff. Raw pending snapshots and approved hashes are retained for final evidence archival.
+     
+    - ## codex-rs/app-server-protocol/schema/precomputed/app-server-exports-stable.json.zst ##
+    - Binary files codex-rs/app-server-protocol/schema/precomputed/app-server-exports-stable.json.zst and codex-rs/app-server-protocol/schema/precomputed/app-server-exports-stable.json.zst differ
+    -
+      ## codex-rs/core/src/guardian/snapshots/codex_core__guardian__tests__guardian_followup_review_request_layout.snap ##
+     @@
+      ---
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__compact__pre_turn_compaction_str
+          <MODEL_INSTRUCTIONS>
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_agent_message_board.rs
+    -+assertion_line: 312
+    - expression: "context_snapshot::format_context_snapshot(\"An active agent posts a shared decision and fetches the text without a self-notification.\",\n&bodies.iter().map(SnapshotEntry::body).collect::<Vec<_>>(),\n&ContextSnapshotOptions::default().rewrite_known_segments(),)"
+    - ---
+    - Scenario: An active agent posts a shared decision and fetches the text without a self-notification.
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap: Scenario: An active agent posts a shared decision and fetches the text without a
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap: Scenario: An active agent describes a channel, lists it, posts a shared decision
+          <MODEL_INSTRUCTIONS>
+      01:message/developer:
+          <PERMISSIONS_INSTRUCTIONS>
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__
+          You are `/root`, the primary agent in a team of agents collaborating to fulfill the user's goals.
+      
+          At the start of your turn, you are the active agent.
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap: Scenario: An active agent posts a shared decision and fetches the text without a
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap: Scenario: An active agent describes a channel, lists it, posts a shared decision
+      
+          You can use `spawn_agent` to create a new agent, `followup_task` to give an existing agent a new task an...message to a running agent without triggering a turn. [hash=7d40ff8b58977202]
+          Child agents can also spawn their own sub-agents.
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__
+          - All agents use the same current working directory.
+          - As a result, edits made by one agent are immediately visible to all other agents.
+      
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap: Scenario: An active agent posts a shared decision and fetches the text without a
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__agent_message_board_context.snap: Scenario: An active agent describes a channel, lists it, posts a shared decision
+          There are 4 available concurrency slots, meaning that up to 4 agents can be active at once, including you.
+      
+          Full-history forks (`fork_turns` omitted or `"all"`) inherit the parent model and reasoning effort and d...uctions; when doing so, set `fork_turns` to `"none"`. [hash=18ccf7e93ecabab9]
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__
+     -04:message/user:
+     -    <ENVIRONMENT_CONTEXT>
+      05:message/user:
+    -     Record the decision on the board, notify me, and read it.
+    +     Create and describe a design channel, list it, then post and read the decision.
+      -- request 2 (request) --
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__remote__remote_board_tools.snap ##
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_heartbeat__h
+      01:message/developer:
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools__incremental_tool_removals.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_incremental_tools.rs
+    -+assertion_line: 461
+    - expression: "context_snapshot::format_request_history_snapshot(\"MCP refreshes remove one tool, then its whole namespace, before restoring both tools. Standalone removal notices and the restored namespace append to history; unchanged turns do not repeat updates.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
+    - ---
+    - Scenario: MCP refreshes remove one tool, then its whole namespace, before restoring both tools. Standalone removal notices and the restored namespace append to history; unchanged turns do not repeat updates.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools__incremental_tool_removals.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools__in
+                - function/list_mcp_resources
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools__incremental_tools.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_incremental_tools.rs
+    -+assertion_line: 212
+    - expression: "context_snapshot::format_request_history_snapshot(\"Tool definitions enter history in one batch; a catalog change appends only the changed exec definition with an incremental namespace hint. The next unchanged turn appends no tool definitions.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
+    - ---
+    - Scenario: Tool definitions enter history in one batch; a catalog change appends only the changed exec definition with an incremental namespace hint. The next unchanged turn appends no tool definitions.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools__incremental_tools.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools__in
+                - function/exec_command
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_resume__disable_incremental_tools.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_incremental_tools_resume.rs
+    -+assertion_line: 191
+    - expression: "context_snapshot::format_request_history_snapshot(\"Disabling incremental tools preserves updates in the existing window; after compaction the generated catalog survives resume.\",\n&mock.requests(),\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
+    - ---
+    - Scenario: Disabling incremental tools preserves updates in the existing window; after compaction the generated catalog survives resume.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_resume__disable_incremental_tools.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_res
+                - function/request_user_input
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_resume__legacy_resume_remote_compaction.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_incremental_tools_resume.rs
+    -+assertion_line: 122
+    - expression: "context_snapshot::format_request_history_snapshot(\"A resumed legacy window retains its generated prefix; the next window records tools and instructions once, then emits only tool changes after resume.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
+    - ---
+    - Scenario: A resumed legacy window retains its generated prefix; the next window records tools and instructions once, then emits only tool changes after resume.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_resume__legacy_resume_remote_compaction.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_res
+                - function/exec_command
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_resume__legacy_resume_window_reset.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_incremental_tools_resume.rs
+    -+assertion_line: 122
+    - expression: "context_snapshot::format_request_history_snapshot(\"A resumed legacy window retains its generated prefix; the next window records tools and instructions once, then emits only tool changes after resume.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
+    - ---
+    - Scenario: A resumed legacy window retains its generated prefix; the next window records tools and instructions once, then emits only tool changes after resume.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_resume__legacy_resume_window_reset.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__incremental_tools_res
+                - function/exec_command
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__indirect_namespace_prefixes__catalog_indirect_namespace_prefixes.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_indirect_namespace_prefixes.rs
+    -+assertion_line: 223
+    - expression: "context_snapshot::format_request_history_snapshot(\"Catalog namespace and raw MCP server prefixes annotate embedded docs and ALL_TOOLS; a model switch clears them without changing nested dispatch.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
+    - ---
+    - Scenario: Catalog namespace and raw MCP server prefixes annotate embedded docs and ALL_TOOLS; a model switch clears them without changing nested dispatch.
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__indirect_namespace_prefixes__catalog_indirect_namespace_prefixes.snap: Settings:
+    -   stream: true
+    -   text: {"verbosity":"low"}
+    -   tool_choice: "auto"
+    --  tools (4; hash=7707adf4d5cde816):
+    --    - custom/exec: Run JavaScript code to orchestrate/compose tool calls - Evaluates the provided JavaScript code in...; hash=66e0c24dd8b9010d
+    --    - function/wait: Waits on a yielded `exec` cell and returns new output or completion. - Use `wait` only after `exe...; args=[cell_id, max_tokens, terminate, yield_time_ms]; hash=6692d8f6c55be489
+    -+  tools (4; hash=d40e032fcae808fe):
+    -+    - custom/exec: Run JavaScript code to orchestrate/compose tool calls - Evaluates the provided JavaScript code in...; hash=2c4788cc06530f36
+    -+    - function/wait: Waits on a yielded `exec` cell and returns new output or completion. - Use `wait` only after `exe...; args=[cell_id, max_tokens, terminate, yield_time_ms]; hash=9da8ac6734fa1dee
+    -     - function/request_user_input: Request user input for one to three short questions and wait for the response. This tool is only ...; args=[questions]; hash=64a729b25c424fc6
+    -     - web_search; hash=e214d4db1bc49e89
+    - -- request 1 (turn) --
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__indirect_namespace_prefixes__catalog_indirect_namespace_prefixes.snap: Settings:
+          <MODEL_INSTRUCTIONS>
+      01:message/developer:
+ 90:  ccc49e3f01 =  89:  01042c5443 Bound turn admission stack use at the restoration future
+ 91:  1e4adde9ea =  90:  aedd31403a Make startup attribution and terminal fixtures independent of host timing
+ 92:  5ee08da613 =  91:  338a908586 Record complete stable update validation before installation
+ 93:  4626b410c9 =  92:  1d6473dde6 Record verified local.11 installation and preserve update evidence
+  -:  ---------- >  93:  09a8ccaba7 Let cargo choose build jobs from the machine's core count
+  -:  ---------- >  94:  7342fb1665 Adapt local patches to 0.163.0 interfaces
+  -:  ---------- >  95:  0573d20a2e Compare cached Apps bindings without the live account selector
+  -:  ---------- >  96:  65bde63bf6 Do not count retained tool outputs toward pre-turn compaction
+  -:  ---------- >  97:  85b9879678 Accept 0.163.0 scenario snapshots with local patch output
+  -:  ---------- >  98:  c3053b7702 Version local build 0.163.0+local.12 and refresh schema fixture
+  -:  ---------- >  99:  2eccc40202 Make local package install work on Linux
