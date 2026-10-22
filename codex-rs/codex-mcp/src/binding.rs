@@ -101,7 +101,7 @@ impl McpBinding {
     /// Prepares an advertised call only while its captured execution authority remains current.
     pub fn prepare_call_if_current(&self, current: PreparedMcpCall) -> Option<PreparedMcpCall> {
         let server = current.server_name.as_str();
-        let tool = current.tool_info.tool.name.as_ref();
+        let tool = current.tool_info().tool.name.as_ref();
         if let Some(sampled) = self.prepare_call(server, tool) {
             return sampled
                 .has_same_execution_authority(&current)
@@ -120,7 +120,7 @@ impl McpBinding {
         }
         // Generic caches omit all annotations; Apps caches redact only the read-only hint.
         // Compare the sampled contract, then let the verified live connection supply execution hints.
-        let mut live = current.tool_info.clone();
+        let mut live = current.tool_info().clone();
         // Cached startup can refresh process-specific presentation text without changing the call.
         live.namespace_description = frozen.namespace_description.clone();
         live.tool.description = frozen.tool.description.clone();
@@ -129,7 +129,13 @@ impl McpBinding {
         } else if let Some(annotations) = live.tool.annotations.as_mut() {
             annotations.read_only_hint = None;
         }
-        if frozen != &live {
+        if server == crate::CODEX_APPS_MCP_SERVER_NAME {
+            // Apps account selectors are live execution metadata: the call resolves and validates
+            // the selected link from the live tool, and approvals are scoped to that link.
+            if without_account_selector(frozen.clone()) != without_account_selector(live) {
+                return None;
+            }
+        } else if frozen != &live {
             return None;
         }
         Some(current)
@@ -218,6 +224,28 @@ pub struct PreparedMcpCall {
     selected_plugin_server: bool,
 }
 
+/// Removes the Apps account selector (catalog `link_id`, explicit-selector flag, and `link_id`
+/// argument) so a sampled contract can be compared with a live tool whose account metadata moved.
+fn without_account_selector(mut tool_info: ToolInfo) -> ToolInfo {
+    const LINK_ID: &str = "link_id";
+    if let Some(meta) = tool_info.tool.meta.as_mut() {
+        meta.remove(LINK_ID);
+        if let Some(JsonValue::Object(apps_meta)) =
+            meta.get_mut(crate::MCP_TOOL_CODEX_APPS_META_KEY)
+        {
+            apps_meta.remove("requires_explicit_link_id");
+        }
+    }
+    let schema = Arc::make_mut(&mut tool_info.tool.input_schema);
+    if let Some(JsonValue::Object(properties)) = schema.get_mut("properties") {
+        properties.remove(LINK_ID);
+    }
+    if let Some(JsonValue::Array(required)) = schema.get_mut("required") {
+        required.retain(|name| name.as_str() != Some(LINK_ID));
+    }
+    tool_info
+}
+
 #[derive(Clone)]
 pub(crate) struct PreparedToolInfo {
     catalog: Arc<[ToolInfo]>,
@@ -252,7 +280,7 @@ impl PreparedMcpCall {
     /// Equivalent configuration publications are allowed; replacement clients are not.
     fn has_same_execution_authority(&self, current: &Self) -> bool {
         self.server_name == current.server_name
-            && self.tool_info.tool.name == current.tool_info.tool.name
+            && self.tool_info().tool.name == current.tool_info().tool.name
             && Arc::ptr_eq(&self.client.client, &current.client.client)
             && Arc::ptr_eq(&self.client.tool_catalog, &current.client.tool_catalog)
             && self.catalog_snapshot.revision == current.catalog_snapshot.revision
