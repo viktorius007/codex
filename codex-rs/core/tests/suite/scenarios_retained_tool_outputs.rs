@@ -11,13 +11,30 @@ async fn retained_tool_output_survives_compaction_and_resume() -> Result<()> {
     skip_if_no_network!(Ok(()));
     for enabled in [false, true] {
         let server = start_mock_server().await;
-        let mock = mount_sse_sequence(&server, vec![
-            sse(vec![ev_assistant_message("accepted", "I will investigate the tests."), ev_completed("accepted-response")]),
-            sse(vec![ev_assistant_message("details-accepted", "I will use those task details."), ev_completed("details-response")]),
+        let mut responses = vec![
+            sse(vec![
+                ev_assistant_message("accepted", "I will investigate the tests."),
+                ev_completed("accepted-response"),
+            ]),
+            sse(vec![
+                ev_assistant_message("details-accepted", "I will use those task details."),
+                ev_completed("details-response"),
+            ]),
             sse(vec![ev_completed("instruction-response")]),
-            sse(vec![json!({"type":"response.output_item.done", "item":{"type":"compaction", "encrypted_content":"RETAINED_TOOL_OUTPUT_CHECKPOINT"}}), ev_completed("compact-response")]),
-            sse(vec![ev_assistant_message("resumed", "The request was to investigate the tests."), ev_completed("resumed-response")]),
-        ]).await;
+            sse(vec![
+                json!({"type":"response.output_item.done", "item":{"type":"compaction", "encrypted_content":"RETAINED_TOOL_OUTPUT_CHECKPOINT"}}),
+                ev_completed("compact-response"),
+            ]),
+            sse(vec![
+                ev_assistant_message("resumed", "The request was to investigate the tests."),
+                ev_completed("resumed-response"),
+            ]),
+        ];
+        if !enabled {
+            // Unretained details exceed the window before they are sent.
+            responses.insert(1, sse(vec![json!({"type":"response.output_item.done", "item":{"type":"compaction", "encrypted_content":"PRE_TURN_CHECKPOINT"}}), ev_completed("pre-turn-compact-response")]));
+        }
+        let mock = mount_sse_sequence(&server, responses).await;
         let configure = move |config: &mut Config| {
             configure_scenario_catalog(config);
             config
@@ -93,11 +110,29 @@ async fn retained_tool_output_survives_compaction_and_resume() -> Result<()> {
             .submit_text_turn("What request are you working on?")
             .await?;
         let requests = mock.requests();
-        assert_eq!(requests.len(), 5);
-        for request in &requests[..3] {
-            assert!(request.inputs_of_type("compaction_trigger").is_empty());
+        // Locally, pending input counts toward the pre-turn threshold. Unretained details
+        // compact the earlier history first; enabled retained outputs are sent before compaction.
+        let pre_turn_compactions = if enabled { 0 } else { 1 };
+        assert_eq!(requests.len(), 5 + pre_turn_compactions);
+        let (compact_request, sampled) = requests[..requests.len() - 1].split_last().unwrap();
+        for (index, request) in sampled.iter().enumerate() {
+            assert_eq!(
+                !request.inputs_of_type("compaction_trigger").is_empty(),
+                !enabled && index == 1,
+            );
         }
-        let compact_outputs = requests[3].inputs_of_type("function_call_output");
+        if !enabled {
+            // The pending details stay out of the compaction they triggered.
+            assert_eq!(
+                requests[1]
+                    .inputs_of_type("function_call_output")
+                    .iter()
+                    .map(|output| output["name"].as_str())
+                    .collect::<Vec<_>>(),
+                [Some("send_message_to_thread")]
+            );
+        }
+        let compact_outputs = compact_request.inputs_of_type("function_call_output");
         assert_eq!(
             compact_outputs
                 .iter()
@@ -108,20 +143,25 @@ async fn retained_tool_output_survives_compaction_and_resume() -> Result<()> {
                 Some("task_details"),
                 Some("send_message_to_thread"),
                 Some("progress"),
-            ]
+            ][pre_turn_compactions..]
         );
+        // The pre-turn compaction already summarized the first instruction when it ran.
+        let [.., details_output, latest_output, progress_output] = compact_outputs.as_slice()
+        else {
+            unreachable!("compact request has the asserted outputs");
+        };
         // Emergency trimming removes the trailing log, then stops at the marked instruction.
-        assert_eq!(compact_outputs[1]["output"], details);
+        assert_eq!(details_output["output"], details);
         if enabled {
-            assert_eq!(compact_outputs[2]["output"], latest_instruction);
+            assert_eq!(latest_output["output"], latest_instruction);
         } else {
             assert_eq!(
-                compact_outputs[2]["output"],
+                latest_output["output"],
                 "Output exceeded the available model context and was truncated"
             );
         }
         assert_eq!(
-            compact_outputs[3]["output"],
+            progress_output["output"],
             "Output exceeded the available model context and was truncated"
         );
         let last = requests.last().unwrap();
@@ -130,7 +170,7 @@ async fn retained_tool_output_survives_compaction_and_resume() -> Result<()> {
         let outputs = last.inputs_of_type("function_call_output");
         if enabled {
             // Oversized details and older instructions are dropped; the latest stays whole.
-            assert_eq!(outputs, vec![compact_outputs[2].clone()]);
+            assert_eq!(outputs, vec![latest_output.clone()]);
             for output in outputs {
                 assert!(output.get("retain").is_none());
                 assert!(output.get("client_authored").is_none());
@@ -148,7 +188,7 @@ async fn retained_tool_output_survives_compaction_and_resume() -> Result<()> {
                 if enabled {
                     "Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged."
                 } else {
-                    "With retention disabled, the client can still send retain=true. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume."
+                    "With retention disabled, the client can still send retain=true. The unretained task details trigger a pre-turn compaction before they are sent. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume."
                 },
                 &requests,
                 &ContextSnapshotOptions::default().rewrite_known_segments(),
