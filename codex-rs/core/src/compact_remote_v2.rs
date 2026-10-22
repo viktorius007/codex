@@ -303,13 +303,14 @@ async fn run_remote_compaction_request_v2(
             // Replay the routing token without letting this request change foreground routing.
             let turn_state = Arc::new(turn_state.map(OnceLock::from).unwrap_or_default());
             let http_executor = ResponsesHttpExecutor::new(&sess.services.model_client);
+            let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
             let stream = tokio::select! {
                 biased;
                 _ = cancellation.cancelled() => return Err(CodexErr::TurnAborted),
                 stream = http_executor.stream_responses_http(
                     &turn_state, auth_owner_generation, /*event_sender*/ None, prompt, &settings.model_info, &step_context.session_telemetry, effort,
                     settings.reasoning_summary, settings.service_tier.clone(), responses_metadata,
-                    &trace, &CacheDiagnosticAttemptSequencer::default(),
+                    &trace, &diagnostic_attempts,
                 ) => stream?,
             };
             return collect_compaction_output(

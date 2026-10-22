@@ -906,10 +906,7 @@ async fn terminal_write_stdin_does_not_queue_duplicate_exec_completion() -> anyh
         #[cfg(windows)]
         tty: false,
     });
-    let process = Arc::new(
-        UnifiedExecProcess::from_spawned(spawned, SandboxType::None, Box::new(NoopSpawnLifecycle))
-            .await?,
-    );
+    let process = Arc::new(UnifiedExecProcess::from_spawned(spawned, SandboxType::None).await?);
     let context = UnifiedExecContext::new(
         Arc::clone(&session),
         crate::session::step_context::StepContext::for_test(Arc::clone(&turn)),
