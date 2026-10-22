@@ -464,7 +464,10 @@ async fn interrupt_after_created(stream: &mut codex_api::ResponseStream) -> Resu
     let interrupt = stream.interrupt.take().expect("interrupt sender");
     while let Some(event) = stream.next().await {
         if matches!(event?, ResponseEvent::Created { .. }) {
-            interrupt.send(()).expect("request interrupt");
+            assert!(
+                interrupt.send(codex_api::ResponseInterrupt::Drain).is_ok(),
+                "request interrupt"
+            );
             return Ok(());
         }
     }

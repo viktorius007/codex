@@ -87,25 +87,21 @@ async fn spawn_child(
 ) -> Arc<CodexThread> {
     let state = control.runtime.upgrade().expect("manager alive");
     let child = state
-        .spawn_new_thread_with_source(
-            config,
+        .spawn_child_thread(
+            crate::thread_manager::StartThreadOptions {
+                session_source: Some(SessionSource::SubAgent(SubAgentSource::ThreadSpawn {
+                    parent_thread_id: parent,
+                    depth: 1,
+                    agent_path: None,
+                    agent_nickname: None,
+                    agent_role: None,
+                })),
+                thread_source: Some(ThreadSource::Subagent),
+                ..crate::thread_manager::StartThreadOptions::new(config)
+            },
             control.clone(),
-            SessionSource::SubAgent(SubAgentSource::ThreadSpawn {
-                parent_thread_id: parent,
-                depth: 1,
-                agent_path: None,
-                agent_nickname: None,
-                agent_role: None,
-            }),
-            /*history_mode*/ None,
-            /*dynamic_tools*/ Vec::new(),
             Some(parent),
-            /*forked_from_thread_id*/ None,
-            Some(ThreadSource::Subagent),
-            /*metrics_service_name*/ None,
-            /*inherited_environments*/ None,
             /*inherited_exec_policy*/ None,
-            /*environments*/ None,
         )
         .await
         .expect("spawn child fixture");

@@ -182,6 +182,8 @@ mod tests {
     fn append_user_message(path: &std::path::Path, message: &str) {
         let item = RolloutItem::ResponseItem(
             ResponseItem::Message {
+                encrypted_content: None,
+                status: None,
                 id: None,
                 role: "user".to_string(),
                 content: vec![ContentItem::InputText {
