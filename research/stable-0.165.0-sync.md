@@ -55,3 +55,9 @@ All runs on this Linux host (x86-64, Rust 1.99.1), from the frozen `sync/0.165.0
   - `codex`: `0365bde70e5b346a7ed8b4bb1ebdc00538938d99c85ceb51fee6845fce6ef265`
   - `codex-code-mode-host`: `e9d17e5f0d9378a7dfd403767040cb1cb05585c26b1e259d6aeced66fd5c89f3`
 - Launch checks: `codex --version` prints `codex-cli 0.165.0+local.13`; `codex-code-mode-host --help` prints its usage; the one-turn `codex exec` smoke test is recorded in the publication section below.
+
+## Publication and smoke test
+
+- A one-turn `codex exec` with the installed binary (default model, ChatGPT account) answered `OK` ([log](stable-0.165.0-evidence/smoke-exec.log)).
+- `local/customizations` was fast-forwarded to the rebased series and pushed to `origin` with `--force-with-lease=local/customizations:e3d72a333c`, the remote tip observed immediately before the push. The old tip stays available as `backup/local12-before-0.165.0`.
+- Cleanup removed the `sync-0.165.0` and `probe-0.165.0` worktrees and their branches, the Cargo `target/` directories of those worktrees, and the temporary logs under `/tmp`. The 150.4.0 V8 archives were kept under `~/.cache/rusty-v8-codex/v150.4.0/` for the 0.163.0 rollback release.
