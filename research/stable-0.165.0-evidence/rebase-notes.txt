@@ -1,0 +1,29 @@
+skipped fe77d81f19 (skills impl; to be re-ported after probe)
+bfd549618b: host.rs taken from upstream; test additions kept
+6c04a55547: HOME env in daemon test now upstream-supplied; kept upstream
+1f060d988e: skills hunks kept upstream (deferred port); tasks/mod.rs kept composed final state
+final-state composed for input_queue.rs api.rs mailbox.rs control.rs control/api.rs residency.rs spawn.rs lib.rs handlers.rs at 848cdfd618; later commits keep HEAD for these
+kept HEAD: codex-rs/core/src/agent/api.rs (9e5c73a565)
+kept HEAD: codex-rs/core/src/agent/control/mailbox.rs (9e5c73a565)
+kept HEAD: codex-rs/core/src/agent/control/residency.rs (9e5c73a565)
+kept HEAD: codex-rs/core/src/session/input_queue.rs (9e5c73a565)
+kept HEAD: codex-rs/core/src/tasks/mod.rs (8dec561669)
+kept HEAD: codex-rs/core/src/agent/api.rs (2c92629f70)
+kept HEAD: codex-rs/core/src/tasks/mod.rs (2c92629f70)
+snapshots: kept upstream at ac172ed140; regenerate with insta after build
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__compact__compaction_cold_resume_after_completion.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_question_and_answer.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_disabled_executor_skills.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_refresh.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_catalog_messages.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_slash_compact.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_migration.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_code_mode_messaging.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_catalog_parameters.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__skill_catalog_dedup__dedup_before_budgeting.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_retention_disabled.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_survives_compaction_and_resume.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap
+kept HEAD snapshot: codex-rs/core/tests/suite/snapshots/all__suite__scenarios__prediction_fork_preserves_context_above_compaction_threshold.snap
+85b9879678: scenarios_agent_eviction_tests.rs kept upstream (len 10 + workspace flags); local expected 12 requests under local patch — verify by test run
+c3053b7702: schema fixture kept upstream; regenerate with just write-app-server-schema

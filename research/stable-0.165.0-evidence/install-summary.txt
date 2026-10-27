@@ -1,0 +1,3 @@
+     Summary [   1.412s] 1 test run: 1 passed, 5456 skipped
+installed codex-cli 0.165.0+local.13 at /home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c
+links: /home/agent/.local/bin/codex and /home/agent/.local/bin/codex-code-mode-host -> /home/agent/.local/lib/codex-local/current/bin
