@@ -1138,3 +1138,27 @@ async fn steer_preserves_request_origin(
     );
     session.abort_all_tasks(TurnAbortReason::Interrupted).await;
 }
+
+#[tokio::test]
+async fn async_result_does_not_start_a_turn_after_shutdown_begins() {
+    let (session, _turn_context, _rx_event) = make_session_and_context_with_rx().await;
+    session.state.lock().await.shutting_down = true;
+    let input = TurnInput::ResponseItem(ResponseItemEnvelope::new(ResponseItem::Other));
+    session
+        .enqueue_async_result(
+            input,
+            Arc::new(codex_extension_api::ExtensionData::new("result-origin")),
+            "result-wake".to_string(),
+        )
+        .await
+        .await;
+    assert!(session.active_turn.lock().await.is_none());
+    assert_eq!(
+        session
+            .input_queue
+            .pending_async_result_origins()
+            .await
+            .len(),
+        1
+    );
+}

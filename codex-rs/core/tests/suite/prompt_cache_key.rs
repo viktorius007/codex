@@ -135,10 +135,11 @@ async fn api_key_subagent_inherits_prompt_cache_key_policy(policy: PromptCacheKe
         ]),
     )
     .await;
+    // A full-history child inherits the parent's spawn call, so identify it by its task delivery.
     let child_request = mount_sse_once_match(
         &server,
         |request: &wiremock::Request| {
-            body_contains(request, CHILD_TASK) && !body_contains(request, SPAWN_CALL_ID)
+            body_contains(request, CHILD_TASK) && body_contains(request, "Message Type: NEW_TASK")
         },
         sse(vec![
             ev_response_created("child-response"),
