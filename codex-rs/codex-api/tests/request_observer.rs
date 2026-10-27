@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use bytes::Bytes;
+use codex_api::AuthError;
 use codex_api::AuthProvider;
 use codex_api::Compression;
 use codex_api::HttpRequestObservation;
@@ -190,7 +191,7 @@ impl HttpTransport for RetryRecordingTransport {
 struct StaticAuth;
 
 impl AuthProvider for StaticAuth {
-    fn add_auth_headers(&self, headers: &mut HeaderMap) {
+    fn add_auth_headers(&self, headers: &mut HeaderMap) -> Result<(), AuthError> {
         headers.insert(
             http::header::AUTHORIZATION,
             HeaderValue::from_static("Bearer observer-must-not-see-this"),
@@ -199,6 +200,7 @@ impl AuthProvider for StaticAuth {
             "chatgpt-account-id",
             HeaderValue::from_static("account-observer-must-not-see"),
         );
+        Ok(())
     }
 }
 
