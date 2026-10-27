@@ -1,14 +1,13 @@
 ---
 source: core/tests/suite/scenarios_agent_eviction_tests.rs
-assertion_line: 275
 expression: "format!(\"{history}\\n\\nResumed worker mailbox:\\n{mailbox}\")"
 ---
 Scenario: A parent with no configured environment delegates an API migration, queues a note while the worker is idle, and follows up after idle eviction. The worker temporarily attaches a workspace, then resumes with no environment, its earlier answer, and the unread note. Complete model streams are grouped as parent, then worker.
 
 ## Window 1
 -- request 1 (turn) --
-00:additional_tools/developer (2; hash=7958a01e34d95ac2):
-        - namespace/functions; hash=30a5fc1fcffb1c04
+00:additional_tools/developer (2; hash=d1cf829a64b3c127):
+        - namespace/functions; hash=6b60575d21e7c2ab
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -67,10 +66,10 @@ Scenario: A parent with no configured environment delegates an API migration, qu
 -- request 8 (turn) --
 16:agent_message
 
-## Window 2 (after request 6: input diverged at item 03)
--- request 7 (turn) --
-00:additional_tools/developer (2; hash=7958a01e34d95ac2):
-        - namespace/functions; hash=30a5fc1fcffb1c04
+## Window 2 (after request 8: input diverged at item 04)
+-- request 9 (turn) --
+00:additional_tools/developer (2; hash=d1cf829a64b3c127):
+        - namespace/functions; hash=6b60575d21e7c2ab
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -113,14 +112,14 @@ Scenario: A parent with no configured environment delegates an API migration, qu
 08:function_call_output:Mira owns the API migration.
 09:message/user:
     <ENVIRONMENT_CONTEXT>
--- request 9 (turn) --
+-- request 11 (turn) --
 10:message/assistant:
     Mira owns the API migration.
 11:message/user:
     <ENVIRONMENT_CONTEXT>
 12:agent_message
 13:agent_message
--- request 10 (turn) --
+-- request 12 (turn) --
 14:function_call/client_echo:{"message":"I will continue with Mira using the new API."}
 15:function_call_output:I will continue with Mira using the new API.
 16:message/user:
