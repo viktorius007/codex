@@ -248,7 +248,9 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
     // Preserve each stream's complete history while removing parent/child scheduling order.
     requests
         .sort_by_key(|request| request.header("thread-id").as_deref() != Some(parent_id.as_str()));
-    assert_eq!(requests.len(), 10);
+    // The local runtime wakes the parent once per worker result, so each worker completion
+    // adds a parent request beyond upstream's ten.
+    assert_eq!(requests.len(), 12);
     let temporary_workspaces: Vec<_> = requests
         .iter()
         .map(|request| {
@@ -264,7 +266,7 @@ async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
     assert_eq!(
         temporary_workspaces,
         [
-            false, false, false, false, false, false, false, true, false, true
+            false, false, false, false, false, false, false, false, false, true, false, true
         ]
     );
     let history = context_snapshot::format_request_history_snapshot(
