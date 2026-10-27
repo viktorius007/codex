@@ -1,0 +1,4 @@
+/tmp/sync-test-core-replay3.log:     Summary [  34.670s] 24 tests run: 20 passed, 4 failed, 5432 skipped
+/tmp/sync-test-core-replay.log:     Summary [  44.155s] 200 tests run: 164 passed (1 slow), 36 failed, 5249 skipped
+/tmp/sync-test-core-replay2.log:     Summary [  34.839s] 36 tests run: 3 passed, 33 failed, 2583 skipped
+/tmp/sync-test-core.log:     Summary [ 155.473s] 5447 tests run: 5247 passed (5 slow, 4 flaky), 200 failed, 9 skipped

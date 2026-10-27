@@ -1,0 +1,3564 @@
+  1:  6608839af9 =   1:  6350884043 Preserve local research and cache-audit tooling
+  2:  4c4b358ef4 =   2:  7dc575feee Restore durable local repository policy
+  3:  124e79f107 !   3:  4cba7025ca Port measured local build settings
+    @@ codex-rs/.cargo/config.toml
+     +# this Mac's open-file limit; 64 jobs failed before compilation could start.
+     +jobs = 32
+     +
+    -+[env]
+    + [env]
+    + # curl-sys enables its NTLM sources but does not set the flag required by libcurl 8.21.
+    + CFLAGS_aarch64_pc_windows_gnullvm = "-DCURL_ENABLE_NTLM"
+    + CFLAGS_aarch64_pc_windows_msvc = "-DCURL_ENABLE_NTLM"
+    + CFLAGS_x86_64_pc_windows_gnullvm = "-DCURL_ENABLE_NTLM"
+    + CFLAGS_x86_64_pc_windows_msvc = "-DCURL_ENABLE_NTLM"
+     +# The sandbox-enabled V8 artifacts for this local checkout are described in the
+     +# root AGENTS.md. Explicit shell environment variables can override these paths.
+     +RUSTY_V8_ARCHIVE = "/Users/viktor/.cache/rusty-v8-codex/librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz"
+     +RUSTY_V8_SRC_BINDING_PATH = "/Users/viktor/.cache/rusty-v8-codex/src_binding_ptrcomp_sandbox_release_aarch64-apple-darwin.rs"
+    -+
+    + 
+      [target.'cfg(all(windows, target_env = "msvc"))']
+      rustflags = ["-C", "link-arg=/STACK:8388608", "-C", "target-feature=+crt-static"]
+    - 
+     
+      ## codex-rs/Cargo.toml ##
+     @@ codex-rs/Cargo.toml: ignored = [
+  4:  b5140943aa =   4:  3971c4762c test(goal): probe empty continuation semantics upstream
+  5:  27d40cae12 =   5:  ca1c55194b test(core): probe accepted usage accounting upstream
+  6:  10b85abbd1 =   6:  19c95c5b0f test(api): probe terminal SSE classification upstream
+  7:  20229f0930 =   7:  ca9641b197 test(core): probe malformed tool-search pairing upstream
+  8:  ff1998b093 =   8:  6122595579 test(thread-store): probe archive crash recovery upstream
+  9:  2e37178867 =   9:  6089c03deb test(core): probe code-mode empty wait handling upstream
+ 10:  94d6661350 =  10:  79e437af3b test(utils-string): probe SemVer tag preservation upstream
+ 11:  e13a17c074 =  11:  6e94ebd3f2 test(core): format code-mode wait probe
+ 12:  6038c56adb =  12:  80e2df0b03 fix(utils-string): preserve SemVer build metadata in tags
+ 13:  f50f9ef946 !  13:  dec0fda173 fix(core): track accepted usage against history
+    @@ codex-rs/core/src/session/mod.rs: impl Session {
+     -            }
+     -
+     -            state.set_token_info(Some(info));
+    --        }
+     +            state.set_recomputed_token_usage(
+     +                estimated_total_tokens,
+     +                turn_context.model_context_window(),
+     +            );
+    +             // The local estimate already includes every retained reasoning item.
+    +             state.set_server_reasoning_included(/*included*/ true);
+    +-        }
+     +            estimated_total_tokens
+     +        };
+              self.set_auto_compact_window_estimated_prefill_for_scope(
+ 14:  662792978f =  14:  3752d50026 Remove superseded Goal accounting test
+ 15:  dd276c09c6 =  15:  9fcfb4fde1 Count empty Goal turns by model output
+ 16:  c4ae2b1b6f =  16:  dc42722ac5 Recover selected rollout after archive rename
+ 17:  e668aa2644 =  17:  974da9a0c7 Preserve terminal SSE failure classification
+ 18:  d4c295a29e =  18:  0176a76673 Preserve malformed tool search output pairing
+ 19:  3999552ede =  19:  9463b25bd2 Add cache diagnostic record contract tests
+ 20:  0d138b814f =  20:  35af814c41 Add request observer boundary regressions
+ 21:  04c9244bda =  21:  dd0cc35560 Add plugin locator regression tests
+ 22:  1ee182acf0 !  22:  f8287046e3 Pin fresh-child startup cache prefix
+    @@ codex-rs/core/tests/suite/context_annotations.rs
+     @@ codex-rs/core/tests/suite/context_annotations.rs: async fn first_request_item_types_roles_and_content_annotations() -> Result<()>
+          message developer ["guardian.approved_action"]
+          message developer ["generic.developer_instructions","token_budget.context_window_guidance","permissions.instructions","environments.instructions"]
+    -     message developer ["token_budget.context_window"]
+    +     message developer ["token_budget.context_window","token_budget.context_window","token_budget.context_window"]
+     +    message user ["environments.environment_context"]
+          message developer ["multi_agent.usage_hint"]
+          message developer ["multi_agent.mode_instructions"]
+    @@ codex-rs/core/tests/suite/context_annotations.rs: async fn first_request_item_ty
+          message user ["user.text","user.image","user.audio"]
+     
+      ## codex-rs/core/tests/suite/prompt_cache_key.rs ##
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: use anyhow::Result;
+    - use anyhow::anyhow;
+    +@@ codex-rs/core/tests/suite/prompt_cache_key.rs: use codex_core::PromptCacheKey;
+    + use codex_core::StartThreadOptions;
+      use codex_features::Feature;
+      use codex_login::CodexAuth;
+     +use codex_protocol::openai_models::ReasoningEffort;
+    @@ codex-rs/core/tests/suite/prompt_cache_key.rs: use anyhow::Result;
+      use core_test_support::responses::ev_assistant_message;
+      use core_test_support::responses::ev_completed;
+      use core_test_support::responses::ev_function_call_with_namespace;
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: use core_test_support::responses::ev_response_created;
+    +@@ codex-rs/core/tests/suite/prompt_cache_key.rs: use core_test_support::responses::mount_sse_once;
+      use core_test_support::responses::mount_sse_once_match;
+      use core_test_support::responses::sse;
+      use core_test_support::responses::start_mock_server;
+     +use core_test_support::responses::strip_metadata_from_json;
+     +use core_test_support::responses::strip_response_item_ids_from_json;
+    + use core_test_support::test_codex::TestCodex;
+      use core_test_support::test_codex::test_codex;
+      use pretty_assertions::assert_eq;
+      use serde_json::Value;
+      use serde_json::json;
+      
+    --const ROOT_PROMPT: &str = "delegate the cache audit";
+    --const CHILD_TASK: &str = "inspect the repository";
+     +const MODEL: &str = "gpt-5.2";
+     +const BASE_INSTRUCTIONS: &str = "stable base instructions for the cache-prefix test";
+     +const DEVELOPER_INSTRUCTIONS: &str = "stable developer instructions for the cache-prefix test";
+     +const GLOBAL_INSTRUCTIONS: &str = "stable global instructions for the cache-prefix test";
+     +const ROOT_ROLE_HINT: &str = "root-only cache-prefix boundary";
+     +const CHILD_ROLE_HINT: &str = "child-only cache-prefix boundary";
+    -+const ROOT_PROMPT: &str = "private parent task: delegate the cache audit";
+    -+const CHILD_TASK: &str = "private child task: inspect the repository";
+    + const ROOT_PROMPT: &str = "delegate the cache audit";
+    + const CHILD_TASK: &str = "inspect the repository";
+      const SPAWN_CALL_ID: &str = "spawn-worker";
+    - const COLLABORATION_NAMESPACE: &str = "collaboration";
+    - 
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: fn request_has_input_type(request: &wiremock::Request, input_type: &str) -> bool
+    -         })
+    +@@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_inherits_prompt_cache_key_policy(policy: PromptCacheKe
+    +     Ok(())
+      }
+      
+     +// Test support classifies response item IDs and internal chat-message passthrough as fields to
+    @@ codex-rs/core/tests/suite/prompt_cache_key.rs: fn request_has_input_type(request
+     +        .clone()
+     +}
+     +
+    - #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    --async fn api_key_subagent_uses_session_id_as_prompt_cache_key() -> Result<()> {
+    ++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+     +async fn fresh_subagent_reuses_root_cache_prefix_until_its_role_boundary() -> Result<()> {
+    -     let server = start_mock_server().await;
+    -     let spawn_args = serde_json::to_string(&json!({
+    -         "message": CHILD_TASK,
+    -         "task_name": "worker",
+    ++    let server = start_mock_server().await;
+    ++    let spawn_args = serde_json::to_string(&json!({
+    ++        "message": CHILD_TASK,
+    ++        "task_name": "worker",
+     +        "fork_turns": "none",
+    -     }))?;
+    -     let root_request = mount_sse_once_match(
+    -         &server,
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_uses_session_id_as_prompt_cache_key() -> Result<()> {
+    -     .await;
+    - 
+    -     let mut builder = test_codex()
+    ++    }))?;
+    ++    let root_request = mount_sse_once_match(
+    ++        &server,
+    ++        |request: &wiremock::Request| {
+    ++            body_contains(request, ROOT_PROMPT)
+    ++                && !request_has_input_type(request, "agent_message")
+    ++                && !body_contains(request, SPAWN_CALL_ID)
+    ++        },
+    ++        sse(vec![
+    ++            ev_response_created("root-response-1"),
+    ++            ev_function_call_with_namespace(
+    ++                SPAWN_CALL_ID,
+    ++                COLLABORATION_NAMESPACE,
+    ++                "spawn_agent",
+    ++                &spawn_args,
+    ++            ),
+    ++            ev_completed("root-response-1"),
+    ++        ]),
+    ++    )
+    ++    .await;
+    ++    let child_request = mount_sse_once_match(
+    ++        &server,
+    ++        |request: &wiremock::Request| {
+    ++            body_contains(request, CHILD_TASK) && !body_contains(request, SPAWN_CALL_ID)
+    ++        },
+    ++        sse(vec![
+    ++            ev_response_created("child-response"),
+    ++            ev_assistant_message("child-message", "inspection complete"),
+    ++            ev_completed("child-response"),
+    ++        ]),
+    ++    )
+    ++    .await;
+    ++    mount_sse_once_match(
+    ++        &server,
+    ++        |request: &wiremock::Request| body_contains(request, SPAWN_CALL_ID),
+    ++        sse(vec![
+    ++            ev_response_created("root-response-2"),
+    ++            ev_assistant_message("root-message", "worker finished"),
+    ++            ev_completed("root-response-2"),
+    ++        ]),
+    ++    )
+    ++    .await;
+    ++
+    ++    let mut builder = test_codex()
+     +        .with_model_info_override(MODEL, |model| {
+     +            model.multi_agent_version = Some(codex_protocol::protocol::MultiAgentVersion::V2);
+     +        })
+    -         .with_auth(CodexAuth::from_api_key("dummy"))
+    ++        .with_auth(CodexAuth::from_api_key("dummy"))
+     +        .with_pre_build_hook(|home| {
+     +            std::fs::write(home.join("AGENTS.md"), GLOBAL_INSTRUCTIONS)
+     +                .expect("write stable global instructions");
+     +        })
+    -         .with_config(|config| {
+    ++        .with_config(|config| {
+     +            config.model = Some(MODEL.to_string());
+     +            config.model_reasoning_effort = Some(ReasoningEffort::High);
+     +            config.base_instructions = Some(BASE_INSTRUCTIONS.to_string());
+     +            config.developer_instructions = Some(DEVELOPER_INSTRUCTIONS.to_string());
+     +            config.multi_agent_v2.root_agent_usage_hint_text = Some(ROOT_ROLE_HINT.to_string());
+     +            config.multi_agent_v2.subagent_usage_hint_text = Some(CHILD_ROLE_HINT.to_string());
+    -             config
+    -                 .features
+    -                 .enable(Feature::Collab)
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_uses_session_id_as_prompt_cache_key() -> Result<()> {
+    -                 .features
+    -                 .enable(Feature::MultiAgentV2)
+    -                 .expect("test config should allow feature update");
+    ++            config
+    ++                .features
+    ++                .enable(Feature::Collab)
+    ++                .expect("test config should allow feature update");
+    ++            config
+    ++                .features
+    ++                .enable(Feature::MultiAgentV2)
+    ++                .expect("test config should allow feature update");
+     +            config
+     +                .features
+     +                .disable(Feature::TokenBudget)
+    @@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_uses_se
+     +                .features
+     +                .disable(Feature::EnableRequestCompression)
+     +                .expect("test config should allow feature update");
+    -         });
+    --    let test = builder.build(&server).await?;
+    ++        });
+     +    let test = builder.build_with_auto_env(&server).await?;
+    -     let expected_session_id = test.session_configured.session_id.to_string();
+    --    test.submit_turn(ROOT_PROMPT).await?;
+    ++    let expected_session_id = test.session_configured.session_id.to_string();
+     +    test.submit_text_turn(ROOT_PROMPT).await?;
+    - 
+    -     let root_request = root_request
+    -         .requests()
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_uses_session_id_as_prompt_cache_key() -> Result<()> {
+    -     .map_err(|_| anyhow!("timed out waiting for the child request"))?;
+    -     let child_thread_id = child_request.header("thread-id").expect("child thread ID");
+    - 
+    ++
+    ++    let root_request = root_request
+    ++        .requests()
+    ++        .into_iter()
+    ++        .next()
+    ++        .expect("root request");
+    ++    let root_thread_id = root_request.header("thread-id").expect("root thread ID");
+    ++    let child_request = tokio::time::timeout(Duration::from_secs(10), async {
+    ++        loop {
+    ++            if let Some(request) = child_request.requests().into_iter().find(|request| {
+    ++                request
+    ++                    .header("thread-id")
+    ++                    .is_some_and(|thread_id| thread_id != root_thread_id)
+    ++            }) {
+    ++                break request;
+    ++            }
+    ++            tokio::time::sleep(Duration::from_millis(10)).await;
+    ++        }
+    ++    })
+    ++    .await
+    ++    .map_err(|_| anyhow!("timed out waiting for the child request"))?;
+    ++    let child_thread_id = child_request.header("thread-id").expect("child thread ID");
+    ++
+     +    let root_body = root_request.body_json();
+     +    let child_body = child_request.body_json();
+     +    assert_eq!(root_body["model"], MODEL);
+    @@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_uses_se
+     +        "fresh child should not receive the parent's spawn call history"
+     +    );
+     +
+    -     assert_eq!(
+    -         json!({
+    -             "differentThreadIds": root_thread_id != child_thread_id,
+    -@@ codex-rs/core/tests/suite/prompt_cache_key.rs: async fn api_key_subagent_uses_session_id_as_prompt_cache_key() -> Result<()> {
+    -                 "sessionId": root_request.header("session-id"),
+    -                 "threadId": &root_thread_id,
+    -                 "clientRequestId": root_request.header("x-client-request-id"),
+    --                "promptCacheKey": root_request.body_json()["prompt_cache_key"].clone(),
+    ++    assert_eq!(
+    ++        json!({
+    ++            "differentThreadIds": root_thread_id != child_thread_id,
+    ++            "root": {
+    ++                "sessionId": root_request.header("session-id"),
+    ++                "threadId": &root_thread_id,
+    ++                "clientRequestId": root_request.header("x-client-request-id"),
+     +                "promptCacheKey": root_body["prompt_cache_key"].clone(),
+    -             },
+    -             "child": {
+    -                 "sessionId": child_request.header("session-id"),
+    -                 "threadId": &child_thread_id,
+    -                 "clientRequestId": child_request.header("x-client-request-id"),
+    --                "promptCacheKey": child_request.body_json()["prompt_cache_key"].clone(),
+    ++            },
+    ++            "child": {
+    ++                "sessionId": child_request.header("session-id"),
+    ++                "threadId": &child_thread_id,
+    ++                "clientRequestId": child_request.header("x-client-request-id"),
+     +                "promptCacheKey": child_body["prompt_cache_key"].clone(),
+    -             },
+    -         }),
+    -         json!({
+    ++            },
+    ++        }),
+    ++        json!({
+    ++            "differentThreadIds": true,
+    ++            "root": {
+    ++                "sessionId": &expected_session_id,
+    ++                "threadId": &root_thread_id,
+    ++                "clientRequestId": &root_thread_id,
+    ++                "promptCacheKey": &expected_session_id,
+    ++            },
+    ++            "child": {
+    ++                "sessionId": &expected_session_id,
+    ++                "threadId": &child_thread_id,
+    ++                "clientRequestId": &child_thread_id,
+    ++                "promptCacheKey": &expected_session_id,
+    ++            },
+    ++        })
+    ++    );
+    ++
+    ++    Ok(())
+    ++}
+    ++
+    + #[tokio::test]
+    + async fn ephemeral_fork_shares_cache_routing_but_keeps_session_identity() -> Result<()> {
+    +     use codex_core::ForkSnapshot;
+ 23:  b7642abd9e !  23:  d11cd5b20e fix(core): keep empty code-mode waits internal
+    @@ codex-rs/core/src/tools/code_mode/wait_handler.rs: impl CodeModeWaitHandler {
+                          exec.session
+                              .services
+                              .code_mode_service
+    -                         .terminate(cell_id)
+    +                         .terminate(cell_id.clone())
+                              .await
+     +                        .map(|response| {
+     +                            let host_duration = response.code_mode_host_duration();
+    @@ codex-rs/core/src/tools/code_mode/wait_handler.rs: impl CodeModeWaitHandler {
+     -                        .code_mode_service
+     -                        .wait(
+     -                            codex_code_mode::WaitRequest {
+    --                                cell_id,
+    +-                                cell_id: cell_id.clone(),
+     -                                yield_time_ms: args.yield_time_ms,
+     -                            },
+     -                            step_context.preempt.clone(),
+    @@ codex-rs/core/src/tools/code_mode/wait_handler.rs: impl CodeModeWaitHandler {
+                      .map_err(|error| {
+                          telemetry.finish(/*success*/ false);
+     @@ codex-rs/core/src/tools/code_mode/wait_handler.rs: impl CodeModeWaitHandler {
+    -                             );
+    -                     }
+    +                 } else {
+    +                     telemetry.record_cell_timing(&cell_id, CodeModeCellTiming::CellUnavailable);
+                      }
+     -                if let Some(code_mode_host_duration) = wait_response.code_mode_host_duration() {
+     +                if let Some(code_mode_host_duration) = host_duration {
+ 24:  29df2a113d =  24:  6e06492650 Add async result causal regression tests
+ 25:  ca492917ee !  25:  0d9e49a710 Test compaction projection and active tool parity
+    @@ codex-rs/core/tests/suite/compact.rs: async fn auto_compact_allows_multiple_atte
+      #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+      async fn paginated_compaction_cold_resume_from_bounded_suffix() -> Result<()> {
+          skip_if_no_network!(Ok(()));
+    -@@ codex-rs/core/tests/suite/compact.rs: async fn auto_compact_accounts_for_encrypted_reasoning(first_response_includes_r
+    +@@ codex-rs/core/tests/suite/compact.rs: async fn auto_compact_accounts_for_encrypted_reasoning() {
+          );
+      }
+      
+ 26:  372cfe0704 =  26:  7d8b64414e Add MCP authority regression oracles
+ 27:  55a369c6d8 =  27:  c0402e2416 Port private cache diagnostics records
+ 28:  642e7dc8c9 =  28:  44c7429937 test(core): prove committed tool catalog changes
+ 29:  9f6cae39ac =  29:  2283a67b78 Add red tests for thread-frozen collaboration specs
+ 30:  71c1c6ba18 !  30:  0a2d9e464b Test background exec completion delivery
+    @@ codex-rs/core/src/unified_exec/mod_tests.rs: use crate::exec::ExecExpiration;
+      use crate::session::turn_context::TurnContext;
+      use crate::tools::context::ExecCommandToolOutput;
+      use crate::unified_exec::WriteStdinRequest;
+    -@@ codex-rs/core/src/unified_exec/mod_tests.rs: async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
+    +@@ codex-rs/core/src/unified_exec/mod_tests.rs: async fn terminating_during_stdin_poll_returns_exited_response(
+          Ok(())
+      }
+      
+ 31:  fe77d81f19 <   -:  ---------- Use stable locators for host plugin skills
+ 32:  3124c5b34e !  31:  86706fac23 Preserve local release accommodations
+    @@ codex-rs/login/src/auth/default_client_tests.rs: fn test_macos() {
+          .unwrap();
+          assert!(re.is_match(&user_agent));
+     
+    - ## codex-rs/otel/src/metrics/validation.rs ##
+    -@@ codex-rs/otel/src/metrics/validation.rs: fn is_metric_char(c: char) -> bool {
+    - }
+    - 
+    - fn is_tag_char(c: char) -> bool {
+    --    c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '/')
+    -+    c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '/' | '+')
+    - }
+    -
+      ## codex-rs/otel/tests/suite/send.rs ##
+     @@ codex-rs/otel/tests/suite/send.rs: fn send_builds_payload_with_tags_and_histograms() -> Result<()> {
+              "codex.turns",
+ 33:  45de1bba27 =  32:  527f54764f Restore accepted-usage replay coverage
+ 34:  c5fbafecfc !  33:  5c7e13ed68 Observe prepared Responses transport requests
+    @@ codex-rs/codex-api/src/endpoint/responses_websocket/connector.rs: impl Responses
+              let mut headers =
+                  merge_request_headers(&self.provider.headers, extra_headers, default_headers);
+     +        let request_observation = Arc::new(WebsocketObservationState::new(&headers, self.endpoint));
+    -         self.auth.add_auth_headers(&mut headers);
+    +         self.auth.add_auth_headers(&mut headers)?;
+              let (stream, _status, server_reasoning_included, server_model) =
+                  connect_websocket(ws_url, headers, connector, turn_state).await?;
+     @@ codex-rs/codex-api/src/endpoint/responses_websocket/connector.rs: impl ResponsesWebsocketClient {
+ 35:  0a3ada6a58 =  34:  fb13ce69b2 Align code-mode wait tests with internal yields
+ 36:  8f13b7fc6d !  35:  f1452831a7 Port runtime cache diagnostic lifecycle tests
+    @@ codex-rs/core/tests/suite/cache_diagnostics_lifecycle.rs (new)
+     +}
+     
+      ## codex-rs/core/tests/suite/mod.rs ##
+    -@@ codex-rs/core/tests/suite/mod.rs: mod auto_review;
+    +@@ codex-rs/core/tests/suite/mod.rs: mod base_instructions;
+      mod bedrock_multi_agent;
+      #[path = "bedrock_service_tier_tests.rs"]
+      mod bedrock_service_tier;
+ 37:  7593dc132e !  36:  403e3270f2 Port bounded asynchronous result delivery
+    @@ codex-rs/core/src/session/handlers.rs: pub async fn inter_agent_communication(
+     +        sess.agent_status
+     +            .send_replace(codex_protocol::protocol::AgentStatus::Running);
+     +    }
+    -     if trigger_turn || sess.has_outstanding_durable_sleep() {
+    -         sess.maybe_start_turn_for_pending_work_with_sub_id(sub_id)
+    -             .await;
+    +     if trigger_turn
+    +         || sess.features.enabled(Feature::WakeOnAgentMessages)
+    +         || sess.has_outstanding_durable_sleep()
+     
+      ## codex-rs/core/src/session/inject.rs ##
+     @@ codex-rs/core/src/session/inject.rs: use super::TurnInput as PendingTurnInput;
+    @@ codex-rs/core/src/session/input_queue.rs: pub(crate) struct InputQueue {
+      }
+      
+      pub(crate) struct PendingMailboxCommunication {
+    -     pub(crate) communication: InterAgentCommunication,
+    +     pub(crate) communication: crate::PendingAgentMessage,
+          start_options: TurnStartOptions,
+          _diagnostics_guard: GaugeGuard,
+     +    async_result_origin: Option<Arc<ExtensionData>>,
+    @@ codex-rs/core/src/session/input_queue.rs: impl InputQueue {
+     +    #[cfg(test)]
+          pub(crate) async fn enqueue_mailbox_communication(
+              &self,
+    -         communication: InterAgentCommunication,
+    +         communication: crate::PendingAgentMessage,
+              start_options: TurnStartOptions,
+     +    ) {
+     +        self.enqueue_mailbox_communication_with_origin(communication, start_options, None)
+    @@ codex-rs/core/src/session/input_queue.rs: impl InputQueue {
+                              turn_state.accepts_mailbox_delivery_for_current_turn();
+     -                    let pending_input = if accepts_mailbox_delivery {
+     +                    let mut pending_input = if accepts_mailbox_delivery {
+    -                         turn_state.pending_input.items.split_off(0)
+    +                         std::mem::take(&mut turn_state.pending_input).items
+                          } else {
+                              Vec::new()
+                          };
+    @@ codex-rs/core/src/session/turn_input.rs: async fn start_if_idle(
+              TurnStartKind::User => {
+     +            task_input.extend(session.input_queue.drain_next_async_results().await);
+                  session.clear_connector_selection().await;
+    -             if let SubmittedTurnInput::UserInput { content, .. } = &input {
+    -                 turn_context.session_telemetry.user_prompt(content);
+    +             task_input.push(
+    +                 pending_turn_input(
+    +@@ codex-rs/core/src/session/turn_input.rs: impl Session {
+    +         Some(configuration.clone())
+    +     }
+    + 
+    +-    async fn should_wake_on_agent_messages(&self) -> bool {
+    ++    pub(crate) async fn should_wake_on_agent_messages(&self) -> bool {
+    +         if !self.features.enabled(Feature::WakeOnAgentMessages)
+    +             || self.is_interrupted()
+    +             || !self.input_queue.has_pending_mailbox_items().await
+     @@ codex-rs/core/src/session/turn_input.rs: impl Session {
+              Ok(())
+          }
+    @@ codex-rs/core/src/session_prefix.rs: pub(crate) fn format_inter_agent_completion
+              AgentStatus::NotFound => "Agent was not found.".to_string(),
+              AgentStatus::PendingInit | AgentStatus::Running | AgentStatus::Interrupted => return None,
+          };
+    --    Some(InterAgentCompletionMessage::new(task_name, sender, payload).render())
+    +-    Some(
+    +-        InterAgentCompletionMessage::new(task_name, sender, payload)
+     +    Some(truncate_text(
+    -+        &InterAgentCompletionMessage::new(task_name, sender, payload).render(),
+    ++        &InterAgentCompletionMessage::new(task_name, sender, payload)
+    +             .render()
+    +             .into_text()
+    +             .unwrap_or_default(),
+    +-    )
+     +        TruncationPolicy::Tokens(
+     +            COMPLETION_MESSAGE_MAX_TOKENS - COMPLETION_TRUNCATION_MARKER_TOKEN_RESERVE,
+     +        ),
+    @@ codex-rs/core/src/state/turn.rs: impl Default for ActiveTurn {
+     
+      ## codex-rs/core/src/tasks/mod.rs ##
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +         self.start_task(turn_context, input, task).await;
+    +     }
+      
+    ++    pub(crate) async fn start_task<T: SessionTask>(
+    ++        self: &Arc<Self>,
+    ++        turn_context: Arc<TurnContext>,
+    ++        input: Vec<TurnInput>,
+    ++        task: T,
+    ++    ) {
+    ++        self.start_task_with_reservation(
+    ++            turn_context,
+    ++            input,
+    ++            task,
+    ++            /*reserved_turn_state*/ None,
+    ++            Vec::new(),
+    ++        )
+    ++        .await;
+    ++    }
+    ++
+          #[expect(
+              clippy::await_holding_invalid_type,
+    --        reason = "record the started turn atomically with its active reservation"
+    +-        reason = "record the started turn atomically with task registration"
+     +        reason = "record the started turn atomically with its active reservation and input delivery"
+          )]
+    -     pub(crate) async fn start_task<T: SessionTask>(
+    +-    pub(crate) async fn start_task<T: SessionTask>(
+    ++    async fn start_task_with_reservation<T: SessionTask>(
+              self: &Arc<Self>,
+    +         turn_context: Arc<TurnContext>,
+    +         input: Vec<TurnInput>,
+    +         task: T,
+    +-    ) {
+    ++        reserved_turn_state: Option<&Arc<Mutex<TurnState>>>,
+    ++        pending_input: Vec<TurnInput>,
+    ++    ) -> bool {
+    +         // Replace the cache; in-flight acquisitions retain their previous Arc.
+    +         self.services
+    +             .thread_extension_data
+    +@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +             // MCP contributors must project the new inventory even if their other inputs match.
+    +             self.request_mcp_runtime_reprojection();
+    +         }
+    +-        self.activate_plugin_selection(&turn_context).await;
+    ++        let parent_result_residency = self
+    ++            .services
+    ++            .local_agent_runtime
+    ++            .control(self.session_id())
+    ++            .parent_result_residency(
+    ++                self.thread_id,
+    ++                turn_context.multi_agent_version,
+    ++                &turn_context.session_source,
+    ++                self.as_ref(),
+    ++            )
+    ++            .await;
+    ++        let (parent_result_residency_guard, parent_result_start_error) =
+    ++            match parent_result_residency {
+    ++                Ok(guard) => (guard, None),
+    ++                Err(error) => (None, Some(error)),
+    ++            };
+    +         // Inherited or recovered roots are applied before task start. Otherwise this
+    +         // task owns its turn, including background work. Later mail cannot change it.
+    +         turn_context
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+              let cancellation_token = CancellationToken::new();
+              let done = Arc::new(Notify::new());
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     -        let (pending_items, _) = self.input_queue.drain_mailbox_input_items().await;
+     -        let turn_state = {
+     -            let mut active = self.active_turn.lock().await;
+    --            self.record_started_turn(
+    --                &turn_context.sub_id,
+    --                (task_kind == TaskKind::Regular).then(|| turn_context.attribution()),
+    --            )
+    -+        let mut active = self.active_turn.lock().await;
+    +-            let turn = active.get_or_insert_with(ActiveTurn::default);
+    +-            debug_assert!(turn.task.is_none());
+    +-            turn.finishing = None;
+    +-            Arc::clone(&turn.turn_state)
+    ++        let mut active = loop {
+    ++            let active = self.active_turn.lock().await;
+    ++            if let Some(reserved_turn_state) = reserved_turn_state {
+    ++                if active.as_ref().is_none_or(|turn| {
+    ++                    !Arc::ptr_eq(&turn.turn_state, reserved_turn_state)
+    ++                        || turn.task.is_some()
+    ++                        || turn.cancelled_before_start
+    ++                }) {
+    ++                    return false;
+    ++                }
+    ++            } else if active.as_ref().is_some_and(|turn| turn.task.is_some()) {
+    ++                // An automatic start can register after spawn_task's earlier abort.
+    ++                drop(active);
+    ++                self.abort_all_tasks(TurnAbortReason::Replaced).await;
+    ++                continue;
+    ++            }
+    ++            break active;
+    +         };
+     +        if active
+     +            .as_ref()
+     +            .is_some_and(|turn| turn.cancelled_before_start)
+     +        {
+    -+            return;
+    ++            return false;
+     +        }
+    -+        self.record_started_turn(&turn_context.sub_id, (task_kind == TaskKind::Regular).then(|| turn_context.attribution())).await;
+    ++        self.activate_plugin_selection(&turn_context).await;
+    ++        self.record_started_turn(
+    ++            &turn_context.sub_id,
+    ++            (task_kind == TaskKind::Regular).then(|| turn_context.attribution()),
+    ++        )
+    ++        .await;
+     +        let (pending_items, _, child_result_origins) = self
+     +            .input_queue
+     +            .drain_mailbox_input_items_with_origins()
+    -             .await;
+    --            let turn = active.get_or_insert_with(ActiveTurn::default);
+    --            debug_assert!(turn.task.is_none());
+    --            turn.finishing = None;
+    --            Arc::clone(&turn.turn_state)
+    --        };
+    ++            .await;
+     +        if !child_result_origins.is_empty() {
+     +            let origins = turn_context
+     +                .extension_data
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +        turn.finishing = None;
+     +        let turn_state = Arc::clone(&turn.turn_state);
+              turn_state.lock().await.token_usage_at_turn_start = token_usage_at_turn_start.clone();
+    ++        self.input_queue
+    ++            .extend_pending_input_for_turn_state(turn_state.as_ref(), pending_input)
+    ++            .await;
+              self.input_queue
+                  .extend_pending_input_for_turn_state(turn_state.as_ref(), pending_items)
+    +             .await;
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+              )
+              .await;
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     -        let mut active = self.active_turn.lock().await;
+              let turn = active.get_or_insert_with(ActiveTurn::default);
+              debug_assert!(turn.task.is_none());
+    +-        // Record lineage only when the task starts: settings changes can invalidate a reservation.
+    +-        self.record_started_turn(
+    +-            &turn_context.sub_id,
+    +-            (task_kind == TaskKind::Regular).then(|| turn_context.attribution()),
+    +-        )
+    +-        .await;
+              let agent_execution_guard = self.services.agent_control.admit_turn(
+    +             turn_context.multi_agent_version,
+    +             &turn_context.session_source,
+    +         );
+    ++        if parent_result_start_error.is_some() {
+    ++            // A failed parent restore must await explicit admission rather than retry immediately.
+    ++            self.mark_interrupted();
+    ++            self.input_queue
+    ++                .extend_pending_input_for_turn_state(turn_state.as_ref(), input.clone())
+    ++                .await;
+    ++        }
+    +         let done_clone = Arc::clone(&done);
+    +         let session = Arc::clone(self);
+    +         let ctx = Arc::clone(&turn_context);
+    +@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +         let storage_originator = AuthStorageOriginator::from_client_name(&turn_context.originator);
+    +         let task_future = async move {
+    +             let ctx_for_finish = Arc::clone(&ctx);
+    +-            let task_result = task_for_run
+    ++            let task_result = match parent_result_start_error {
+    ++                Some(error) => Err(error),
+    ++                None => task_for_run
+    +                 .run(
+    +                     Arc::clone(&session),
+    +                     ctx,
+    +@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +                     task_cancellation_token.child_token(),
+    +                 )
+    +                 .instrument(trace_span!("session_task.run"))
+    +-                .await;
+    ++                .await,
+    ++            };
+    +             let sess = Arc::clone(&session);
+    +             // Private reviewers save their transcript together with the terminal event.
+    +             // Errors and cancellation retain their existing save path.
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +             cancellation_token,
+    +             turn_context: Arc::clone(&turn_context),
+    +             _agent_execution_guard: agent_execution_guard,
+    ++            parent_result_residency_guard,
+    +             _diagnostics_guard: ACTIVE_TURNS.track(),
+    +             _timer: timer,
+    +         };
+    +         turn.task = Some(running_task);
+    ++        true
+    +     }
+    + 
+    +     /// Returns whether an extension has marked this thread as durably asleep.
+    +@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +     /// session.
+          ///
+    -     /// The turn is created only when the session is idle and mailbox mail either requests a turn
+    -     /// or can wake an outstanding durable sleep.
+    +     /// Starts an idle turn for explicit follow-ups, durable sleep, or enabled message wakes.
+     -    pub(crate) async fn maybe_start_turn_for_pending_work_with_sub_id(
+    ++    #[expect(
+    ++        clippy::await_holding_invalid_type,
+    ++        reason = "reservation rollback must check task ownership and reclaim its pending input atomically"
+    ++    )]
+     +    pub(crate) fn maybe_start_turn_for_pending_work_with_sub_id(
+              self: &Arc<Self>,
+              sub_id: String,
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     -        if !self.input_queue.has_pending_mailbox_items().await {
+     -            return;
+     -        }
+    +-
+    +-        let Some((turn_state, previous_options)) = self.reserve_pending_work_turn().await else {
+    +-            return;
+    +-        };
+     +    ) -> BoxFuture<'_, ()> {
+     +        Box::pin(async move {
+     +            if self.is_interrupted() {
+     +                return;
+     +            }
+      
+    --        let Some((turn_state, previous_options)) = self.reserve_pending_work_turn().await else {
+    --            return;
+    --        };
+    +-        self.services
+    +-            .models_manager
+    +-            .refresh_after_auth_change(self.get_config().await.http_client_factory())
+    +-            .await;
+    +-        let session_configuration = if self.enabled(Feature::WakeOnAgentMessages) {
+    +-            let Some(configuration) = self.pending_work_turn_configuration(&turn_state).await
+    +-            else {
+     +            let async_result_origins = self.input_queue.pending_async_result_origins().await;
+     +            let candidates = async_result_origins
+     +                .iter()
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +                .await;
+     +            let has_waking_mail = self.input_queue.has_trigger_turn_mailbox_items().await
+     +                || (self.input_queue.has_pending_mailbox_items().await
+    -+                    && self.has_outstanding_durable_sleep());
+    ++                    && self.has_outstanding_durable_sleep())
+    ++                || self.should_wake_on_agent_messages().await;
+     +            if admitted_async_result_ids.is_empty() && !has_waking_mail {
+    -+                return;
+    +                 return;
+     +            }
+    - 
+    --        self.services
+    --            .models_manager
+    --            .refresh_after_auth_change(self.get_config().await.http_client_factory())
+    --            .await;
+    --        // A completion-triggered wakeup can be interrupted while discovery waits.
+    --        if self
+    --            .active_turn
+    --            .lock()
+    --            .await
+    --            .as_ref()
+    --            .is_none_or(|turn| !Arc::ptr_eq(&turn.turn_state, &turn_state))
+    --        {
+    --            return;
+    --        }
+    --        let (input, mut start_options) =
+    --            self.input_queue.get_pending_input(&self.active_turn).await;
+    --        if !input.iter().any(
+    ++
+     +            let _admission = if has_waking_mail {
+     +                None
+     +            } else {
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +                    return;
+     +                };
+     +                Some(admission)
+    -+            };
+    +             };
+    +-            Some(configuration)
+    +-        } else {
+    +-            if self
+    +-                .active_turn
+    +-                .lock()
+     +
+    -+            let (turn_state, previous_options) = {
+    -+                let mut active_turn = self.active_turn.lock().await;
+    -+                if active_turn.is_some() || self.is_interrupted() {
+    -+                    return;
+    -+                }
+    -+                let active_turn = active_turn.get_or_insert_with(ActiveTurn::default);
+    -+                let previous_options = if self.input_queue.has_trigger_turn_mailbox_items().await { Default::default() } else { self.state.lock().await.turn_attribution.as_ref().map(codex_history::TurnAttribution::start_options).unwrap_or_default() };
+    -+                (Arc::clone(&active_turn.turn_state), previous_options)
+    ++            let Some((turn_state, previous_options)) = self
+    ++                .reserve_pending_work_turn(&admitted_async_result_ids)
+    +                 .await
+    +-                .as_ref()
+    +-                .is_none_or(|turn| !Arc::ptr_eq(&turn.turn_state, &turn_state))
+    +-            {
+    ++            else {
+    +                 return;
+    +-            }
+    +-            None
+    +-        };
+    +-        let (input, mut start_options) =
+    +-            self.input_queue.get_pending_input(&self.active_turn).await;
+    +-        if !input.iter().any(
+     +            };
+     +
+     +            self.services
+     +                .models_manager
+     +                .refresh_after_auth_change(self.get_config().await.http_client_factory())
+     +                .await;
+    -+            // A completion-triggered wakeup can be interrupted while discovery waits.
+    -+            if self
+    -+                .active_turn
+    -+                .lock()
+    -+                .await
+    -+                .as_ref()
+    -+                .is_none_or(|turn| !Arc::ptr_eq(&turn.turn_state, &turn_state))
+    -+            {
+    -+                return;
+    -+            }
+    ++            let session_configuration = if self.enabled(Feature::WakeOnAgentMessages) {
+    ++                let Some(configuration) =
+    ++                    self.pending_work_turn_configuration(&turn_state).await
+    ++                else {
+    ++                    return;
+    ++                };
+    ++                Some(configuration)
+    ++            } else {
+    ++                // A completion-triggered wakeup can be interrupted while discovery waits.
+    ++                if self
+    ++                    .active_turn
+    ++                    .lock()
+    ++                    .await
+    ++                    .as_ref()
+    ++                    .is_none_or(|turn| !Arc::ptr_eq(&turn.turn_state, &turn_state))
+    ++                {
+    ++                    return;
+    ++                }
+    ++                None
+    ++            };
+     +
+     +            let claimed_async_results = self
+     +                .input_queue
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +                .iter()
+     +                .flat_map(|result| result.input().iter().cloned())
+     +                .collect::<Vec<_>>();
+    -+            let (mut input, mut start_options, child_result_origins) =
+    -+                self.input_queue.get_pending_input(&self.active_turn).await;
+    ++            let (mut input, mut start_options, child_result_origins) = self
+    ++                .input_queue
+    ++                .drain_mailbox_input_items_with_origins()
+    ++                .await;
+     +            let rollback_child_result_origins = child_result_origins.clone();
+     +            input.splice(0..0, async_input);
+     +            if !input.iter().any(
+                  |item| matches!(item, TurnInput::InterAgentCommunication(mail) if mail.trigger_turn),
+              ) {
+    -             // Queue-only mail wakes durable sleep without selecting a new task's settings.
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +-            // Queue-only wakes retain the previous turn context without selecting a new task.
+    ++            // Queue-only mail wakes durable sleep without selecting a new task's settings.
+    +             start_options = previous_options;
+    +             start_options.cyber_access_program = self
+    +                 .reference_context_item()
+                      .await
+                      .and_then(|context| context.cyber_access_program);
+              }
+    --        let turn_context = self
+    --            .new_turn_with_default_settings(
+    --                sub_id,
+    --                NewTurnContextOptions {
+    --                    final_output_json_schema: start_options.final_output_json_schema,
+    --                    cyber_access_program: start_options.cyber_access_program,
+    --                },
+    --            )
+    --            .await;
+    --        if let Some(trigger) = start_options.turn_trigger {
+    --            turn_context.turn_metadata_state.set_turn_trigger(trigger);
+    --        }
+    --        if let Some(id) = start_options.parent_turn_id {
+    --            if let Some(initiating_agent_path) = input
+    --                .iter()
+    --                .find_map(|item| {
+    +-        let options = NewTurnContextOptions {
+    +-            final_output_json_schema: start_options.final_output_json_schema,
+    +-            cyber_access_program: start_options.cyber_access_program,
+    +-        };
+    +-        let turn_context = match session_configuration {
+    +-            Some(configuration) => {
+    +-                self.new_turn_with_configuration(sub_id, configuration, options)
+    +-                    .await
+     +            let rollback_start_options = start_options.clone();
+    -+            let turn_context = self
+    -+                .new_turn_with_default_settings(
+    -+                    sub_id,
+    -+                    NewTurnContextOptions {
+    -+                        final_output_json_schema: start_options.final_output_json_schema,
+    -+                        cyber_access_program: start_options.cyber_access_program,
+    -+                    },
+    -+                )
+    -+                .await;
+    ++            let options = NewTurnContextOptions {
+    ++                final_output_json_schema: start_options.final_output_json_schema,
+    ++                cyber_access_program: start_options.cyber_access_program,
+    ++            };
+    ++            let turn_context = match session_configuration {
+    ++                Some(configuration) => {
+    ++                    self.new_turn_with_configuration(sub_id, configuration, options)
+    ++                        .await
+    ++                }
+    ++                None => self.new_turn_with_default_settings(sub_id, options).await,
+    ++            };
+     +            if !child_result_origins.is_empty() {
+     +                let origins = turn_context
+     +                    .extension_data
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +                for origin in child_result_origins.into_iter().flatten() {
+     +                    origins.insert(turn_context.sub_id.clone(), origin);
+     +                }
+    -+            }
+    -+            if let Some(trigger) = start_options.turn_trigger {
+    -+                turn_context.turn_metadata_state.set_turn_trigger(trigger);
+    -+            }
+    -+            if let Some(id) = start_options.parent_turn_id {
+    -+                if let Some(initiating_agent_path) = input.iter().find_map(|item| {
+    -                     let TurnInput::InterAgentCommunication(communication) = item else {
+    -                         return None;
+    -                     };
+    -                     communication
+    -                         .trigger_turn
+    -                         .then(|| communication.author.clone())
+    +             }
+    +-            None => self.new_turn_with_default_settings(sub_id, options).await,
+    +-        };
+    +-        if let Some(trigger) = start_options.turn_trigger {
+    +-            turn_context.turn_metadata_state.set_turn_trigger(trigger);
+    +-        }
+    +-        if let Some(id) = start_options.parent_turn_id {
+    +-            if let Some(initiating_agent_path) = input
+    +-                .iter()
+    +-                .find_map(|item| {
+    +-                    let TurnInput::InterAgentCommunication(communication) = item else {
+    +-                        return None;
+    +-                    };
+    +-                    communication
+    +-                        .trigger_turn
+    +-                        .then(|| communication.author.clone())
+     -                })
+     -                .or(start_options.initiating_agent_path)
+     -            {
+     -                turn_context
+     -                    .turn_metadata_state
+     -                    .set_initiating_agent_path(initiating_agent_path);
+    -+                }) {
+    -+                    turn_context
+    -+                        .turn_metadata_state
+    -+                        .set_initiating_agent_path(initiating_agent_path);
+    -+                }
+    -+                turn_context.turn_metadata_state.set_parent_turn_id(id);
+    ++            if let Some(trigger) = start_options.turn_trigger {
+    ++                turn_context.turn_metadata_state.set_turn_trigger(trigger);
+                  }
+     -            turn_context.turn_metadata_state.set_parent_turn_id(id);
+     -        }
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     -            return;
+     -        }
+     -        self.start_task(turn_context, Vec::new(), RegularTask::new())
+    --            .await;
+    ++            if let Some(id) = start_options.parent_turn_id {
+    ++                if let Some(initiating_agent_path) = input
+    ++                    .iter()
+    ++                    .find_map(|item| {
+    ++                        let TurnInput::InterAgentCommunication(communication) = item else {
+    ++                            return None;
+    ++                        };
+    ++                        communication
+    ++                            .trigger_turn
+    ++                            .then(|| communication.author.clone())
+    ++                    })
+    ++                    .or(start_options.initiating_agent_path)
+    ++                {
+    ++                    turn_context
+    ++                        .turn_metadata_state
+    ++                        .set_initiating_agent_path(initiating_agent_path);
+    ++                }
+    ++                turn_context.turn_metadata_state.set_parent_turn_id(id);
+    ++            }
+     +            if let Some(id) = start_options.root_turn_id {
+     +                turn_context.turn_metadata_state.set_root_turn_id(id);
+     +            }
+     +            self.maybe_emit_model_warnings_for_turn(turn_context.as_ref())
+     +                .await;
+    -+            // Task completion must still save this mail if pre-turn compaction fails.
+    -+            self.input_queue
+    -+                .extend_pending_input_for_turn_state(turn_state.as_ref(), input)
+    -+                .await;
+    -+            Box::pin(self.start_task(turn_context, Vec::new(), RegularTask::new())).await;
+    -+            let start_was_cancelled = self
+    -+                .active_turn
+    -+                .lock()
+    -+                .await
+    -+                .as_ref()
+    -+                .is_some_and(|turn| turn.task.is_none());
+    -+            if start_was_cancelled {
+    -+                let cancelled_input = self
+    -+                    .input_queue
+    -+                    .take_pending_input_for_turn_state(turn_state.as_ref())
+    -+                    .await;
+    ++            // Stage mail only after confirming ownership, so a replacement turn's input
+    ++            // cannot be claimed or overwritten while this context is being constructed.
+    ++            let started = Box::pin(self.start_task_with_reservation(
+    ++                Arc::clone(&turn_context),
+    ++                Vec::new(),
+    ++                RegularTask::new(),
+    ++                Some(&turn_state),
+    ++                input.clone(),
+    ++            ))
+    +             .await;
+    ++            if !started {
+    ++                let cancelled_input = input;
+     +                let async_item_count = claimed_async_results
+     +                    .iter()
+     +                    .map(|result| result.input().len())
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+     +                self.input_queue
+     +                    .restore_async_results(claimed_async_results)
+     +                    .await;
+    -+                self.clear_reserved_idle_turn(&turn_state).await;
+    ++                let reserved_input = {
+    ++                    let mut active = self.active_turn.lock().await;
+    ++                    if active.as_ref().is_some_and(|turn| {
+    ++                        Arc::ptr_eq(&turn.turn_state, &turn_state) && turn.task.is_some()
+    ++                    }) {
+    ++                        Vec::new()
+    ++                    } else {
+    ++                        let pending = self
+    ++                            .input_queue
+    ++                            .take_pending_input_for_turn_state(turn_state.as_ref())
+    ++                            .await;
+    ++                        if active
+    ++                            .as_ref()
+    ++                            .is_some_and(|turn| Arc::ptr_eq(&turn.turn_state, &turn_state))
+    ++                        {
+    ++                            *active = None;
+    ++                        }
+    ++                        pending
+    ++                    }
+    ++                };
+    ++                if !reserved_input.is_empty() {
+    ++                    self.input_queue
+    ++                        .enqueue_async_result(
+    ++                            reserved_input,
+    ++                            Arc::clone(&turn_context.extension_data),
+    ++                        )
+    ++                        .await;
+    ++                }
+     +            }
+     +            drop(async_result_admission_permits);
+    ++            if !started {
+    ++                // The replacement may have retired before the restored input was visible.
+    ++                self.maybe_start_turn_for_pending_work().await;
+    ++            }
+     +        })
+          }
+      
+          pub async fn abort_all_tasks(self: &Arc<Self>, reason: TurnAbortReason) {
+     @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -         {
+    + 
+    +         let finishing = CancellationToken::new();
+    +         let finish_recording = finishing.clone().drop_guard();
+    +-        let turn_state = {
+    ++        let finished_turn = {
+    +             let mut active = self.active_turn.lock().await;
+    +             active.as_mut().and_then(|active_turn| {
+    +                 let task = active_turn.task.take()?;
+    +                 task.handle.detach();
+    +                 active_turn.finishing = Some(finishing);
+    +-                Some(Arc::clone(&active_turn.turn_state))
+    ++                Some((
+    ++                    Arc::clone(&active_turn.turn_state),
+    ++                    task.parent_result_residency_guard,
+    ++                ))
+    +             })
+    +         };
+    +-        let Some(turn_state) = turn_state else {
+    ++        let Some((turn_state, _parent_result_residency_guard)) = finished_turn else {
+    +             return;
+    +         };
+    +         let pending_input = self
+    +@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    +         if matches!(
+    +             reason,
+    +             TurnAbortReason::Interrupted | TurnAbortReason::BudgetLimited
+    +-        ) && active.as_ref().is_some_and(|turn| {
+    +-            turn.task.is_some()
+    +-                || (self.enabled(Feature::WakeOnAgentMessages) && turn.finishing.is_none())
+    +-        }) {
+    +-            // Message wakes reserve work before registering a task. With the
+    +-            // feature enabled, stopping a reservation must block later mail too.
+    +-            // Finishing turns must retain their status until completion is
+    +-            // persisted, so capacity eviction cannot close their rollout writer.
+    ++        ) && active
+    ++            .as_ref()
+    ++            .is_some_and(|active_turn| active_turn.task.is_some())
+    ++        {
+                  self.mark_interrupted();
+              }
+     +        if matches!(
+    @@ codex-rs/core/src/tasks/mod.rs: impl Session {
+              active.take()
+          }
+      
+    +@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    + #[cfg(test)]
+    + #[path = "mod_tests.rs"]
+    + mod tests;
+    ++
+    ++#[cfg(test)]
+    ++#[path = "admission_tests.rs"]
+    ++mod admission_tests;
+     
+      ## codex-rs/core/src/thread_spawn.rs ##
+     @@ codex-rs/core/src/thread_spawn.rs: pub(crate) async fn spawn(
+    @@ codex-rs/ext/extension-api/src/lib.rs
+     @@
+     +mod async_result_admission;
+      mod capabilities;
+    + mod catalog_refresh;
+      mod contributors;
+    - mod registry;
+     @@ codex-rs/ext/extension-api/src/lib.rs: pub use session_isolation::IsolatedSessionExtensions;
+      pub use session_isolation::SessionIsolation;
+      pub use tool_policy::ToolPolicy;
+    @@ codex-rs/ext/extension-api/src/registry.rs: impl<C: Sync> ExtensionRegistryBuild
+          pub fn thread_lifecycle_contributor(
+              &mut self,
+     @@ codex-rs/ext/extension-api/src/registry.rs: pub struct ExtensionRegistry<C: Sync> {
+    -     model_request_contributors: Vec<Arc<dyn ModelRequestContributor>>,
+    +     message_observers: Vec<Arc<dyn MessageLifecycleContributor>>,
+          turn_item_contributors: Vec<Arc<dyn TurnItemContributor>>,
+          approval_review_contributors: Vec<Arc<dyn ApprovalReviewContributor>>,
+     +    async_result_admission_contributors: Vec<Arc<dyn AsyncResultAdmissionContributor>>,
+    @@ codex-rs/ext/extension-api/src/registry.rs: pub struct ExtensionRegistry<C: Sync
+      
+      impl<C: Sync> ExtensionRegistry<C> {
+     @@ codex-rs/ext/extension-api/src/registry.rs: impl<C: Sync> ExtensionRegistry<C> {
+    -                 model_request_contributors: self.model_request_contributors.clone(),
+    +                 message_observers: self.message_observers.clone(),
+                      turn_item_contributors: self.turn_item_contributors.clone(),
+                      approval_review_contributors: self.approval_review_contributors.clone(),
+     +                async_result_admission_contributors: self
+ 38:  8935af0b93 !  37:  c4fcb27aed Set local build version to 0.159.2+local.9
+    @@ codex-rs/Cargo.toml: members = [
+      resolver = "2"
+      
+      [workspace.package]
+    --version = "0.163.0"
+    -+version = "0.163.0+local.11"
+    +-version = "0.165.0"
+    ++version = "0.165.0+local.13"
+      # Track the edition for all workspace crates in one place. Individual
+      # crates can still override this value, but keeping it here means new
+      # crates created with `cargo new -w ...` automatically inherit the 2024
+ 39:  eb507a9556 =  38:  2f06075926 Freeze collaboration specs per thread
+ 40:  bfd549618b !  39:  d7d91f30c2 Preserve plugin locators through symlinks
+    @@ Commit message
+     
+         Symlinked plugin directories can resolve to canonical targets outside the discovery root. Deriving the package name from that target loses the stable plugin locator and prevents package-relative reads. Use the loader-retained logical discovery path for naming while keeping the canonical target for filesystem containment and reads.
+     
+    - ## codex-rs/ext/skills/src/provider/host.rs ##
+    -@@ codex-rs/ext/skills/src/provider/host.rs: fn plugin_skill_locator(
+    -     let plugin_id = skill.plugin_id.as_deref()?;
+    -     let root = outcome.skill_root_for_path(&skill.path_to_skills_md)?;
+    -     let root = PathUri::from_abs_path(root);
+    --    let directory = skill.path_to_skills_md.parent()?;
+    -+    let discovery_path = outcome.skill_discovery_path_for_path(&skill.path_to_skills_md)?;
+    -+    let directory = discovery_path.parent()?;
+    -     let relative_directory = directory.relative_path_from(&root)?;
+    -     let package = if relative_directory.is_empty() {
+    -         format!("skill://{plugin_id}")
+    -
+      ## codex-rs/ext/skills/tests/plugin_skill_locators.rs ##
+     @@ codex-rs/ext/skills/tests/plugin_skill_locators.rs: async fn plugin_package_subresources_follow_the_active_snapshot_and_stay_within_
+          Ok(())
+ 41:  022511fcca !  40:  918f46db07 Wake agents when background exec completes
+    @@ codex-rs/core/src/unified_exec/mod.rs: struct ProcessEntry {
+     
+      ## codex-rs/core/src/unified_exec/process_manager.rs ##
+     @@ codex-rs/core/src/unified_exec/process_manager.rs: impl UnifiedExecProcessManager {
+    -         // Different terminal sessions can be polled concurrently, but reads and
+    -         // writes against one terminal must not overlap because they share a
+    -         // draining output buffer and process lifecycle.
+    --        let locked_process = {
+    -+        let (locked_process, wake_on_exit) = {
+    +         let _interaction_guard = locked_process.interaction_lock().lock_owned().await;
+    +         // A queued write must observe strict review enabled while it was waiting.
+    +         let strict_auto_review = context.step_context.turn.strict_auto_review_enabled();
+    ++        let mut wake_on_exit = None;
+    +         let approval = {
+                  let store = self.process_store.lock().await;
+                  let entry = store
+    -                 .processes
+     @@ codex-rs/core/src/unified_exec/process_manager.rs: impl UnifiedExecProcessManager {
+    -             if let Some(call_id) = trace_id(&entry.call_id) {
+    -                 tracing::Span::current().record("original_exec_call_id", call_id);
+    -             }
+    --            Arc::clone(&entry.process)
+    -+            (Arc::clone(&entry.process), Arc::clone(&entry.wake_on_exit))
+    +                 .get(&process_id)
+    +                 .filter(|entry| Arc::ptr_eq(&entry.process, locked_process))
+    +                 .ok_or(UnifiedExecError::UnknownProcessId { process_id })?;
+    ++            wake_on_exit = Some(Arc::clone(&entry.wake_on_exit));
+    +             entry.stdin_approval(context, request.input, strict_auto_review)?
+              };
+    -         let _interaction_guard = locked_process.interaction_lock().lock_owned().await;
+    -         // A queued write must observe strict review enabled while it was waiting.
+    +         if let Some((approval, approval_reason)) = approval {
+     @@ codex-rs/core/src/unified_exec/process_manager.rs: impl UnifiedExecProcessManager {
+                      .await;
+              }
+    @@ codex-rs/models-manager/models.json
+              "approvals": null,
+     
+      ## codex-rs/prompts/src/multi_agent_instructions.rs ##
+    -@@ codex-rs/prompts/src/multi_agent_instructions.rs: use codex_protocol::models::ContentItemKind;
+    +@@ codex-rs/prompts/src/multi_agent_instructions.rs: use codex_protocol::models::input_text;
+      const DEFAULT_MULTI_AGENT_V2_MODEL_OVERRIDE_USAGE_HINT_TEXT: &str = "Full-history forks (`fork_turns` omitted or `\"all\"`) inherit the parent model and reasoning effort and do not accept overrides. Only set `model` or `reasoning_effort` when explicitly requested by the user, applicable `AGENTS.md` instructions, or skill instructions; when doing so, set `fork_turns` to `\"none\"`.";
+      const DEFAULT_MULTI_AGENT_V2_WAIT_AGENT_USAGE_HINT_TEXT: &str =
+          "When calling `wait_agent`, prefer longer waits (minutes) to avoid busy polling.";
+ 42:  7603a4d552 =  41:  a77a8be8bc Adapt watcher tests to explicit wake control
+ 43:  6e5ab7e2be !  42:  6cd6ccd52a Complete exec watcher test adaptation
+    @@ codex-rs/core/src/unified_exec/mod_tests.rs: async fn terminating_initial_exec_c
+                  hook_command: "sleep 60".to_string(),
+                  tty: true,
+                  environment_id: codex_exec_server::LOCAL_ENVIRONMENT_ID.to_string(),
+    -@@ codex-rs/core/src/unified_exec/mod_tests.rs: async fn terminating_during_stdin_poll_returns_exited_response() -> anyhow::Resu
+    +@@ codex-rs/core/src/unified_exec/mod_tests.rs: async fn terminating_during_stdin_poll_returns_exited_response(
+                  process_id,
+                  cwd: cwd.into(),
+                  initial_exec_command_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+ 44:  fa9d1e2b3b !  43:  04e548cf40 Port catalog diagnostics and compaction parity
+    @@ codex-rs/core/src/client.rs: impl ModelClient {
+     +
+          pub(crate) fn with_session_context(
+              mut self,
+    -         prompt_cache_key_override: Option<String>,
+    +         prompt_cache_key: PromptCacheKey,
+     @@ codex-rs/core/src/client.rs: impl ModelClientSession {
+              &self,
+              request: &ResponsesApiRequest,
+    @@ codex-rs/core/src/compact.rs: use std::sync::Arc;
+      use crate::client::ModelClientSession;
+      use crate::client_common::ResponseEvent;
+      use crate::context::BaseInstructionsFragment;
+    -@@ codex-rs/core/src/compact.rs: use codex_utils_output_truncation::TruncationPolicy;
+    +@@ codex-rs/core/src/compact.rs: use codex_protocol::user_input::UserInput;
+    + use codex_rollout_trace::InferenceTraceContext;
+      use codex_utils_output_truncation::approx_token_count;
+    - use codex_utils_output_truncation::truncate_text;
+      use futures::prelude::*;
+     +use tokio_util::sync::CancellationToken;
+      use tracing::error;
+    @@ codex-rs/core/src/compact.rs: async fn drain_to_completed(
+          phase: CompactionPhase,
+     +    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
+      ) -> CodexResult<CompactionResponse> {
+    +     sess.set_server_reasoning_included(turn_context.model_info().use_responses_lite)
+    +         .await;
+          let mut stream = client_session
+     -        .stream(
+     +        .stream_with_diagnostic_attempts(
+    @@ codex-rs/core/src/session/session.rs: impl Session {
+                      ))
+     +                .with_cache_diagnostics(config.codex_home.as_path())
+                      .with_session_context(
+    +                     prompt_cache_key,
+                          crate::guardian::prompt_cache_key_override_for_review_session(
+    -                         &session_configuration.session_source,
+     
+      ## codex-rs/core/src/session/turn.rs ##
+     @@ codex-rs/core/src/session/turn.rs: use std::collections::HashSet;
+    @@ codex-rs/core/src/session/turn.rs: pub(crate) fn build_prompt(
+      }
+      
+     @@ codex-rs/core/src/session/turn.rs: async fn run_sampling_request(
+    -     let max_retries = turn_context.provider.info().stream_max_retries();
+    -     record_registration_metrics(&step_context.tool_router, &step_context.session_telemetry);
+    +         incremental_tools,
+    +     );
+          let mut retry_state = ResponsesStreamRetryState::default();
+     +    let diagnostic_attempts = CacheDiagnosticAttemptSequencer::default();
+          let mut initial_input = Some(input);
+          let mut original_input = None;
+          let mut executed_tool_calls_by_output = HashMap::new();
+     @@ codex-rs/core/src/session/turn.rs: async fn run_sampling_request(
+    -             Arc::clone(&turn_diff_tracker),
+                  &prompt,
+                  cancellation_token.child_token(),
+    +             &mut draining_for_mailbox,
+     +            &diagnostic_attempts,
+              )
+              .await
+    @@ codex-rs/core/src/session/turn.rs: pub(super) fn realtime_text_for_event(msg: &E
+              | EventMsg::TurnStarted(_)
+              | EventMsg::ThreadSettingsApplied(_)
+     @@ codex-rs/core/src/session/turn.rs: async fn try_run_sampling_request(
+    -     turn_diff_tracker: SharedTurnDiffTracker,
+          prompt: &Prompt,
+          cancellation_token: CancellationToken,
+    +     draining_for_mailbox: &mut bool,
+     +    diagnostic_attempts: &CacheDiagnosticAttemptSequencer,
+      ) -> CodexResult<SamplingRequestResult> {
+          let turn_context = Arc::clone(&step_context.turn);
+          feedback_tags!(
+     @@ codex-rs/core/src/session/turn.rs: async fn try_run_sampling_request(
+    -         .reasoning_effort_for_request(&step_context.settings, super::RequestEffortUsage::Sampling)
+    +     sess.set_server_reasoning_included(step_context.settings.model_info.use_responses_lite)
+              .await;
+    -     let mut stream = client_session
+    +     let mut stream = match client_session
+     -        .stream(
+     +        .stream_with_diagnostic_attempts(
+                  prompt,
+    @@ codex-rs/core/src/session/turn_context.rs: pub struct TurnContext {
+     +    /// diagnostics must be able to attribute that change.
+     +    pub(crate) available_models_lock_contention_fallback: bool,
+          pub(crate) final_output_json_schema: Option<Value>,
+    -     pub(crate) dynamic_tools: Vec<DynamicToolSpec>,
+    +     pub(crate) dynamic_tools: Arc<[DynamicToolSpec]>,
+          pub(crate) turn_metadata_state: Arc<TurnMetadataState>,
+     @@ codex-rs/core/src/session/turn_context.rs: impl TurnContext {
+                  originator: self.originator.clone(),
+    @@ codex-rs/core/src/session/turn_context.rs: impl Session {
+     
+      ## codex-rs/core/src/state/session.rs ##
+     @@ codex-rs/core/src/state/session.rs: pub(crate) struct SessionState {
+    -     pub(crate) active_connector_selection: HashSet<String>,
+          pub(crate) pending_session_start_sources: VecDeque<codex_hooks::SessionStartSource>,
+          next_turn_is_first: bool,
+    +     initial_settings_pending: bool,
+     +    /// Digest of the last model-visible tool catalog, for mid-thread
+     +    /// catalog-change detection (a changed catalog busts the cached prefix).
+     +    pub(crate) last_tool_catalog_digest: Option<crate::tools::router::ToolCatalogDigest>,
+    @@ codex-rs/core/src/state/session.rs: pub(crate) struct SessionState {
+      
+      impl SessionState {
+     @@ codex-rs/core/src/state/session.rs: impl SessionState {
+    -             active_connector_selection: HashSet::new(),
+                  pending_session_start_sources: VecDeque::new(),
+                  next_turn_is_first: true,
+    +             initial_settings_pending: true,
+     +            last_tool_catalog_digest: None,
+              }
+          }
+ 45:  46b53de989 !  44:  3209e7ea14 Preserve startup and MCP sampling authority
+    @@ codex-rs/core/src/session/mod.rs: impl Session {
+                          "developer"
+                              if fragment.markers().0 == MultiAgentRoleInstructions::type_markers().0 =>
+                          {
+    --                        separate_developer_sections.push(fragment.render_fragment());
+    ++<<<<<<< HEAD
+    +                         separate_developer_messages.push(fragment.render_fragment().into());
+    ++=======
+     +                        initial_multi_agent_usage_hint = Some(fragment);
+    ++>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+                          }
+                          "developer"
+                              if update.placement == Placement::Standalone
+                                  && fragment.markers().0.is_empty() =>
+                          {
+    --                        separate_developer_sections.push(fragment.render_fragment());
+    ++<<<<<<< HEAD
+    +                         separate_developer_messages.push(fragment.render_fragment().into());
+    ++=======
+     +                        initial_multi_agent_usage_hint = Some(fragment);
+    ++>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+                          }
+                          "developer" => developer_sections.push(fragment.render_fragment()),
+                          "user" => contextual_user_sections.push(fragment.render_fragment()),
+     @@ codex-rs/core/src/session/mod.rs: impl Session {
+    -                     items.push(developer_message);
+    -                 }
+    +             ) {
+    +                 items.push(developer_message);
+    +             }
+    ++<<<<<<< HEAD
+    +             items.append(&mut separate_developer_messages);
+    +-            if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
+    +-                && let Some(message) =
+    +-                    crate::context_manager::updates::build_rendered_message(vec![
+    +-                        initial_multi_agent_mode.render_fragment(),
+    +-                    ])
+    +-            {
+    +-                items.push(message);
+    ++=======
+    ++            for section in separate_developer_sections.drain(..) {
+    ++                if let Some(developer_message) =
+    ++                    crate::context_manager::updates::build_rendered_message(vec![section])
+    ++                {
+    ++                    items.push(developer_message);
+    ++                }
+    +             }
+    +             if let Some(contextual_user_message) =
+    +                 crate::context_manager::updates::build_rendered_message(std::mem::take(
+    +@@ codex-rs/core/src/session/mod.rs: impl Session {
+    +             {
+    +                 items.push(contextual_user_message);
+                  }
+    -+            if let Some(contextual_user_message) =
+    -+                crate::context_manager::updates::build_rendered_message(std::mem::take(
+    -+                    &mut contextual_user_sections,
+    -+                ))
+    -+            {
+    -+                items.push(contextual_user_message);
+    -+            }
+     +            if let Some(fragment) = initial_multi_agent_usage_hint
+     +                && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![fragment.render_fragment()])
+     +            {
+     +                items.push(message);
+     +            }
+    -             if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
+    -                 && let Some(message) =
+    -                     crate::context_manager::updates::build_rendered_message(vec![
+    -@@ codex-rs/core/src/session/mod.rs: impl Session {
+    -             {
+    -                 items.push(message);
+    -             }
+    --            if let Some(contextual_user_message) =
+    --                crate::context_manager::updates::build_rendered_message(std::mem::take(
+    --                    &mut contextual_user_sections,
+    --                ))
+    --            {
+    --                items.push(contextual_user_message);
+    --            }
+    ++>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+    ++            if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
+    ++                && let Some(message) =
+    ++                    crate::context_manager::updates::build_rendered_message(vec![
+    ++                        initial_multi_agent_mode.render_fragment(),
+    ++                    ])
+    ++            {
+    ++                items.push(message);
+    ++            }
+                  // Emit the guardian policy prompt as a separate developer item so the guardian
+                  // subagent sees a distinct, easy-to-audit instruction block.
+                  if next_item.is_none()
+    @@ codex-rs/core/src/session/mod.rs: impl Session {
+     
+      ## codex-rs/core/src/tools/handlers/mcp.rs ##
+     @@ codex-rs/core/src/tools/handlers/mcp.rs: impl McpHandler {
+    -         &self,
+    -         invocation: ToolInvocation,
+          ) -> Result<Box<dyn crate::tools::context::ToolOutput>, FunctionCallError> {
+    --        let prepared_mcp_call = invocation.session.prepare_mcp_call(&self.tool_info).await;
+    -+        let prepared_mcp_call = invocation
+    -+            .session
+    +         let prepared_mcp_call = invocation
+    +             .session
+    ++<<<<<<< HEAD
+    +             .prepare_mcp_call(&self.definition.tool_info)
+    ++=======
+     +            .prepare_mcp_call(
+     +                &invocation.step_context.mcp,
+     +                &self.tool_info.server_name,
+     +                self.tool_info.tool.name.as_ref(),
+     +            )
+    -+            .await;
+    ++>>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+    +             .await;
+              // Use the executed call's binding; a later catalog refresh must not change eligibility.
+              let result_metadata_capture_allowed = invocation
+    -             .session
+ 46:  1ddb88042f =  45:  81fb5e4390 Reconcile response stream diagnostics
+ 47:  6fed25ae6d =  46:  75726ebd5b Format integrated tool catalog port
+ 48:  52f17c916b !  47:  3e800f036d Align lockfile with local release version
+    @@ codex-rs/Cargo.lock: dependencies = [
+     -version = "0.0.0"
+     +version = "0.163.0+local.11"
+      dependencies = [
+    -  "base64 0.22.1",
+    -  "caseless",
+    +  "codex-extension-api",
+    +  "codex-message-board",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "codex-protocol",
+    -  "codex-utils-string",
+    +  "codex-protocol-test-support",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "codex-client",
+    -  "codex-protocol",
+    +  "codex-http-client",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+    -  "appcontainer_common",
+    +  "codex-network-proxy",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+    -  "base64 0.22.1",
+    +  "aws-credential-types",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "anyhow",
+    -  "clap",
+    +  "bytes",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "bitflags 2.13.1",
+    -  "codex-code-mode",
+    +  "codex-attachment-store",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.11"
+      dependencies = [
+       "base64 0.22.1",
+    -  "core-foundation 0.10.1",
+    +  "block2",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+ 49:  5b7a02c339 =  48:  87724308dd Index local.9 installation record
+ 50:  932c775bd3 !  49:  1b351293a5 Restore catalog digest attribution on cold resume
+    @@ codex-rs/core/src/session/mod.rs: impl Session {
+                  return;
+              }
+              let (added, removed, changed) = digest.diff(&previous);
+    +@@ codex-rs/core/src/session/mod.rs: impl Session {
+    +                     "developer"
+    +                         if fragment.markers().0 == MultiAgentRoleInstructions::type_markers().0 =>
+    +                     {
+    +-<<<<<<< HEAD
+    +-                        separate_developer_messages.push(fragment.render_fragment().into());
+    +-=======
+    +                         initial_multi_agent_usage_hint = Some(fragment);
+    +->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+    +                     }
+    +                     "developer"
+    +                         if update.placement == Placement::Standalone
+    +                             && fragment.markers().0.is_empty() =>
+    +                     {
+    +-<<<<<<< HEAD
+    +-                        separate_developer_messages.push(fragment.render_fragment().into());
+    +-=======
+    +                         initial_multi_agent_usage_hint = Some(fragment);
+    +->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+    +                     }
+    +                     "developer" => developer_sections.push(fragment.render_fragment()),
+    +                     "user" => contextual_user_sections.push(fragment.render_fragment()),
+    +@@ codex-rs/core/src/session/mod.rs: impl Session {
+    +             ) {
+    +                 items.push(developer_message);
+    +             }
+    +-<<<<<<< HEAD
+    +             items.append(&mut separate_developer_messages);
+    +-=======
+    +-            for section in separate_developer_sections.drain(..) {
+    +-                if let Some(developer_message) =
+    +-                    crate::context_manager::updates::build_rendered_message(vec![section])
+    +-                {
+    +-                    items.push(developer_message);
+    +-                }
+    +-            }
+    +             if let Some(contextual_user_message) =
+    +                 crate::context_manager::updates::build_rendered_message(std::mem::take(
+    +                     &mut contextual_user_sections,
+    +@@ codex-rs/core/src/session/mod.rs: impl Session {
+    +                 items.push(contextual_user_message);
+    +             }
+    +             if let Some(fragment) = initial_multi_agent_usage_hint
+    +-                && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![fragment.render_fragment()])
+    ++                && let Some(message) =
+    ++                    crate::context_manager::updates::build_rendered_message(vec![
+    ++                        fragment.render_fragment(),
+    ++                    ])
+    +             {
+    +                 items.push(message);
+    +             }
+    +->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+    +             if let Some(initial_multi_agent_mode) = initial_multi_agent_mode
+    +                 && let Some(message) =
+    +                     crate::context_manager::updates::build_rendered_message(vec![
+     
+      ## codex-rs/core/src/session/tool_catalog_tests.rs ##
+     @@ codex-rs/core/src/session/tool_catalog_tests.rs: fn persisted_tool_catalog_events(items: &[RolloutItem]) -> Vec<serde_json::Value
+    @@ codex-rs/core/src/session/tool_catalog_tests.rs: async fn selected_tool_catalog_
+          );
+      }
+     
+    + ## codex-rs/core/src/tasks/admission_tests.rs (new) ##
+    +@@
+    ++use super::SessionTask;
+    ++use super::SessionTaskResult;
+    ++use crate::session::TurnInput;
+    ++use crate::session::session::Session;
+    ++use crate::session::tests::make_session_and_context_with_rx;
+    ++use crate::session::turn_context::TurnContext;
+    ++use crate::state::ActiveTurn;
+    ++use crate::state::TaskKind;
+    ++use codex_history::ResponseItemEnvelope;
+    ++use codex_protocol::models::ResponseItem;
+    ++use codex_protocol::protocol::TurnAbortReason;
+    ++use pretty_assertions::assert_eq;
+    ++use std::sync::Arc;
+    ++use std::sync::Mutex;
+    ++use tokio::sync::oneshot;
+    ++use tokio_util::sync::CancellationToken;
+    ++
+    ++struct WaitingTask(Mutex<Option<oneshot::Sender<Vec<TurnInput>>>>);
+    ++
+    ++impl SessionTask for WaitingTask {
+    ++    fn kind(&self) -> TaskKind {
+    ++        TaskKind::Regular
+    ++    }
+    ++    fn span_name(&self) -> &'static str {
+    ++        "admission_test"
+    ++    }
+    ++    async fn run(
+    ++        self: Arc<Self>,
+    ++        _session: Arc<Session>,
+    ++        _ctx: Arc<TurnContext>,
+    ++        input: Vec<TurnInput>,
+    ++        cancellation_token: CancellationToken,
+    ++    ) -> SessionTaskResult {
+    ++        self.0.lock().unwrap().take().unwrap().send(input).unwrap();
+    ++        cancellation_token.cancelled().await;
+    ++        Ok(None)
+    ++    }
+    ++}
+    ++
+    ++#[tokio::test]
+    ++async fn replaced_async_reservation_preserves_the_explicit_task_and_pending_input() {
+    ++    let (session, explicit_context, _rx_event) = make_session_and_context_with_rx().await;
+    ++    let reservation = ActiveTurn::default();
+    ++    let reserved_state = Arc::clone(&reservation.turn_state);
+    ++    *session.active_turn.lock().await = Some(reservation);
+    ++    let async_context = session.new_default_turn().await;
+    ++    let (received_tx, received_rx) = oneshot::channel();
+    ++    session
+    ++        .start_task(
+    ++            Arc::clone(&explicit_context),
+    ++            Vec::new(),
+    ++            WaitingTask(Mutex::new(Some(received_tx))),
+    ++        )
+    ++        .await;
+    ++    received_rx.await.unwrap();
+    ++    let pending_input = vec![TurnInput::ResponseItem(ResponseItemEnvelope::new(
+    ++        ResponseItem::Other,
+    ++    ))];
+    ++    session
+    ++        .input_queue
+    ++        .extend_pending_input_for_turn_state(reserved_state.as_ref(), pending_input.clone())
+    ++        .await;
+    ++    let (unused_received, _unused_rx) = oneshot::channel();
+    ++    assert!(
+    ++        !session
+    ++            .start_task_with_reservation(
+    ++                async_context,
+    ++                Vec::new(),
+    ++                WaitingTask(Mutex::new(Some(unused_received))),
+    ++                Some(&reserved_state),
+    ++                Vec::new()
+    ++            )
+    ++            .await
+    ++    );
+    ++    assert_eq!(
+    ++        session
+    ++            .active_turn
+    ++            .lock()
+    ++            .await
+    ++            .as_ref()
+    ++            .unwrap()
+    ++            .task
+    ++            .as_ref()
+    ++            .unwrap()
+    ++            .turn_context
+    ++            .sub_id,
+    ++        explicit_context.sub_id
+    ++    );
+    ++    assert_eq!(
+    ++        session
+    ++            .input_queue
+    ++            .take_pending_input_for_turn_state(reserved_state.as_ref())
+    ++            .await,
+    ++        pending_input
+    ++    );
+    ++    session.abort_all_tasks(TurnAbortReason::Replaced).await;
+    ++}
+    ++
+    ++#[tokio::test]
+    ++async fn explicit_start_preserves_input_when_an_automatic_task_registered_first() {
+    ++    let (session, automatic_context, _rx_event) = make_session_and_context_with_rx().await;
+    ++    let explicit_context = session.new_default_turn().await;
+    ++    let (automatic_received, automatic_received_rx) = oneshot::channel();
+    ++    session
+    ++        .start_task(
+    ++            automatic_context,
+    ++            Vec::new(),
+    ++            WaitingTask(Mutex::new(Some(automatic_received))),
+    ++        )
+    ++        .await;
+    ++    automatic_received_rx.await.unwrap();
+    ++    let (explicit_received, explicit_received_rx) = oneshot::channel();
+    ++    let explicit_input = vec![TurnInput::ResponseItem(ResponseItemEnvelope::new(
+    ++        ResponseItem::Other,
+    ++    ))];
+    ++    session
+    ++        .start_task(
+    ++            Arc::clone(&explicit_context),
+    ++            explicit_input.clone(),
+    ++            WaitingTask(Mutex::new(Some(explicit_received))),
+    ++        )
+    ++        .await;
+    ++    assert_eq!(explicit_received_rx.await.unwrap(), explicit_input);
+    ++    assert_eq!(
+    ++        session
+    ++            .active_turn
+    ++            .lock()
+    ++            .await
+    ++            .as_ref()
+    ++            .unwrap()
+    ++            .task
+    ++            .as_ref()
+    ++            .unwrap()
+    ++            .turn_context
+    ++            .sub_id,
+    ++        explicit_context.sub_id
+    ++    );
+    ++    session.abort_all_tasks(TurnAbortReason::Replaced).await;
+    ++}
+    ++
+    ++#[tokio::test]
+    ++async fn replaced_idle_reservation_cannot_be_reused_by_a_stale_async_start() {
+    ++    let (session, turn_context, _rx_event) = make_session_and_context_with_rx().await;
+    ++    let reserved_state = Arc::clone(&ActiveTurn::default().turn_state);
+    ++    let replacement = ActiveTurn::default();
+    ++    let replacement_state = Arc::clone(&replacement.turn_state);
+    ++    *session.active_turn.lock().await = Some(replacement);
+    ++    let (received, _received_rx) = oneshot::channel();
+    ++    assert!(
+    ++        !session
+    ++            .start_task_with_reservation(
+    ++                turn_context,
+    ++                Vec::new(),
+    ++                WaitingTask(Mutex::new(Some(received))),
+    ++                Some(&reserved_state),
+    ++                Vec::new(),
+    ++            )
+    ++            .await
+    ++    );
+    ++    let active = session.active_turn.lock().await;
+    ++    let replacement = active.as_ref().unwrap();
+    ++    assert!(Arc::ptr_eq(&replacement.turn_state, &replacement_state));
+    ++    assert!(replacement.task.is_none());
+    ++}
+    +
+    + ## codex-rs/core/src/tools/handlers/mcp.rs ##
+    +@@ codex-rs/core/src/tools/handlers/mcp.rs: impl McpHandler {
+    +     ) -> Result<Box<dyn crate::tools::context::ToolOutput>, FunctionCallError> {
+    +         let prepared_mcp_call = invocation
+    +             .session
+    +-<<<<<<< HEAD
+    +-            .prepare_mcp_call(&self.definition.tool_info)
+    +-=======
+    +             .prepare_mcp_call(
+    +                 &invocation.step_context.mcp,
+    +-                &self.tool_info.server_name,
+    +-                self.tool_info.tool.name.as_ref(),
+    ++                &self.definition.tool_info.server_name,
+    ++                self.definition.tool_info.tool.name.as_ref(),
+    +             )
+    +->>>>>>> 46b53de989 (Preserve startup and MCP sampling authority)
+    +             .await;
+    +         // Use the executed call's binding; a later catalog refresh must not change eligibility.
+    +         let result_metadata_capture_allowed = invocation
+    +
+      ## codex-rs/core/src/tools/router.rs ##
+     @@ codex-rs/core/src/tools/router.rs: pub(crate) struct ToolBuildProvenance {
+      #[derive(Clone, Debug, PartialEq, Eq)]
+ 51:  08d4bf402e <   -:  ---------- Make asynchronous turn reservation admission atomic
+ 52:  a8834cc492 =  50:  978ae88fab Budget finalized Guardian review context at sampling
+ 53:  c31dc97058 =  51:  14b0398c4f Preserve denied-read authority for persistent terminals
+ 54:  18123473c1 =  52:  1f0c136254 Correlate fixture responses and completion with admitted turns
+ 55:  5d8b8306bc =  53:  b9c3fb70a5 Sample refreshed app authority in a fresh Code Mode cell
+ 56:  26df71229d !  54:  18b93c5b42 Synchronize child fixtures with terminal parent continuations
+    @@ codex-rs/core/tests/suite/agent_execution.rs: use codex_protocol::protocol::Even
+      use core_test_support::submit_thread_settings;
+      use core_test_support::test_codex::test_codex;
+      use core_test_support::wait_for_event;
+    - use futures::FutureExt;
+    - use pretty_assertions::assert_eq;
+    - use serde_json::json;
+    -+use std::sync::Arc;
+    +@@ codex-rs/core/tests/suite/agent_execution.rs: use std::sync::Arc;
+      use std::time::Duration;
+      use test_case::test_case;
+    + use tokio::net::TcpListener;
+     +use tokio::sync::oneshot;
+      
+      const FIRST_PROMPT: &str = "spawn the first worker";
+    @@ codex-rs/core/tests/suite/agent_execution.rs: async fn v2_residency_reload_prese
+     +        .with_extensions(Arc::new(extensions.build()))
+              .with_model("gpt-5.6-sol")
+              .with_exec_server_url("none")
+    -         .with_config(|config| {
+    +         .with_config(move |config| {
+     @@ codex-rs/core/tests/suite/agent_execution.rs: async fn v2_residency_reload_preserves_inherited_environment_and_tools(
+          )
+          .await?;
+    @@ codex-rs/core/tests/suite/agent_execution.rs: async fn v2_residency_reload_prese
+     +    ThreadIdle::wait(&test.codex).await;
+     +    first_server.shutdown().await;
+      
+    -     let mut parent_environment = child_environment.clone();
+    -     if reload == ResidencyReload::OwnerRevokesWorkspaceRoot {
+    +     let evicted_thread = Arc::downgrade(&first_thread);
+    +     drop(first_thread);
+     @@ codex-rs/core/tests/suite/agent_execution.rs: async fn v2_residency_reload_preserves_inherited_environment_and_tools(
+              .await?;
+          }
+    @@ codex-rs/core/tests/suite/agent_execution.rs: async fn v2_residency_reload_prese
+          .await;
+     +    if let EventMsg::Error(error) = completion {
+     +        anyhow::bail!("reloaded_worker failed: {}", error.message);
+    -+    }
+    -     assert_eq!(
+    -         reloaded_worker
+    -             .config_snapshot()
+    +     if pending_owner {
+    +         assert_eq!(
+    +             reloaded_worker.environment_selections().await,
+     
+      ## codex-rs/core/tests/suite/cyber_access_program.rs ##
+     @@
+ 57:  7d91b88214 !  55:  c78ede44af Route board fixture phases without stealing parent continuations
+    @@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_is_sh
+              .function_call_output_text("resumed-read")
+              .expect("resumed read result");
+          let result: Value =
+    -@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) ->
+    +@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(
+              )),
+              response(done()),
+              response(done()),
+    @@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notif
+              vec![
+                  StreamingSseChunk {
+                      gate: None,
+    -@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) ->
+    +@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(
+          let child = root.thread_manager.get_thread(child_id).await?;
+          wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+      
+    @@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notif
+          wait_for_event(&root.codex, |event| match event {
+              EventMsg::ItemStarted(event) => match &event.item {
+                  TurnItem::AgentMessage(message) => {
+    -@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) ->
+    +@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(
+              }]))
+              .await?;
+          // The child's follow-up confirms fanout completed, but its final would separately notify root.
+    @@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notif
+          let requests = streaming.requests().await;
+          let request: Value = serde_json::from_slice(requests.last().context("child follow-up")?)?;
+          let post = request["input"]
+    -@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) ->
+    +@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(
+          assert_eq!(post.author.as_str(), "/root/worker");
+          release_final.send(()).expect("release root response");
+          wait_for_event(&root.codex, |event| {
+ 58:  cf030a4313 !  56:  6c56f52a78 Keep Guardian fixtures aligned with current root authorization
+    @@ codex-rs/app-server/tests/suite/v2/guardian_v2.rs: async fn parent_response(
+                  assert!(input.iter().any(|item| item["id"] == "cmp_root"));
+     
+      ## codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs ##
+    -@@ codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs: async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
+    +@@ codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs: async fn compacted_full_history_fork_applies_child_developer_instructions(
+              ]),
+          )
+          .await;
+    @@ codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs: asy
+          let child_request = responses::mount_sse_once_match(
+              &server,
+              |request: &wiremock::Request| {
+    --            let body = String::from_utf8_lossy(&request.body);
+    --            body.contains(CHILD_PROMPT) && !body.contains(SPAWN_CALL_ID)
+    -+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+    -+                body.to_string().contains(CHILD_PROMPT)
+    -+                    && body["client_metadata"]["x-codex-parent-thread-id"].is_string()
+    -+            })
+    -         },
+    -         responses::sse(vec![
+    -             responses::ev_response_created("compacted-child-work"),
+    -@@ codex-rs/app-server/tests/suite/v2/multi_agent_v2_developer_instructions.rs: async fn compacted_full_history_fork_replaces_parent_developer_instructions() ->
+    -     responses::mount_sse_once_match(
+    -         &server,
+    -         |request: &wiremock::Request| {
+    --            String::from_utf8_lossy(&request.body).contains(SPAWN_CALL_ID)
+    -+            serde_json::from_slice::<serde_json::Value>(&request.body).is_ok_and(|body| {
+    -+                body.to_string().contains(SPAWN_CALL_ID)
+    -+                    && body["client_metadata"]["x-codex-parent-thread-id"].is_null()
+    -+            })
+    -         },
+    -         responses::sse(vec![
+    -             responses::ev_response_created("compacted-parent-complete"),
+     
+      ## codex-rs/core/tests/suite/guardian_retained_context.rs ##
+     @@ codex-rs/core/tests/suite/guardian_retained_context.rs: async fn compact_and_assert_answers(
+ 59:  197a8d6ba9 =  57:  10097dd5ee Isolate selected catalog and review fixtures from host configuration
+ 60:  4767f9b2a5 =  58:  1a07411433 Align stable validation with local Goal and diagnostic behavior
+ 61:  2e26242a09 =  59:  d0fec960d8 Refresh stable fixtures for preserved local context
+ 62:  43f6f4298d =  60:  8de15f3ebb Record stable local.10 validation and installation
+ 63:  88ee63c351 =  61:  0bd18bbb21 Record verified publication and final build cleanup
+ 64:  4180b515ae =  62:  feeffb2366 Record verified local.10 managed daemon replacement
+ 65:  6c04a55547 !  63:  4d67b8dfed Install local packages deterministically
+    @@ AGENTS.md
+      - Building `codex-code-mode-host` (or anything pulling the `v8` crate with the `v8_enable_sandbox` feature) fails on this machine with a 404: the build script asks the upstream `denoland/rusty_v8` release for a `ptrcomp_sandbox` prebuilt archive that upstream does not publish. The matching archive and Rust binding are published under the `openai/codex` release tag `rusty-v8-v150.4.0` and are cached, checksum-verified, in `~/.cache/rusty-v8-codex/`. Build with `RUSTY_V8_ARCHIVE=~/.cache/rusty-v8-codex/librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz RUSTY_V8_SRC_BINDING_PATH=~/.cache/rusty-v8-codex/src_binding_ptrcomp_sandbox_release_aarch64-apple-darwin.rs` (absolute paths). When the pinned `v8` version changes, download the same-named files from the new `rusty-v8-v<version>` tag of `openai/codex` and verify them against the published `.sha256` before use.
+      - Prioritize fixing bugs locally and quickly over preparing changes for upstream submission. Use a dedicated `work/issue-<number>` branch for each GitHub issue and record work as small, coherent commits that can be cherry-picked independently; do not add pull-request ceremony unless the user is considering upstream submission.
+     
+    - ## codex-rs/cli/tests/app_server_daemon.rs ##
+    -@@ codex-rs/cli/tests/app_server_daemon.rs: impl TestDaemon {
+    -     fn command(&self) -> Command {
+    -         let mut command = Command::new(&self.codex);
+    -         command.env("CODEX_HOME", self.home.path());
+    -+        // The daemon's installer writes PATH links under $HOME/.local/bin, so
+    -+        // HOME must point at the temporary home as well.
+    -+        command.env("HOME", self.home.path());
+    -         command
+    -     }
+    - 
+    -
+      ## justfile ##
+     @@ justfile: set windows-shell := ["python", "-c", 'import os, runpy; runpy.run_path(os.envir
+      
+ 66:  1f060d988e !  64:  9736ec6828 Adapt preserved local patches to stable 0.162.1 interfaces
+    @@ codex-rs/core/src/session/input_queue.rs: impl InputQueue {
+          }
+      
+          pub(crate) async fn drain_mailbox(&self) -> Vec<PendingMailboxCommunication> {
+    -
+    - ## codex-rs/core/src/session/mod.rs ##
+    -@@ codex-rs/core/src/session/mod.rs: impl Session {
+    -                 items.push(contextual_user_message);
+    -             }
+    -             if let Some(fragment) = initial_multi_agent_usage_hint
+    --                && let Some(message) = crate::context_manager::updates::build_rendered_message(vec![fragment.render_fragment()])
+    -+                && let Some(message) =
+    -+                    crate::context_manager::updates::build_rendered_message(vec![
+    -+                        fragment.render_fragment(),
+    -+                    ])
+    -             {
+    -                 items.push(message);
+    -             }
+    -
+    - ## codex-rs/core/src/tasks/mod.rs ##
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -         {
+    -             return false;
+    -         }
+    --        self.record_started_turn(&turn_context.sub_id, (task_kind == TaskKind::Regular).then(|| turn_context.attribution())).await;
+    -+        self.activate_plugin_selection(&turn_context).await;
+    -+        self.record_started_turn(
+    -+            &turn_context.sub_id,
+    -+            (task_kind == TaskKind::Regular).then(|| turn_context.attribution()),
+    -+        )
+    -+        .await;
+    -         let (pending_items, _, child_result_origins) = self
+    -             .input_queue
+    -             .drain_mailbox_input_items_with_origins()
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -                     return;
+    -                 }
+    -                 let active_turn = active_turn.get_or_insert_with(ActiveTurn::default);
+    --                let previous_options = if self.input_queue.has_trigger_turn_mailbox_items().await { Default::default() } else { self.state.lock().await.turn_attribution.as_ref().map(codex_history::TurnAttribution::start_options).unwrap_or_default() };
+    -+                let previous_options = if self.input_queue.has_trigger_turn_mailbox_items().await {
+    -+                    Default::default()
+    -+                } else {
+    -+                    self.state
+    -+                        .lock()
+    -+                        .await
+    -+                        .turn_attribution
+    -+                        .as_ref()
+    -+                        .map(codex_history::TurnAttribution::start_options)
+    -+                        .unwrap_or_default()
+    -+                };
+    -                 (Arc::clone(&active_turn.turn_state), previous_options)
+    -             };
+    - 
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -                 turn_context.turn_metadata_state.set_turn_trigger(trigger);
+    -             }
+    -             if let Some(id) = start_options.parent_turn_id {
+    --                if let Some(initiating_agent_path) = input.iter().find_map(|item| {
+    --                    let TurnInput::InterAgentCommunication(communication) = item else {
+    --                        return None;
+    --                    };
+    --                    communication
+    --                        .trigger_turn
+    --                        .then(|| communication.author.clone())
+    --                }) {
+    -+                if let Some(initiating_agent_path) = input
+    -+                    .iter()
+    -+                    .find_map(|item| {
+    -+                        let TurnInput::InterAgentCommunication(communication) = item else {
+    -+                            return None;
+    -+                        };
+    -+                        communication
+    -+                            .trigger_turn
+    -+                            .then(|| communication.author.clone())
+    -+                    })
+    -+                    .or(start_options.initiating_agent_path)
+    -+                {
+    -                     turn_context
+    -                         .turn_metadata_state
+    -                         .set_initiating_agent_path(initiating_agent_path);
+    -
+    - ## codex-rs/ext/skills/src/provider/host.rs ##
+    -@@ codex-rs/ext/skills/src/provider/host.rs: impl SkillProvider for HostSkillProvider {
+    -                 let package_root = skill.path_to_skills_md.parent().ok_or_else(|| {
+    -                     SkillProviderError::new("host skill package has no parent directory")
+    -                 })?;
+    --                let requested_path = package_root.join(relative_resource).map_err(|_| outside_package())?;
+    -+                let requested_path = package_root
+    -+                    .join(relative_resource)
+    -+                    .map_err(|_| outside_package())?;
+    -                 let file_system = outcome
+    -                     .file_system_for_skill(skill)
+    -                     .unwrap_or_else(|| Arc::clone(&LOCAL_FS));
+    -                 let resource = file_system
+    --                    .canonicalize(
+    --                        &requested_path,
+    --                        /*sandbox*/ None,
+    --                    )
+    -+                    .canonicalize(&requested_path, /*sandbox*/ None)
+    -                     .await
+    -                     .map_err(|_| read_error())?;
+    -                 if !resource.starts_with(&package_root) {
+    -@@ codex-rs/ext/skills/src/provider/host.rs: fn catalog_from_outcome(outcome: &SkillLoadOutcome) -> SkillCatalog {
+    -             if let Some(discovery_path) =
+    -                 outcome.skill_discovery_path_for_path(&skill.path_to_skills_md)
+    -             {
+    --                entry =
+    --                    entry.with_display_path(discovery_path.inferred_native_path_string().replace('\\', "/"));
+    -+                entry = entry.with_display_path(
+    -+                    discovery_path
+    -+                        .inferred_native_path_string()
+    -+                        .replace('\\', "/"),
+    -+                );
+    -             }
+    -             if let Some(root) = outcome.skill_root_for_path(&skill.path_to_skills_md) {
+    -                 entry = entry.with_alias_root(root.to_string_lossy().replace('\\', "/"));
+    -
+    - ## codex-rs/ext/skills/src/tools/read.rs ##
+    -@@ codex-rs/ext/skills/src/tools/read.rs: impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
+    -                     .unwrap_or_else(|| SkillResourceId::new(resource)),
+    -             };
+    -             let (context, access_key) = match output_authority {
+    --                None => (SkillReadContext::Host { host_snapshot: self.context.host_snapshot.clone() }, None),
+    -+                None => (
+    -+                    SkillReadContext::Host {
+    -+                        host_snapshot: self.context.host_snapshot.clone(),
+    -+                    },
+    -+                    None,
+    -+                ),
+    -                 Some(SkillToolAuthoritySelector::Cloud) => (
+    -                     SkillReadContext::Cloud {
+    -                         mcp_resources: self.context.mcp_resources.clone(),
+ 67:  a65cb1758b =  65:  d7057c49d3 Record stable 0.162.1 preservation plan and original provenance
+ 68:  c3169b5273 =  66:  90dcf4d577 Assert fresh child base instructions in upstream input prefix
+ 69:  756d7ff348 =  67:  c08cb928c0 Pin terminal result retention for unloaded recipients
+ 70:  e00148a5e5 =  68:  ec4f658a51 Preserve private instruction fingerprints across request migration
+ 71:  d03bd38465 =  69:  cf566c9316 Register unloaded result recipient in regression fixture
+ 72:  0079d0c7b1 <   -:  ---------- Compose atomic async admission with upstream turn attribution
+  -:  ---------- >  70:  4bcd2d2897 Compose atomic async admission with upstream turn attribution
+ 73:  fd8f41b132 !  71:  90c6f1c334 Adapt local fixture constructors to upstream history and turn metadata
+    @@ codex-rs/core/src/cache_diagnostics.rs: impl CacheDiagnosticAttempt {
+      impl Drop for CacheDiagnosticAttempt {
+     
+      ## codex-rs/core/src/compact.rs ##
+    -@@ codex-rs/core/src/compact.rs: use codex_utils_output_truncation::TruncationPolicy;
+    +@@ codex-rs/core/src/compact.rs: use codex_protocol::user_input::UserInput;
+    + use codex_rollout_trace::InferenceTraceContext;
+      use codex_utils_output_truncation::approx_token_count;
+    - use codex_utils_output_truncation::truncate_text;
+      use futures::prelude::*;
+     -use tokio_util::sync::CancellationToken;
+      use tracing::error;
+ 74:  848cdfd618 <   -:  ---------- Retain terminal results across unloaded recipient delivery
+ 76:  9e5c73a565 !  72:  271ab83a1c Preserve asynchronous deliveries across agent unloading
+    @@ Metadata
+     Author: Viktor <38939817+viktorius007@users.noreply.github.com>
+     
+      ## Commit message ##
+    -    Preserve asynchronous deliveries across agent unloading
+    +    Retain terminal results across unloaded recipient delivery
+     
+    -    Keep completion payloads, origin stores, and ordinary mail turn options in a typed mailbox delivery. Transfer both session queues before residency removal, then import deliveries before admission and pending-input consumption. Graph search take_mailbox|drain_mailbox_input_items|pending_async_origin returned two existing queue drains; extended those queue operations rather than adding a parallel delivery subsystem. Old index is semantic_partial; exact versioned source confirms controller API, mailbox and residency consumers. Executed red authorized by coordinator: async-retention-red-4.log fails ThreadNotFound for known unloaded recipient. New identity/exact-once transport tests await coordinated execution; no duplicate build performed.
+    +    Enqueue unloaded results in the controller mailbox under the thread-map read lock and runtime admission guard. For loaded recipients, hold residency ownership, recheck publication, accept queue ownership under the map lock, then release that lock before automatic startup. Reuses indexed deliver_async_result and enqueue_async_result (graph query: 3 results) and the existing residency gate; typed transport provided by companion commit.
+     
+      ## codex-rs/core/src/agent/api.rs ##
+     @@ codex-rs/core/src/agent/api.rs: pub trait AgentControl: Send + Sync {
+    +     /// the root. Legacy user input can address loaded threads outside the agent registry.
+    +     fn send(&self, request: SendRequest) -> BoxFuture<'_, Result<DeliveryReceipt>>;
+      
+    -     /// Take queued, non-turn-starting mail in order, without loading the recipient.
+    +-    /// Take queued, non-turn-starting mail in order, without loading the recipient.
+    ++    /// Take retained communications and asynchronous results without loading the recipient.
+          /// This in-memory operation performs no I/O; returning transfers ownership to the caller.
+    --    fn take_mailbox(
+    --        &self,
+    --        agent: ThreadId,
+    --    ) -> Vec<codex_protocol::protocol::InterAgentCommunication>;
+    +-    fn take_mailbox(&self, agent: ThreadId) -> Vec<crate::PendingAgentMessage>;
+     +    fn take_mailbox(&self, agent: ThreadId) -> Vec<AgentMailboxDelivery>;
+      
+          /// Observe whether unread mail is available. Subscribe before the first read so
+    @@ codex-rs/core/src/agent/api.rs: pub trait AgentControl: Send + Sync {
+     +
+     +pub(crate) enum AgentMailboxPayload {
+     +    Communication {
+    -+        communication: codex_protocol::protocol::InterAgentCommunication,
+    ++        communication: Box<crate::PendingAgentMessage>,
+     +        start_options: TurnStartOptions,
+     +        async_result_origin: Option<Arc<ExtensionData>>,
+     +    },
+    @@ codex-rs/core/src/agent/api.rs: pub trait AgentControl: Send + Sync {
+     +impl AgentMailboxDelivery {
+     +    /// Retain ordinary mail with the turn settings and optional completion origin.
+     +    pub fn communication(
+    -+        communication: codex_protocol::protocol::InterAgentCommunication,
+    ++        communication: crate::PendingAgentMessage,
+     +        start_options: TurnStartOptions,
+     +        async_result_origin: Option<Arc<ExtensionData>>,
+     +    ) -> Self {
+     +        Self(AgentMailboxPayload::Communication {
+    -+            communication,
+    ++            communication: Box::new(communication),
+     +            start_options,
+     +            async_result_origin,
+     +        })
+    @@ codex-rs/core/src/agent/api.rs: pub trait AgentControl: Send + Sync {
+      /// existing lookup policy, including legacy access to unregistered loaded threads.
+      #[derive(Clone, Debug)]
+     
+    + ## codex-rs/core/src/agent/control.rs ##
+    +@@ codex-rs/core/src/agent/control.rs: mod inspection;
+    + mod interrupt;
+    + mod legacy;
+    + mod mailbox;
+    ++mod parent_result;
+    ++pub(crate) use parent_result::ParentResultResidencyGuard;
+    ++pub(crate) use parent_result::cancel_parent_result_residency;
+    + mod residency;
+    + pub use residency::ThreadEvictionOutcome;
+    + mod resume;
+    +@@ codex-rs/core/src/agent/control.rs: impl LocalAgentControl {
+    +         Ok(())
+    +     }
+    + 
+    ++    #[expect(
+    ++        clippy::await_holding_invalid_type,
+    ++        reason = "thread publication must remain stable until the queue accepts delivery; wake runs after map release"
+    ++    )]
+    +     pub(crate) async fn deliver_async_result(
+    +         &self,
+    +         agent_id: ThreadId,
+    +@@ codex-rs/core/src/agent/control.rs: impl LocalAgentControl {
+    +         sub_id: String,
+    +     ) -> CodexResult<()> {
+    +         let state = self.runtime.upgrade()?;
+    +-        let thread = state.get_thread(agent_id).await?;
+    +-        Box::pin(thread.session.enqueue_async_result(input, origin, sub_id)).await;
+    +-        Ok(())
+    ++        let _membership = self.runtime.admit_start()?;
+    ++        loop {
+    ++            let thread = {
+    ++                let threads = state.threads.read().await;
+    ++                let Some(thread) = threads.get(&agent_id) else {
+    ++                    self.runtime.ensure_agent_known(agent_id)?;
+    ++                    return self.runtime.mailboxes.enqueue_deliveries(
+    ++                        agent_id,
+    ++                        Some(sub_id),
+    ++                        vec![crate::agent::api::AgentMailboxDelivery::async_result(
+    ++                            vec![input],
+    ++                            origin,
+    ++                        )],
+    ++                    );
+    ++                };
+    ++                Arc::clone(thread)
+    ++            };
+    ++            let _residency_guard = Arc::clone(&thread.residency_gate).read_owned().await;
+    ++            let wake = {
+    ++                let threads = state.threads.read().await;
+    ++                if !threads
+    ++                    .get(&agent_id)
+    ++                    .is_some_and(|current| Arc::ptr_eq(current, &thread))
+    ++                {
+    ++                    continue;
+    ++                }
+    ++                thread
+    ++                    .session
+    ++                    .enqueue_async_result(input, origin, sub_id)
+    ++                    .await
+    ++            };
+    ++            wake.await;
+    ++            return Ok(());
+    ++        }
+    +     }
+    + }
+    + 
+    +
+      ## codex-rs/core/src/agent/control/api.rs ##
+     @@ codex-rs/core/src/agent/control/api.rs: impl AgentControl for LocalAgentControl {
+              })
+          }
+      
+    --    fn take_mailbox(
+    --        &self,
+    --        agent: ThreadId,
+    --    ) -> Vec<codex_protocol::protocol::InterAgentCommunication> {
+    +-    fn take_mailbox(&self, agent: ThreadId) -> Vec<crate::PendingAgentMessage> {
+     +    fn take_mailbox(&self, agent: ThreadId) -> Vec<crate::agent::api::AgentMailboxDelivery> {
+              self.runtime.mailboxes.take(agent)
+          }
+    @@ codex-rs/core/src/agent/control/api.rs: impl AgentControl for LocalAgentControl
+     
+      ## codex-rs/core/src/agent/control/mailbox.rs ##
+     @@
+    - //! Retains queue-only mail while local sessions are unloaded.
+    +-//! Retains queue-only mail while local sessions are unloaded.
+    ++//! Retains communications and asynchronous results while local sessions are unloaded.
+      //! Eviction transfers mail before releasing the recipient's residency guard.
+      
+    + use crate::PendingAgentMessage;
+     +use crate::agent::api::AgentMailboxDelivery;
+      use crate::agent_communication::PENDING_MAILBOX_MESSAGES;
+      use codex_diagnostics::GaugeGuard;
+    @@ codex-rs/core/src/agent/control/mailbox.rs: struct Mailbox {
+      
+      struct StoredMail {
+          id: Option<String>,
+    --    communication: InterAgentCommunication,
+    +-    communication: PendingAgentMessage,
+     +    delivery: AgentMailboxDelivery,
+          _diagnostics_guard: GaugeGuard,
+      }
+    @@ codex-rs/core/src/agent/control/mailbox.rs: struct Mailbox {
+     @@ codex-rs/core/src/agent/control/mailbox.rs: impl Mailboxes {
+              agent: ThreadId,
+              id: Option<String>,
+    -         messages: Vec<InterAgentCommunication>,
+    +         messages: Vec<PendingAgentMessage>,
+     +    ) -> Result<()> {
+     +        self.enqueue_deliveries(
+     +            agent,
+    @@ codex-rs/core/src/agent/control/mailbox.rs: impl Mailboxes {
+              Ok(())
+          }
+      
+    --    pub(super) fn take(&self, agent: ThreadId) -> Vec<InterAgentCommunication> {
+    +-    pub(super) fn take(&self, agent: ThreadId) -> Vec<PendingAgentMessage> {
+     +    pub(super) fn take(&self, agent: ThreadId) -> Vec<AgentMailboxDelivery> {
+              let mut mailboxes = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+              let Some(mailbox) = mailboxes
+    @@ codex-rs/core/src/agent/control/residency.rs: impl ThreadManagerState {
+     +            let _ = runtime
+     +                .mailboxes
+     +                .enqueue_deliveries(thread_id, /*id*/ None, mail);
+    -             let environments = thread.environment_selections().await;
+    -             let mut threads = manager.threads.write().await;
+    -             if threads
+    +             // Preserve configured bindings across eviction without retaining turn-only attachments.
+    +             // Raw bindings keep the original pending owner configuration alive.
+    +             let environments = EvictedEnvironments {
+    +
+    + ## codex-rs/core/src/lib.rs ##
+    +@@ codex-rs/core/src/lib.rs: pub use agent::api::AgentConfigUpdate;
+    + pub use agent::api::AgentControl;
+    + pub use agent::api::AgentInfo;
+    + pub use agent::api::AgentInput;
+    ++pub use agent::api::AgentMailboxDelivery;
+    + pub use agent::api::AgentTarget;
+    + pub use agent::api::AgentTurnOutcome;
+    + pub use agent::api::DeliveryReceipt;
+     
+      ## codex-rs/core/src/session/input_queue.rs ##
+     @@
+    @@ codex-rs/core/src/session/input_queue.rs: impl InputQueue {
+     -                        _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
+     -                    }),
+     -            );
+    ++    #[expect(
+    ++        clippy::await_holding_invalid_type,
+    ++        reason = "both queues must receive controller mail atomically in mailbox then result lock order"
+    ++    )]
+     +    async fn import_controller_mailbox(&self) {
+     +        let Some((thread_id, control, _)) = &self.controller else {
+     +            return;
+    @@ codex-rs/core/src/session/input_queue.rs: impl InputQueue {
+     +                    start_options,
+     +                    async_result_origin,
+     +                } => pending.push_back(PendingMailboxCommunication {
+    -+                    communication,
+    ++                    communication: *communication,
+     +                    start_options,
+     +                    async_result_origin,
+     +                    _diagnostics_guard: PENDING_MAILBOX_MESSAGES.track(),
+    @@ codex-rs/core/src/session/input_queue.rs: impl InputQueue {
+              pending.drain(..).collect()
+          }
+      
+    ++    #[expect(
+    ++        clippy::await_holding_invalid_type,
+    ++        reason = "eviction transfers both queues atomically in the same lock order as import"
+    ++    )]
+     +    pub(crate) async fn drain_mailbox_deliveries_for_unload(&self) -> Vec<AgentMailboxDelivery> {
+     +        self.import_controller_mailbox().await;
+     +        let mut pending = self.mailbox_pending_mails.lock().await;
+    @@ codex-rs/core/src/session/input_queue.rs: mod tests {
+     +        else {
+     +            panic!("expected communication");
+     +        };
+    -+        assert_eq!(delivered, communication);
+    ++        assert_eq!(*delivered, communication);
+     +        assert_eq!(
+     +            (start_options.parent_turn_id, start_options.root_turn_id),
+     +            (options.parent_turn_id, options.root_turn_id),
+    @@ codex-rs/core/src/session/input_queue.rs: mod tests {
+          #[tokio::test]
+          async fn input_queue_notifies_mailbox_subscribers() {
+              let input_queue = InputQueue::new();
+    +
+    + ## codex-rs/core/tests/suite/agent_control_tests.rs ##
+    +@@ codex-rs/core/tests/suite/agent_control_tests.rs: impl AgentControl for TestAgentControl {
+    +         Box::pin(async { Err(CodexErr::InvalidRequest("host send rejection".to_string())) })
+    +     }
+    + 
+    +-    fn take_mailbox(&self, _agent: ThreadId) -> Vec<PendingAgentMessage> {
+    ++    fn take_mailbox(&self, _agent: ThreadId) -> Vec<codex_core::agent::api::AgentMailboxDelivery> {
+    +         let messages = std::mem::take(&mut *self.mail.lock().expect("mail lock"));
+    +         self.mailbox_state.send_if_modified(std::mem::take);
+    +         messages
+    ++            .into_iter()
+    ++            .map(|message| {
+    ++                codex_core::agent::api::AgentMailboxDelivery::communication(
+    ++                    message,
+    ++                    Default::default(),
+    ++                    None,
+    ++                )
+    ++            })
+    ++            .collect()
+    +     }
+    + 
+    +     fn watch_mailbox(&self, _agent: ThreadId) -> tokio::sync::watch::Receiver<bool> {
+ 75:  e5bc0e6331 =  73:  a9c99ea894 Assert unloaded result payload origin and single consumption
+ 77:  904d5073cc <   -:  ---------- Describe typed retained mailbox delivery contract
+  -:  ---------- >  74:  42bfac1095 Preserve asynchronous deliveries across agent unloading
+ 78:  d26a67a401 =  75:  a44b5bbeb5 Pin parent residency protection through child cancellation
+ 79:  eaaaebab6a =  76:  fd91fdbcea Apply required formatting after stable interface migration
+ 80:  0ad51d3a87 !  77:  2f3076b63d Adapt preserved integration fixtures to current upstream contracts
+    @@ Commit message
+     
+         Use the current config owner for MCP refresh, ignore added attribution only where helpers return turn IDs, render the world-state fragment from its new tuple, and expose the typed mailbox return value required by public AgentControl implementations. Assertions remain intact.
+     
+    - ## codex-rs/core/src/lib.rs ##
+    -@@ codex-rs/core/src/lib.rs: pub use agent::api::AgentConfigUpdate;
+    - pub use agent::api::AgentControl;
+    - pub use agent::api::AgentInfo;
+    - pub use agent::api::AgentInput;
+    -+pub use agent::api::AgentMailboxDelivery;
+    - pub use agent::api::AgentTarget;
+    - pub use agent::api::AgentTurnOutcome;
+    - pub use agent::api::DeliveryReceipt;
+    -
+      ## codex-rs/core/tests/suite/agent_control_tests.rs ##
+     @@ codex-rs/core/tests/suite/agent_control_tests.rs: impl AgentControl for TestAgentControl {
+              Box::pin(async { Err(CodexErr::InvalidRequest("host send rejection".to_string())) })
+    @@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_is_sh
+              other => anyhow::bail!("expected child turn admission, got {other:?}"),
+          };
+          wait_for_event(&child, |event| {
+    -@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(after_final: bool) ->
+    +@@ codex-rs/core/tests/suite/scenarios_agent_message_board.rs: async fn board_notifications_do_not_reopen_a_final_answer(
+              }]))
+              .await?;
+          let target_turn = match submission {
+ 81:  18099c26e9 !  78:  1daf04316b Keep result parents resident through child task delivery
+    @@ codex-rs/core/src/agent/control/parent_result.rs (new)
+     
+      ## codex-rs/core/src/thread_manager.rs ##
+     @@ codex-rs/core/src/thread_manager.rs: impl ThreadManager {
+    -     /// as `Arc<CodexThread>`, it is possible that other references to it exist elsewhere.
+    -     /// Returns the thread if the thread was found and removed.
+    -     pub async fn remove_thread(&self, thread_id: &ThreadId) -> Option<Arc<CodexThread>> {
+    --        self.state.threads.write().await.remove(thread_id)
+    -+        self.state.remove_thread(thread_id).await
+    -     }
+    - 
+    -     /// Removes a runtime for a client request, leaving internal workers with their owner.
+    -@@ codex-rs/core/src/thread_manager.rs: impl ThreadManager {
+    -                 "live internal threads can only be removed by their owner".to_owned(),
+                  ));
+              }
+    -+        if let Some(thread) = threads.get(thread_id) {
+    +         Ok(threads.remove(thread_id).inspect(|thread| {
+     +            crate::agent::control::cancel_parent_result_residency(thread);
+    -+        }
+    -         Ok(threads.remove(thread_id))
+    +             thread.session.services.mcp_runtime.revoke_ema();
+    +         }))
+          }
+    - 
+     @@ codex-rs/core/src/thread_manager.rs: impl ThreadManager {
+    -             .get(thread_id)
+                  .is_some_and(|thread| Arc::ptr_eq(thread, expected))
+              {
+    -+            crate::agent::control::cancel_parent_result_residency(expected);
+    -             threads.remove(thread_id)
+    +             threads.remove(thread_id).inspect(|thread| {
+    ++                crate::agent::control::cancel_parent_result_residency(thread);
+    +                 thread.session.services.mcp_runtime.revoke_ema();
+    +             })
+              } else {
+    -             None
+     @@ codex-rs/core/src/thread_manager.rs: impl ThreadManager {
+    - 
+              let mut tracked_threads = self.state.threads.write().await;
+              for thread_id in &report.completed {
+    -+            if let Some(thread) = tracked_threads.get(thread_id) {
+    -+                crate::agent::control::cancel_parent_result_residency(thread);
+    -+            }
+    -             tracked_threads.remove(thread_id);
+    +             if let Some(thread) = tracked_threads.remove(thread_id) {
+    ++                crate::agent::control::cancel_parent_result_residency(&thread);
+    +                 thread.session.services.mcp_runtime.revoke_ema();
+    +             }
+              }
+    - 
+     @@ codex-rs/core/src/thread_manager.rs: impl ThreadManagerState {
+    - 
+    -     /// Remove a thread from the manager by ID, returning it when present.
+    -     pub(crate) async fn remove_thread(&self, thread_id: &ThreadId) -> Option<Arc<CodexThread>> {
+    --        self.threads.write().await.remove(thread_id)
+    -+        let mut threads = self.threads.write().await;
+    -+        if let Some(thread) = threads.get(thread_id) {
+    -+            crate::agent::control::cancel_parent_result_residency(thread);
+    -+        }
+    -+        threads.remove(thread_id)
+    +             .await
+    +             .remove(thread_id)
+    +             .inspect(|thread| {
+    ++                crate::agent::control::cancel_parent_result_residency(thread);
+    +                 thread.session.services.mcp_runtime.revoke_ema();
+    +             })
+          }
+    - 
+    -     pub(crate) async fn effective_multi_agent_version_for_spawn(
+     @@ codex-rs/core/src/thread_manager.rs: impl ThreadManagerState {
+                              thread,
+                          });
+                      }
+     +                crate::agent::control::cancel_parent_result_residency(&thread);
+                      threads.remove(&resumed.conversation_id);
+    +                 thread.session.services.mcp_runtime.revoke_ema();
+                  }
+    -         }
+ 82:  8dec561669 !  79:  786cbf132c fix(core): hold parent residency through child terminal delivery
+    @@ Metadata
+      ## Commit message ##
+         fix(core): hold parent residency through child terminal delivery
+     
+    - ## codex-rs/core/src/agent/control.rs ##
+    -@@ codex-rs/core/src/agent/control.rs: mod inspection;
+    - mod interrupt;
+    - mod legacy;
+    - mod mailbox;
+    -+mod parent_result;
+    -+pub(crate) use parent_result::ParentResultResidencyGuard;
+    -+pub(crate) use parent_result::cancel_parent_result_residency;
+    - mod residency;
+    - pub use residency::ThreadEvictionOutcome;
+    - mod resume;
+    -@@ codex-rs/core/src/agent/control.rs: impl LocalAgentControl {
+    -                 Arc::clone(thread)
+    -             };
+    -             let _residency_guard = Arc::clone(&thread.residency_gate).read_owned().await;
+    --            {
+    -+            let wake = {
+    -                 let threads = state.threads.read().await;
+    -                 if !threads
+    -                     .get(&agent_id)
+    -@@ codex-rs/core/src/agent/control.rs: impl LocalAgentControl {
+    -                 }
+    -                 thread
+    -                     .session
+    --                    .input_queue
+    --                    .enqueue_async_result(vec![input], origin)
+    --                    .await;
+    --            }
+    --            Box::pin(
+    --                thread
+    --                    .session
+    --                    .maybe_start_turn_for_pending_work_with_sub_id(sub_id),
+    --            )
+    --            .await;
+    -+                    .enqueue_async_result(input, origin, sub_id)
+    -+                    .await
+    -+            };
+    -+            wake.await;
+    -             return Ok(());
+    -         }
+    -     }
+    -
+      ## codex-rs/core/src/agent/control/parent_result.rs ##
+     @@
+     +//! Child-turn parent residency ownership and cancellation during thread removal.
+    @@ codex-rs/core/src/state/turn.rs: pub(crate) struct RunningTask {
+          pub(crate) _diagnostics_guard: GaugeGuard,
+          // Timer recorded when the task drops to capture the full turn duration.
+          pub(crate) _timer: Option<codex_otel::Timer>,
+    -
+    - ## codex-rs/core/src/tasks/mod.rs ##
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -         reserved_turn_state: Option<&Arc<Mutex<TurnState>>>,
+    -         pending_input: Vec<TurnInput>,
+    -     ) -> bool {
+    -+        let parent_result_residency = self
+    -+            .services
+    -+            .local_agent_runtime
+    -+            .control(self.session_id())
+    -+            .parent_result_residency(
+    -+                self.thread_id,
+    -+                turn_context.multi_agent_version,
+    -+                &turn_context.session_source,
+    -+                self.as_ref(),
+    -+            )
+    -+            .await;
+    -+        let (parent_result_residency_guard, parent_result_start_error) =
+    -+            match parent_result_residency {
+    -+                Ok(guard) => (guard, None),
+    -+                Err(error) => (None, Some(error)),
+    -+            };
+    -         // Inherited or recovered roots are applied before task start. Otherwise this
+    -         // task owns its turn, including background work. Later mail cannot change it.
+    -         turn_context
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -             turn_context.multi_agent_version,
+    -             &turn_context.session_source,
+    -         );
+    -+        if parent_result_start_error.is_some() {
+    -+            // A failed parent restore must await explicit admission rather than retry immediately.
+    -+            self.mark_interrupted();
+    -+            self.input_queue
+    -+                .extend_pending_input_for_turn_state(turn_state.as_ref(), input.clone())
+    -+                .await;
+    -+        }
+    -         let done_clone = Arc::clone(&done);
+    -         let session = Arc::clone(self);
+    -         let ctx = Arc::clone(&turn_context);
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -         let storage_originator = AuthStorageOriginator::from_client_name(&turn_context.originator);
+    -         let task_future = async move {
+    -             let ctx_for_finish = Arc::clone(&ctx);
+    --            let task_result = task_for_run
+    -+            let task_result = match parent_result_start_error {
+    -+                Some(error) => Err(error),
+    -+                None => task_for_run
+    -                 .run(
+    -                     Arc::clone(&session),
+    -                     ctx,
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -                     task_cancellation_token.child_token(),
+    -                 )
+    -                 .instrument(trace_span!("session_task.run"))
+    --                .await;
+    -+                .await,
+    -+            };
+    -             let sess = Arc::clone(&session);
+    -             // Private reviewers save their transcript together with the terminal event.
+    -             // Errors and cancellation retain their existing save path.
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    -             cancellation_token,
+    -             turn_context: Arc::clone(&turn_context),
+    -             _agent_execution_guard: agent_execution_guard,
+    -+            parent_result_residency_guard,
+    -             _diagnostics_guard: ACTIVE_TURNS.track(),
+    -             _timer: timer,
+    -         };
+    -@@ codex-rs/core/src/tasks/mod.rs: impl Session {
+    - 
+    -         let finishing = CancellationToken::new();
+    -         let finish_recording = finishing.clone().drop_guard();
+    --        let turn_state = {
+    -+        let finished_turn = {
+    -             let mut active = self.active_turn.lock().await;
+    -             active.as_mut().and_then(|active_turn| {
+    -                 let task = active_turn.task.take()?;
+    -                 task.handle.detach();
+    -                 active_turn.finishing = Some(finishing);
+    --                Some(Arc::clone(&active_turn.turn_state))
+    -+                Some((
+    -+                    Arc::clone(&active_turn.turn_state),
+    -+                    task.parent_result_residency_guard,
+    -+                ))
+    -             })
+    -         };
+    --        let Some(turn_state) = turn_state else {
+    -+        let Some((turn_state, _parent_result_residency_guard)) = finished_turn else {
+    -             return;
+    -         };
+    -         let pending_input = self
+ 83:  28571f6ff0 =  80:  b4403f9407 Cover parent result pin release and owner restoration
+ 84:  0948d68507 =  81:  781aef47f2 Align observer wire fixtures with upstream routing field order
+ 85:  10fe138e7c =  82:  491388b12c test(core): load replacement fixture from materialized rollout
+ 86:  2c92629f70 <   -:  ---------- Keep mailbox entries compact and document atomic delivery guards
+  -:  ---------- >  83:  40532df1b7 Keep mailbox entries compact and document atomic delivery guards
+ 87:  d63aa3f0c0 =  84:  682913ff3c Align preservation fixtures with frozen catalogs and causal routing
+ 88:  ac172ed140 !  85:  d1a7791756 Refresh independently reviewed stable protocol and request fixtures
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__compact__compaction_cold_resume_
+     -
+     -## Window 2 (after request 1: settings changed (parallel_tool_calls, tools))
+      -- request 2 (compaction) --
+    --00:message/developer:
+    --    <MODEL_INSTRUCTIONS>
+    --01:message/developer[2]:
+    --    [01] <PERMISSIONS_INSTRUCTIONS>
+    --    [02] <COLLABORATION_MODE>
+    --02:message/developer:
+    --    You are `/root`, the primary agent in a team of agents collaborating to fulfill the user's goals.
+    --
+    --    At the start of your turn, you are the active agent.
+    --    You can spawn sub-agents to handle subtasks, and those sub-agents can spawn their own sub-agents.
+    --    All agents in the team, including the agents that you can assign tasks to, are equally intelligent and capable, and have access to the same set of tools.
+    --
+    --    You can use `spawn_agent` to create a new agent, `followup_task` to give an existing agent a new task an...message to a running agent without triggering a turn. [hash=7d40ff8b58977202]
+    --    Child agents can also spawn their own sub-agents.
+    --    <OMITTED 16 LINES; ~234 TOKENS; hash=b2e94283a8c22327>
+    --    - All agents use the same current working directory.
+    --    - As a result, edits made by one agent are immediately visible to all other agents.
+    --
+    --    When calling `wait_agent`, prefer longer waits (minutes) to avoid busy polling.
+    --
+    --    There are 4 available concurrency slots, meaning that up to 4 agents can be active at once, including you.
+    --
+    --    Full-history forks (`fork_turns` omitted or `"all"`) inherit the parent model and reasoning effort and d...uctions; when doing so, set `fork_turns` to `"none"`. [hash=18ccf7e93ecabab9]
+    --03:message/developer:
+    --    <MULTI_AGENT_MODE>
+    --04:message/user:
+    --    function call limit push
+    - 05:function_call/test_tool:{}
+    - 06:function_call_output:unsupported call: test_tool
+    + 00:message/developer:
+    +     <MODEL_INSTRUCTIONS>
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__compact__compaction_cold_resume_after_completion.snap: Scenario: Real paginated mid-turn compaction and cold resume from the bounded su
+      07:message/user:
+          <SUMMARIZATION_PROMPT>
+      
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_active_environm
+     -    </environment_context>
+      06:message/user:
+          Ask before continuing in the other workspace.
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_question_and_answer.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios.rs
+    --assertion_line: 375
+    -+assertion_line: 451
+    - expression: "context_snapshot::format_context_snapshot(\"Astra uses the catalog question schema to ask who a launch update is for, keeps working, and receives the user's answer in the active turn.\",\n&entries, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+    - ---
+    - Scenario: Astra uses the catalog question schema to ask who a launch update is for, keeps working, and receives the user's answer in the active turn.
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_question_and_answer.snap: Scenario: Astra uses the catalog question schema to ask who a launch update is f
+      
+      ## Window 1
+      -- request 1 (request) --
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_question_
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          Draft a short launch update. Ask me who it is for and keep working while I answer.
+    - -- request 2 (request) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_code_mode_call_timing.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_code_mode_call_
+     -    </environment_context>
+      06:message/user:
+          Run a code cell, then inspect its timing and a failed wait.
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_disabled_executor_skills.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios.rs
+    -+assertion_line: 936
+    - expression: "context_snapshot::format_context_snapshot(\"Astra keeps disabled skills hidden and uses each step's selected skills after the environment changes during preparation.\",\n&entries, &ContextSnapshotOptions::default().include_request_settings(),)"
+    - ---
+    - Scenario: Astra keeps disabled skills hidden and uses each step's selected skills after the environment changes during preparation.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_disabled_executor_skills.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_disabled_execut
+     -    </environment_context>
+      06:message/user:
+          Which workflow skills are available?
+    - -- request 2 (request) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_input_interrupts_response.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_input_interrupt
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          Draft a launch update.
+    - -- request 2 (request) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_input_yields_code_mode_cell.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_input_yields_co
+     -    </environment_context>
+      06:message/user:
+          Check the release status.
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_kickoff_remote_compaction_windows.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_refresh.
+     -    </environment_context>
+      06:message/user:
+          Check whether the Notes plugin echo tool is available.
+    - -- request 2 (turn) --
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_refresh.snap: Settings:
+    - -- request 3 (turn) --
+    - 09:message/assistant:
+    -     The Notes tool is not installed yet.
+    --10:message/developer:
+    --    <skills_instructions>
+    --    ## Skills
+    --    A skill is a set of local instructions to follow that is stored in a `SKILL.md` file. Below is the list ...ed into an absolute path using the skill roots table. [hash=ca27c3957f42502b]
+    --    ### Skill roots
+    --    - `r0` = `<PLUGINS_CACHE>/test`
+    --    ### Available skills
+    --    - notes:summarize: Summarize team notes (file: r0/notes/local/skills/summarize/SKILL.md)
+    --    </skills_instructions>
+    --11:message/user:
+    -+10:message/user:
+    -     I installed Notes. Use $notes:summarize and the Notes tool to check that Mira owns the kickoff.
+    --12:message/user:
+    -+11:message/user:
+    -     <skill>
+    -     <name>notes:summarize</name>
+    -     <path><PLUGINS_CACHE>/test/notes/local/skills/summarize/SKILL.md</path>
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_refresh.snap: Settings:
+    -     State the owner and date from the notes.
+    - 
+    -     </skill>
+    --13:message/developer:
+    -+12:message/developer:
+    -     Capabilities from the `notes` plugin:
+    -     - Skills from this plugin are prefixed with `notes:`.
+    -     - MCP servers from this plugin available in this session: `notes`.
+    -     Use these plugin-associated capabilities to help solve the task.
+    - -- request 4 (turn) --
+    --14:custom_tool_call/exec:text(ALL_TOOLS.filter(({ name }) => name === "mcp__notes__echo").map(({ name }) => name));
+    --15:custom_tool_call_output:Script completed
+    -+13:custom_tool_call/exec:text(ALL_TOOLS.filter(({ name }) => name === "mcp__notes__echo").map(({ name }) => name));
+    -+14:custom_tool_call_output:Script completed
+    -     Wall time <DURATION> seconds
+    -     Output:
+    -      | ["mcp__notes__echo"]
+    - -- request 5 (turn) --
+    --16:custom_tool_call/exec:const result = await tools.mcp__notes__echo({ message: "Mira owns the kickoff" }); text(result.structuredContent?.echo);
+    --17:custom_tool_call_output:Script completed
+    -+15:custom_tool_call/exec:const result = await tools.mcp__notes__echo({ message: "Mira owns the kickoff" }); text(result.structuredContent?.echo);
+    -+16:custom_tool_call_output:Script completed
+    -     Wall time <DURATION> seconds
+    -     Output:
+    -      | ECHOING: Mira owns the kickoff
+    - -- request 6 (turn) --
+    --18:message/assistant:
+    -+17:message/assistant:
+    -     The Notes plugin confirms Mira owns the kickoff.
+    --19:message/user:
+    -+18:message/user:
+    -     Use the Notes tool again to check that the kickoff is Friday.
+    - -- request 7 (turn) --
+    --20:custom_tool_call/exec:const result = await tools.mcp__notes__echo({ message: "The kickoff is Friday" }); text(result.structuredContent?.echo);
+    --21:custom_tool_call_output:Script completed
+    -+19:custom_tool_call/exec:const result = await tools.mcp__notes__echo({ message: "The kickoff is Friday" }); text(result.structuredContent?.echo);
+    -+20:custom_tool_call_output:Script completed
+    -     Wall time <DURATION> seconds
+    -     Output:
+    -      | ECHOING: The kickoff is Friday
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_settings_release_check_tool_shapes.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_settings_releas
+     -    </environment_context>
+      06:message/user:
+          Check the Settings release. Read release/diagnostics.log, inspect release/settings.png, confirm the loca...ell me whether another agent is working on this task. [hash=aa221f7aaa101eb2]
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_catalog_messages.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios.rs
+    --expression: "context_snapshot::format_request_history_snapshot(\"Catalog Code Mode instructions and wait parameter descriptions accompany a yielded cell through completion.\",\n&requests, &ContextSnapshotOptions::default().include_request_settings(),)"
+    -+assertion_line: 1565
+    -+expression: "context_snapshot::format_request_history_snapshot(scenario, &requests,\n&ContextSnapshotOptions::default().include_request_settings(),)"
+    - ---
+    - Scenario: Catalog Code Mode instructions and wait parameter descriptions accompany a yielded cell through completion.
+    - 
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_catalog_messages.snap: Settings:
+        stream: true
+        text: {"verbosity":"low"}
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_catalog_mes
+     -    </environment_context>
+      05:message/user:
+          Start a code cell, yield its initial output, then wait for its completion.
+    - -- request 2 (turn) --
+    + 06:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_catalog_messages_ranked_search.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_catalog_mes
+     -    </environment_context>
+      05:message/user:
+          Find calendar timezone option 99, call it with UTC, then yield and wait for completion.
+    - -- request 2 (turn) --
+    + 06:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_mcp_schema_limits.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__code_mode_settled_hel
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          Collect each completed result, including failures, using the settlement helpers.
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_slash_compact.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_sl
+     -    </environment_context>
+      06:message/user:
+          Plan the release.
+    - -- request 2 (compaction; Remote /compact request) --
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_slash_compact.snap: Settings: unavailable (items only)
+    - 
+    -         Never use the `request_user_input` tool for permission requests or permission-related escalations.
+    -         </collaboration_mode>
+    --01:message/developer:
+    -+01:message/user:
+    -+    <environment_context>
+    -+      <cwd><CWD></cwd>
+    -+      <shell><HOST_SHELL></shell>
+    -+      <current_date><CURRENT_DATE></current_date>
+    -+      <timezone><HOST_TIMEZONE></timezone>
+    -+      <filesystem><workspace_roots><root><CWD></root></workspace_roots><permission_profile type="disabled"><...e="unrestricted" /></permission_profile></filesystem> [hash=d40b2f45cb028888]
+    -+    </environment_context>
+    -+02:message/developer:
+    -     <multi_agent_role>You are `/root`, the primary agent in a team of agents collaborating to fulfill the user's goals.
+    - 
+    -     At the start of your turn, you are the active agent.
+    + 07:configuration_update:reasoning={"effort":"low"}
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_slash_compact.snap: Settings: unavailable (items only)
+      
+          You can use `spawn_agent` to create a new agent, `followup_task` to give an existing agent a new task an...message to a running agent without triggering a turn. [hash=7d40ff8b58977202]
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_sl
+          - As a result, edits made by one agent are immediately visible to all other agents.
+      
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_slash_compact.snap: Settings: unavailable (items only)
+    -     There are 4 available concurrency slots, meaning that up to 4 agents can be active at once, including you.
+    - 
+    -     Full-history forks (`fork_turns` omitted or `"all"`) inherit the parent model and reasoning effort and d... so, set `fork_turns` to `"none"`.</multi_agent_role> [hash=d5928243dc643bcc]
+    --02:message/developer:
+    -+03:message/developer:
+    -     <multi_agent_mode>Any earlier instruction enabling proactive multi-agent delegation no longer applies. D...elegation, or parallel agent work.</multi_agent_mode> [hash=2b6e037067b4390c]
+    --03:message/user:
+    --    <environment_context>
+    --      <cwd><CWD></cwd>
+    --      <shell><HOST_SHELL></shell>
+    --      <current_date><CURRENT_DATE></current_date>
+    --      <timezone><HOST_TIMEZONE></timezone>
+    --      <filesystem><workspace_roots><root><CWD></root></workspace_roots><permission_profile type="disabled"><...e="unrestricted" /></permission_profile></filesystem> [hash=d40b2f45cb028888]
+    --    </environment_context>
+    - 04:message/user:
+    -     Plan the release.
+    - 05:compaction:encrypted=true; chars=31; hash=8255caf138edede8
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__compaction__remote_slash_compact.snap: Settings: unavailable (items only)
+    - ## Window 3 (after request 3: input diverged at item 00)
+    + ## Window 3 (after request 3)
+      Settings: same as window 1
+      -- request 4 (turn; First turn after /compact) --
+     -00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_m
+                - custom/exec
+                - function/wait
+                - function/request_user_input
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_migration.snap: Settings: relative to window 2
+    -   reasoning: {"context":"all_turns","effort":"low"}
+    -   text: {"format":{"name":"codex_output_schema","schema":{"additionalProperties":false,"properties":{"outcome":{"enum":["allow","deny"],"type":"string"},"rationale":{"type":"string"},"risk_level":{"enum":["low","medium","high","critical"],"type":"string"},"user_authorization":{"enum":["unknown","low","medium","high"],"type":"string"}},"required":["outcome"],"type":"object"},"strict":false,"type":"json_schema"},"verbosity":"low"}
+    - -- request 6 (turn) --
+    --00:additional_tools/developer (1; hash=65a86311792f6c71):
+    --        - namespace/functions; hash=dcfbcf0da1c2d607
+    -+00:additional_tools/developer (1; hash=624841775a2206d7):
+    -+        - namespace/functions; hash=ef4197d289817da5
+    -           - custom/exec
+    -           - function/wait
+    - 01:message/developer:
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_migration.snap: Settings: relative to window 2
+      ## Window 4 (after request 6: input diverged at item 00)
+      Settings: same as window 2
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_m
+                - custom/exec
+                - function/wait
+                - function/request_user_input
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_migration.snap: Settings: same as window 2
+    - ## Window 6 (after request 9: input diverged at item 00)
+    - Settings: same as window 3
+    - -- request 10 (turn) --
+    --00:additional_tools/developer (1; hash=65a86311792f6c71):
+    --        - namespace/functions; hash=dcfbcf0da1c2d607
+    -+00:additional_tools/developer (1; hash=624841775a2206d7):
+    -+        - namespace/functions; hash=ef4197d289817da5
+    -           - custom/exec
+    -           - function/wait
+    - 01:message/developer:
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_checkpoint_migration.snap: Settings: same as window 3
+      ## Window 7 (after request 10: input diverged at item 00)
+      Settings: same as window 2
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_code_mode_me
+      05:message/user:
+          Spawn a worker to inspect the deployment. Do not delete production data.
+      -- request 2 (turn) --
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_code_mode_messaging.snap: Scenario: A root uses Code Mode to send a confirmation and receives a real user
+    - 10:message/user:
+    -     Yes, deploy the reviewed change.
+    - 
+    --## Window 2 (after request 4: input diverged at item 02, settings changed (tools))
+    -+## Window 2 (after request 4: input diverged at item 03, settings changed (tools))
+    - -- request 5 (turn) --
+    - 00:message/developer:
+    -     <MODEL_INSTRUCTIONS>
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_code_mode_messaging.snap: Scenario: A root uses Code Mode to send a confirmation and receives a real user
+          Child agents can also spawn their own sub-agents.
+      
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__mcp_resource_messages
+     -    </environment_context>
+      05:message/user:
+          List the available resources and templates, then read the example note.
+    - -- request 2 (turn) --
+    + 06:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__model_catalog_refresh_preserves_tools_and_history.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__model_catalog_refresh
+          without another catalog change
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_catalog_parameters.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios.rs
+    -+assertion_line: 999
+    - expression: "context_snapshot::format_request_history_snapshot(\"Astra calls list_agents using the selected catalog parameter schema.\",\n&mock.requests(),\n&ContextSnapshotOptions::default().include_request_settings(),)"
+    - ---
+    - Scenario: Astra calls list_agents using the selected catalog parameter schema.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_catalog_parameters.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_catalog_p
+     -    </environment_context>
+      06:message/user:
+          Check which agents are working under /root before delegating more work.
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__mxc__preferred_mxc_permissions.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__skill_catalog_dedup__
+      expression: "context_snapshot::format_request_history_snapshot(\"Cloud skills replace duplicate executor listings before budgeting; unique executor skills retain their descriptions and e1 aliases across turns.\",\n&requests, &ContextSnapshotOptions::default().include_request_settings(),)"
+      ---
+      Scenario: Cloud skills replace duplicate executor listings before budgeting; unique executor skills retain their descriptions and e1 aliases across turns.
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__skill_catalog_dedup__dedup_before_budgeting.snap: Settings:
+    -   text: {"verbosity":"low"}
+    -   tool_choice: "auto"
+    - -- request 1 (turn) --
+    --00:additional_tools/developer (3; hash=e80da11342c6e6dd):
+    --        - namespace/functions; hash=bd9e182b4235cdc1
+    -+00:additional_tools/developer (3; hash=1aac8659cf8ed248):
+    -+        - namespace/functions; hash=d97a138b30fb9176
+    -           - custom/exec
+    -           - function/wait
+    -           - function/request_user_input
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__skill_catalog_dedup__dedup_before_budgeting.snap: Settings:
+              - demo:s1: Cloud skill instructions. (cloud package: skill://cloud/s1)
+              - demo:s2: Cloud skill instructions. (cloud package: skill://cloud/s2)
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__skill_catalog_dedup__
+     -    </environment_context>
+      06:message/user:
+          Which skills are available?
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__strict_3p_cache__strict_3p_mcp_catalog_cache.snap ##
+     @@
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__strict_3p_cache__stri
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          List and call the tools provided by the environment MCP server.
+    - -- request 2 (turn; turn 1: exec discovery and call results) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__subagent_inherits_pending_environment.snap ##
+     @@
+ 89:  01042c5443 =  86:  6ff7734eb0 Bound turn admission stack use at the restoration future
+ 90:  aedd31403a =  87:  c83b496821 Make startup attribution and terminal fixtures independent of host timing
+ 91:  338a908586 =  88:  14bc2b3cbb Record complete stable update validation before installation
+ 92:  1d6473dde6 =  89:  f6e5bf5801 Record verified local.11 installation and preserve update evidence
+ 93:  09a8ccaba7 !  90:  649493bf0d Let cargo choose build jobs from the machine's core count
+    @@ codex-rs/.cargo/config.toml
+     -jobs = 32
+     -
+      [env]
+    - # The sandbox-enabled V8 artifacts for this local checkout are described in the
+    - # root AGENTS.md. Explicit shell environment variables can override these paths.
+    + # curl-sys enables its NTLM sources but does not set the flag required by libcurl 8.21.
+    + CFLAGS_aarch64_pc_windows_gnullvm = "-DCURL_ENABLE_NTLM"
+ 94:  7342fb1665 =  91:  8065c6c673 Adapt local patches to 0.163.0 interfaces
+ 95:  0573d20a2e =  92:  32589cf20e Compare cached Apps bindings without the live account selector
+ 96:  65bde63bf6 !  93:  9c17111766 Do not count retained tool outputs toward pre-turn compaction
+    @@ codex-rs/core/tests/suite/scenarios_retained_tool_outputs.rs: async fn retained_
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_retention_disabled.snap ##
+     @@
+    - ---
+      source: core/tests/suite/scenarios_retained_tool_outputs.rs
+    --expression: "context_snapshot::format_request_history_snapshot(if enabled\n{\n    \"Retained thread instructions stop emergency tool-output trimming. Compaction shares the 64K retention budget with oversized task details, and a cold resume preserves the retained tool content.\"\n} else\n{\n    \"With retention disabled, the client can still send retain=true. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.\"\n}, &requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+    -+expression: "context_snapshot::format_request_history_snapshot(if enabled\n{\n    \"Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.\"\n} else\n{\n    \"With retention disabled, the client can still send retain=true. The unretained task details trigger a pre-turn compaction before they are sent. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.\"\n}, &requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+    + expression: "context_snapshot::format_request_history_snapshot(if enabled\n{\n    \"Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.\"\n} else\n{\n    \"With retention disabled, the client can still send retain=true. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.\"\n}, &requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+      ---
+     -Scenario: With retention disabled, the client can still send retain=true. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.
+     +Scenario: With retention disabled, the client can still send retain=true. The unretained task details trigger a pre-turn compaction before they are sent. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs
+     -05:message/user:
+     -    <ENVIRONMENT_CONTEXT>
+      06:function_call_output/codex_app.send_message_to_thread:Investigate the failing tests; report your findings without changing files.
+    ---- request 2 (turn) --
+    -+-- request 2 (compaction) --
+    - 07:message/assistant:
+    -     I will investigate the tests.
+    --08:function_call_output/codex_app.task_details:Investigate the failing tests carefully. Investigate the failing tests carefully. Investigate the failin...s carefully. Investigate the failing tests carefully. [hash=3c65017b6f98a38f]
+    -+08:compaction_trigger
+    -+
+    -+## Window 2 (after request 2: input diverged at item 06)
+    - -- request 3 (turn) --
+    --09:message/assistant:
+    -+00:additional_tools/developer (3; hash=4bf46b5a55c61c79):
+    -+        - namespace/functions; hash=e51275c55b5d1947
+    -+          - custom/exec
+    -+          - function/wait
+    -+          - function/request_user_input
+    -+          - function/request_user_input_async
+    -+        - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
+    -+          - function/sleep
+    -+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+    -+          - function/followup_task
+    -+          - function/interrupt_agent
+    -+          - function/list_agents
+    -+          - function/send_message
+    -+          - function/spawn_agent
+    -+          - function/wait_agent
+    -+01:message/developer:
+    -+    <MODEL_INSTRUCTIONS>
+    -+02:message/developer[2]:
+    -+    [01] <PERMISSIONS_INSTRUCTIONS>
+    -+    [02] <COLLABORATION_MODE>
+    + 07:configuration_update:reasoning={"effort":"low"}
+    + -- request 2 (turn) --
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_retention_disabled.snap: Scenario: With retention disabled, the client can still send retain=true. Tool o
+    + 02:message/developer[2]:
+    +     [01] <PERMISSIONS_INSTRUCTIONS>
+    +     [02] <COLLABORATION_MODE>
+    +-03:message/developer:
+    +-    <MULTI_AGENT_ROLE>
+    +-04:message/developer:
+    +-    <MULTI_AGENT_MODE>
+    +-05:message/user:
+     +03:message/user:
+    -+    <ENVIRONMENT_CONTEXT>
+    -+04:message/developer:
+    -+    <MULTI_AGENT_ROLE>
+    -+05:message/developer:
+    -+    <MULTI_AGENT_MODE>
+    -+06:compaction:encrypted=true; chars=19; hash=1d6271a2b9fff15f
+    -+07:function_call_output/codex_app.task_details:Investigate the failing tests carefully. Investigate the failing tests carefully. Investigate the failin...s carefully. Investigate the failing tests carefully. [hash=3c65017b6f98a38f]
+    -+-- request 4 (turn) --
+    -+08:message/assistant:
+    -     I will use those task details.
+    --10:function_call_output/codex_app.send_message_to_thread:Report your findings without changing files.
+    -+09:function_call_output/codex_app.send_message_to_thread:Report your findings without changing files.
+    +     <ENVIRONMENT_CONTEXT>
+    + 06:function_call_output/codex_app.send_message_to_thread:Investigate the failing tests; report your findings without changing files.
+    + 07:configuration_update:reasoning={"effort":"low"}
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_retention_disabled.snap: Scenario: With retention disabled, the client can still send retain=true. Tool o
+    + 12:function_call_output/example.progress:Output exceeded the available model context and was truncated
+    + 13:compaction_trigger
+      
+    --## Window 2 (after request 3: input diverged at item 10)
+    ---- request 4 (compaction) --
+    +-## Window 3 (after request 4: input diverged at item 06)
+    +--- request 5 (turn) --
+     -00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
+     -        - namespace/functions; hash=fada4a476a3754dd
+     +## Window 3 (after request 4: input diverged at item 09)
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs
+     +05:message/developer:
+          <MULTI_AGENT_MODE>
+     -05:message/user:
+    --    <ENVIRONMENT_CONTEXT>
+    --06:function_call_output/codex_app.send_message_to_thread:Investigate the failing tests; report your findings without changing files.
+    --07:message/assistant:
+    --    I will investigate the tests.
+    --08:function_call_output/codex_app.task_details:Investigate the failing tests carefully. Investigate the failing tests carefully. Investigate the failin...s carefully. Investigate the failing tests carefully. [hash=3c65017b6f98a38f]
+    --09:message/assistant:
+     +06:compaction:encrypted=true; chars=19; hash=1d6271a2b9fff15f
+     +07:function_call_output/codex_app.task_details:Investigate the failing tests carefully. Investigate the failing tests carefully. Investigate the failin...s carefully. Investigate the failing tests carefully. [hash=3c65017b6f98a38f]
+     +08:message/assistant:
+    -     I will use those task details.
+    --10:function_call_output/codex_app.send_message_to_thread:Output exceeded the available model context and was truncated
+    --11:function_call_output/example.progress:Output exceeded the available model context and was truncated
+    --12:compaction_trigger
+    ++    I will use those task details.
+     +09:function_call_output/codex_app.send_message_to_thread:Output exceeded the available model context and was truncated
+     +10:function_call_output/example.progress:Output exceeded the available model context and was truncated
+     +11:compaction_trigger
+    - 
+    --## Window 3 (after request 4: input diverged at item 06)
+    ---- request 5 (turn) --
+    --00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
+    --        - namespace/functions; hash=fada4a476a3754dd
+    ++
+     +## Window 4 (after request 5: input diverged at item 06)
+     +-- request 6 (turn) --
+     +00:additional_tools/developer (3; hash=4bf46b5a55c61c79):
+     +        - namespace/functions; hash=e51275c55b5d1947
+    -           - custom/exec
+    -           - function/wait
+    -           - function/request_user_input
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_retention_disabled.snap: Scenario: With retention disabled, the client can still send retain=true. Tool o
+    - 02:message/developer[2]:
+    -     [01] <PERMISSIONS_INSTRUCTIONS>
+    -     [02] <COLLABORATION_MODE>
+    --03:message/developer:
+    --    <MULTI_AGENT_ROLE>
+    ++          - custom/exec
+    ++          - function/wait
+    ++          - function/request_user_input
+    ++          - function/request_user_input_async
+    ++        - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
+    ++          - function/sleep
+    ++        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+    ++          - function/followup_task
+    ++          - function/interrupt_agent
+    ++          - function/list_agents
+    ++          - function/send_message
+    ++          - function/spawn_agent
+    ++          - function/wait_agent
+    ++01:message/developer:
+    ++    <MODEL_INSTRUCTIONS>
+    ++02:message/developer[2]:
+    ++    [01] <PERMISSIONS_INSTRUCTIONS>
+    ++    [02] <COLLABORATION_MODE>
+     +03:message/user:
+    -+    <ENVIRONMENT_CONTEXT>
+    - 04:message/developer:
+    +     <ENVIRONMENT_CONTEXT>
+    ++04:message/developer:
+     +    <MULTI_AGENT_ROLE>
+     +05:message/developer:
+    -     <MULTI_AGENT_MODE>
+    --05:message/user:
+    --    <ENVIRONMENT_CONTEXT>
+    ++    <MULTI_AGENT_MODE>
+      06:compaction:encrypted=true; chars=31; hash=dc1cfb1784ca88e3
+      07:message/user:
+          <ENVIRONMENT_CONTEXT>
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_survives_compaction_and_resume.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_retained_tool_outputs.rs
+    --expression: "context_snapshot::format_request_history_snapshot(\"Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.\",\n&requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+    -+expression: "context_snapshot::format_request_history_snapshot(if enabled\n{\n    \"Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.\"\n} else\n{\n    \"With retention disabled, the client can still send retain=true. The unretained task details trigger a pre-turn compaction before they are sent. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.\"\n}, &requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+    - ---
+    - Scenario: Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_survives_compaction_and_resume.snap: Scenario: Retained thread instructions stop emergency tool-output trimming. Comp
+      
+      ## Window 1
+      -- request 1 (turn) --
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs
+     -05:message/user:
+     -    <ENVIRONMENT_CONTEXT>
+      06:function_call_output/codex_app.send_message_to_thread:Investigate the failing tests; report your findings without changing files.
+    + 07:configuration_update:reasoning={"effort":"low"}
+      -- request 2 (turn) --
+    - 07:message/assistant:
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__retained_tool_outputs__retained_tool_output_survives_compaction_and_resume.snap: Scenario: Retained thread instructions stop emergency tool-output trimming. Comp
+      
+      ## Window 2 (after request 4: input diverged at item 06)
+ 97:  85b9879678 !  94:  c6d8653c65 Accept 0.163.0 scenario snapshots with local patch output
+    @@ codex-rs/core/tests/suite/scenarios_agent_eviction_tests.rs: async fn idle_evict
+                  submit_thread_settings(&test.codex, ThreadSettingsOverrides::default()).await?;
+              }
+          }
+    -@@ codex-rs/core/tests/suite/scenarios_agent_eviction_tests.rs: async fn idle_eviction_preserves_worker_context_for_followup() -> Result<()> {
+    -     // Preserve each stream's complete history while removing parent/child scheduling order.
+    -     requests
+    -         .sort_by_key(|request| request.header("thread-id").as_deref() != Some(parent_id.as_str()));
+    --    assert_eq!(requests.len(), 10);
+    -+    assert_eq!(requests.len(), 12);
+    -     let history = context_snapshot::format_request_history_snapshot(
+    -         "A parent delegates an API migration, queues a note while the worker is idle, and follows up after idle eviction. The same worker resumes with its earlier answer and the unread note. Complete model streams are grouped as parent, then worker.",
+    -         &requests,
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios_agent_eviction_tests.rs
+    --assertion_line: 183
+    - expression: "format!(\"{history}\\n\\nResumed worker mailbox:\\n{mailbox}\")"
+    - ---
+    - Scenario: A parent delegates an API migration, queues a note while the worker is idle, and follows up after idle eviction. The same worker resumes with its earlier answer and the unread note. Complete model streams are grouped as parent, then worker.
+    - 
+    - ## Window 1
+    - -- request 1 (turn) --
+    --00:additional_tools/developer (2; hash=122dc70cb8c7e8f0):
+    --        - namespace/functions; hash=f859506569b16c70
+    -+00:additional_tools/developer (2; hash=e03021f8dc6992ca):
+    -+        - namespace/functions; hash=9f233540e3d9ba1e
+    -           - custom/exec
+    -           - function/wait
+    -           - function/request_user_input
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent delegates an API migration, queues a note while the worker is
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent with no configured environment delegates an API migration, qu
+          <MODEL_INSTRUCTIONS>
+      02:message/developer:
+          <PERMISSIONS_INSTRUCTIONS>
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_
+          You are `/root`, the primary agent in a team of agents collaborating to fulfill the user's goals.
+      
+          At the start of your turn, you are the active agent.
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent delegates an API migration, queues a note while the worker is
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent with no configured environment delegates an API migration, qu
+      
+          You can use `spawn_agent` to create a new agent, `followup_task` to give an existing agent a new task an...message to a running agent without triggering a turn. [hash=7d40ff8b58977202]
+          Child agents can also spawn their own sub-agents.
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_
+          - All agents use the same current working directory.
+          - As a result, edits made by one agent are immediately visible to all other agents.
+      
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent delegates an API migration, queues a note while the worker is
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent with no configured environment delegates an API migration, qu
+          There are 2 available concurrency slots, meaning that up to 2 agents can be active at once, including you.
+      
+          Full-history forks (`fork_turns` omitted or `"all"`) inherit the parent model and reasoning effort and d...uctions; when doing so, set `fork_turns` to `"none"`. [hash=18ccf7e93ecabab9]
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_
+     +-- request 8 (turn) --
+     +16:agent_message
+      
+    --## Window 2 (after request 6: input diverged at item 03)
+    ---- request 7 (turn) --
+    --00:additional_tools/developer (2; hash=122dc70cb8c7e8f0):
+    --        - namespace/functions; hash=f859506569b16c70
+    -+## Window 2 (after request 8: input diverged at item 04)
+    -+-- request 9 (turn) --
+    -+00:additional_tools/developer (2; hash=e03021f8dc6992ca):
+    -+        - namespace/functions; hash=9f233540e3d9ba1e
+    -           - custom/exec
+    -           - function/wait
+    -           - function/request_user_input
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent delegates an API migration, queues a note while the worker is
+    + ## Window 2 (after request 6: input diverged at item 03)
+    + -- request 7 (turn) --
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent with no configured environment delegates an API migration, qu
+          <MODEL_INSTRUCTIONS>
+      02:message/developer:
+          <PERMISSIONS_INSTRUCTIONS>
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_
+          You are an agent in a team of agents collaborating to complete a task.
+      
+          You can spawn sub-agents to handle subtasks, and those sub-agents can spawn their own sub-agents. All ag...nd capable, and have access to the same set of tools. [hash=876a93c54d3f61d6]
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent delegates an API migration, queues a note while the worker is
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent with no configured environment delegates an API migration, qu
+          Child agents can also spawn their own sub-agents.
+      
+          When you provide a response in the final channel, that content is immediately delivered back to your parent agent.
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_
+          - All agents use the same current working directory.
+          - As a result, edits made by one agent are immediately visible to all other agents.
+      
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent delegates an API migration, queues a note while the worker is
+    +@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_eviction_followup.snap: Scenario: A parent with no configured environment delegates an API migration, qu
+          There are 2 available concurrency slots, meaning that up to 2 agents can be active at once, including you.
+      
+          Full-history forks (`fork_turns` omitted or `"all"`) inherit the parent model and reasoning effort and d...uctions; when doing so, set `fork_turns` to `"none"`. [hash=18ccf7e93ecabab9]
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_eviction__idle_
+     +-- request 10 (turn) --
+      07:function_call/client_echo:{"message":"Mira owns the API migration."}
+      08:function_call_output:Mira owns the API migration.
+    ---- request 9 (turn) --
+    -+-- request 11 (turn) --
+    - 09:message/assistant:
+    -     Mira owns the API migration.
+    - 10:agent_message
+    - 11:agent_message
+    ---- request 10 (turn) --
+    -+-- request 12 (turn) --
+    - 12:function_call/client_echo:{"message":"I will continue with Mira using the new API."}
+    - 13:function_call_output:I will continue with Mira using the new API.
+    - 
+    + 09:message/user:
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__remote__remote_board_permissions_direct.snap ##
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__remote__remote_board_permissions_direct.snap: Scenario: Permission discovery preserves legacy output, exposes reply-only acces
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__agent_message_board__
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          Check board permissions, try publishing, then ask a question in the existing thread.
+    - -- request 2 (request) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_compaction_with_live_suffix.snap ##
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_compaction_with_live_suffix.snap: Scenario: Astra compacts a completed launch-notes turn in the background. The us
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_compactio
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          Draft the launch notes.
+    - -- request 2 (request) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_compaction_with_live_suffix.snap: Scenario: Astra compacts a completed launch-notes turn in the background. The us
+      
+    - ## Window 2 (after request 2: input diverged at item 08)
+    + ## Window 2 (after request 2: input diverged at item 09)
+      -- request 3 (request) --
+     -00:additional_tools/developer (3; hash=bf2e30605ff5dc17):
+     -        - namespace/functions; hash=fada4a476a3754dd
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_compactio
+     -    <ENVIRONMENT_CONTEXT>
+      06:message/user:
+          Draft the launch notes.
+    - 07:message/assistant:
+    + 07:configuration_update:reasoning={"effort":"low"}
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_async_compaction_with_live_suffix.snap: Scenario: Astra compacts a completed launch-notes turn in the background. The us
+      
+      ## Window 3 (after request 3: input diverged at item 02)
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_executor_plugin
+     -    </environment_context>
+      06:message/user:
+          Which workflow skills are available?
+    - -- request 2 (request) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_policy_limits_visible_skills.snap ##
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_policy_limits_visible_skills.snap: Settings:
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__astra_plugin_policy_l
+     -    </environment_context>
+      06:message/user:
+          Plan a team kickoff. Which planning skills are available?
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_sender_context__cross_host_sender_context.snap ##
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__guardian_sender_context__cross_host_sender_context.snap: Settings:
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__indirect_namespace_pr
+      -- request 1 (turn) --
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_native_tools_hidden.snap ##
+    -@@
+    - ---
+    - source: core/tests/suite/scenarios.rs
+    --assertion_line: 1272
+    - expression: "context_snapshot::format_request_history_snapshot(description,\n&mock.requests(),\n&ContextSnapshotOptions::default().include_request_settings(),)"
+    - ---
+    - Scenario: Native tools are unavailable while the V2 runtime and its instructions remain enabled.
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_native_tools_hidden.snap: Settings:
+        text: {"verbosity":"low"}
+        tool_choice: "auto"
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__multi_agent_native_to
+     -    </environment_context>
+      06:message/user:
+          Check which agents are working under /root before delegating more work.
+    - -- request 2 (turn) --
+    + 07:configuration_update:reasoning={"effort":"low"}
+     
+      ## codex-rs/core/tests/suite/snapshots/all__suite__scenarios__partial_answers__preserved_answer_fork.snap ##
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__partial_answers__preserved_answer_fork.snap: Scenario: A worker inherits the parent prefix unchanged and receives its own ins
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__prediction_fork_prese
+                - function/wait
+                - function/request_user_input
+     @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__prediction_fork_preserves_context_above_compaction_threshold.snap: Settings:
+    -     First context window id: <UUID 1>
+    -     Current context window id: <UUID 1>
+    -     </context_window>
+    --04:message/developer:
+    -+04:message/user:
+    -+    <environment_context>
+    -+      <cwd><CWD></cwd>
+    -+      <shell><HOST_SHELL></shell>
+    -+      <current_date><CURRENT_DATE></current_date>
+    -+      <timezone><HOST_TIMEZONE></timezone>
+    -+      <filesystem><workspace_roots><root><CWD></root></workspace_roots><permission_profile type="disabled"><...e="unrestricted" /></permission_profile></filesystem> [hash=d40b2f45cb028888]
+    -+    </environment_context>
+    -+05:message/developer:
+    -     <multi_agent_role>You are `/root`, the primary agent in a team of agents collaborating to fulfill the user's goals.
+    - 
+    -     At the start of your turn, you are the active agent.
+    -@@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__prediction_fork_preserves_context_above_compaction_threshold.snap: Settings:
+      
+          You can use `spawn_agent` to create a new agent, `followup_task` to give an existing agent a new task an...message to a running agent without triggering a turn. [hash=7d40ff8b58977202]
+          `send_message` calls may be read by a human, so ensure they are legible. Always put proper spaces between words and/or numbers.
+    @@ codex-rs/core/tests/suite/snapshots/all__suite__scenarios__prediction_fork_prese
+     -    </environment_context>
+      07:message/user:
+          Prepare the release.
+    - -- request 2 (turn) --
+    + 08:configuration_update:reasoning={"effort":"low"}
+ 98:  c3053b7702 !  95:  4bd1ec4ff9 Version local build 0.163.0+local.12 and refresh schema fixture
+    @@ codex-rs/Cargo.lock: dependencies = [
+     -version = "0.163.0+local.11"
+     +version = "0.163.0+local.12"
+      dependencies = [
+    -  "base64 0.22.1",
+    -  "caseless",
+    +  "codex-extension-api",
+    +  "codex-message-board",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "codex-protocol",
+    -  "codex-utils-string",
+    +  "codex-protocol-test-support",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "codex-client",
+    -  "codex-protocol",
+    +  "codex-http-client",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "anyhow",
+    -  "appcontainer_common",
+    +  "codex-network-proxy",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "anyhow",
+    -  "base64 0.22.1",
+    +  "aws-credential-types",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "anyhow",
+    -  "clap",
+    +  "bytes",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "bitflags 2.13.1",
+    -  "codex-code-mode",
+    +  "codex-attachment-store",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+     +version = "0.163.0+local.12"
+      dependencies = [
+       "base64 0.22.1",
+    -  "core-foundation 0.10.1",
+    +  "block2",
+     @@ codex-rs/Cargo.lock: dependencies = [
+      
+      [[package]]
+    @@ codex-rs/Cargo.lock: dependencies = [
+      dependencies = [
+       "anyhow",
+       "assert_cmd",
+    -
+    - ## codex-rs/Cargo.toml ##
+    -@@ codex-rs/Cargo.toml: members = [
+    - resolver = "2"
+    - 
+    - [workspace.package]
+    --version = "0.163.0+local.11"
+    -+version = "0.163.0+local.12"
+    - # Track the edition for all workspace crates in one place. Individual
+    - # crates can still override this value, but keeping it here means new
+    - # crates created with `cargo new -w ...` automatically inherit the 2024
+    -
+    - ## codex-rs/app-server-protocol/schema/precomputed/app-server-exports-stable.json.zst ##
+    - Binary files codex-rs/app-server-protocol/schema/precomputed/app-server-exports-stable.json.zst and codex-rs/app-server-protocol/schema/precomputed/app-server-exports-stable.json.zst differ
+ 99:  2eccc40202 =  96:  0e09a909bc Make local package install work on Linux
+100:  07588e61be =  97:  e94429aacc Build the Linux local package for the host target and record the 0.163.0 update
+101:  e3d72a333c =  98:  b7515d0679 Record working Linux sandbox after installing system bubblewrap
