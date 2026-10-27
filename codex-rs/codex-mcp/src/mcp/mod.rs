@@ -220,7 +220,8 @@ impl PartialEq for McpConfig {
             && self.mcp_oauth_callback_port == other.mcp_oauth_callback_port
             && self.mcp_oauth_callback_url == other.mcp_oauth_callback_url
             && self.optional_mcp_startup_grace == other.optional_mcp_startup_grace
-            && self.skill_mcp_dependency_install_enabled == other.skill_mcp_dependency_install_enabled
+            && self.skill_mcp_dependency_install_enabled
+                == other.skill_mcp_dependency_install_enabled
             && self.approval_policy == other.approval_policy
             && self.permission_profile == other.permission_profile
             && self.config_layer_stack == other.config_layer_stack

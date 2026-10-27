@@ -608,8 +608,7 @@ impl Session {
                 .refresh_after_auth_change(self.get_config().await.http_client_factory())
                 .await;
             let session_configuration = if self.enabled(Feature::WakeOnAgentMessages) {
-                let Some(configuration) =
-                    self.pending_work_turn_configuration(&turn_state).await
+                let Some(configuration) = self.pending_work_turn_configuration(&turn_state).await
                 else {
                     return;
                 };
@@ -1120,6 +1119,10 @@ impl Session {
         }
     }
 
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "the reservation must be classified under the admission lock so later mail cannot race the cancellation"
+    )]
     async fn take_active_turn(&self, reason: &TurnAbortReason) -> Option<ActiveTurn> {
         let mut active = self.active_turn.lock().await;
         if matches!(
