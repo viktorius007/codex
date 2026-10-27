@@ -36,7 +36,7 @@ pub(crate) struct CacheDiagnosticAttemptSequencer(AtomicU32);
 impl CacheDiagnosticAttemptSequencer {
     pub(crate) fn next(&self) -> u32 {
         self.0
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
                 Some(value.saturating_add(1))
             })
             .unwrap_or(u32::MAX)

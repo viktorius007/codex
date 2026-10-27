@@ -923,16 +923,17 @@ impl UnifiedExecProcessManager {
         let _interaction_guard = locked_process.interaction_lock().lock_owned().await;
         // A queued write must observe strict review enabled while it was waiting.
         let strict_auto_review = context.step_context.turn.strict_auto_review_enabled();
-        let mut wake_on_exit = None;
-        let approval = {
+        let (approval, wake_on_exit) = {
             let store = self.process_store.lock().await;
             let entry = store
                 .processes
                 .get(&process_id)
                 .filter(|entry| Arc::ptr_eq(&entry.process, locked_process))
                 .ok_or(UnifiedExecError::UnknownProcessId { process_id })?;
-            wake_on_exit = Some(Arc::clone(&entry.wake_on_exit));
-            entry.stdin_approval(context, request.input, strict_auto_review)?
+            (
+                entry.stdin_approval(context, request.input, strict_auto_review)?,
+                Arc::clone(&entry.wake_on_exit),
+            )
         };
         if let Some((approval, approval_reason)) = approval {
             let unreviewable_input_error = || {
@@ -1149,9 +1150,7 @@ impl UnifiedExecProcessManager {
                 .await;
         }
 
-        if response.process_id.is_none()
-            && let Some(wake_on_exit) = wake_on_exit
-        {
+        if response.process_id.is_none() {
             wake_on_exit.store(false, Ordering::Release);
         }
 
