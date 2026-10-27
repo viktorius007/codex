@@ -58,6 +58,11 @@ pub(crate) async fn prepare_catalogs(
             || discovery_v2,
         catalog: thread_state.prepare_step_catalog(cloud, executor, discovery_v2),
         host_catalog,
+        // Plugin package reads resolve through the snapshot that produced this step's catalog.
+        host_snapshot: input
+            .turn_store
+            .get::<HostSkillsSnapshot>()
+            .filter(|_| providers.has_host_provider()),
         cloud_status,
         config,
     }

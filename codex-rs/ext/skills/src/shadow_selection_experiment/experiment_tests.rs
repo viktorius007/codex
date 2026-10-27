@@ -130,6 +130,7 @@ async fn turn_input_and_history_advance_while_ranking_is_blocked()
                     /*discovery_v2*/ false,
                 ),
             host_catalog: Some(host_catalog),
+            host_snapshot: None,
             cloud_status: CatalogStatus::Unavailable,
             config: config.clone(),
         });

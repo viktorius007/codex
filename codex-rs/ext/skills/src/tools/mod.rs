@@ -66,7 +66,14 @@ pub(crate) fn skill_tools(
     let Some(step_state) = step_store.get::<SkillsStepState>() else {
         return Vec::new();
     };
-    if !step_state.tools_enabled {
+    // Host plugin packages are read through skills.read even when no other skill tools apply.
+    let host_plugins_available = step_state.host_catalog.as_ref().is_some_and(|catalog| {
+        catalog
+            .entries
+            .iter()
+            .any(|entry| entry.enabled && entry.is_plugin_package())
+    });
+    if !step_state.tools_enabled && !host_plugins_available {
         return Vec::new();
     }
     let mcp_resources = session_store
@@ -80,14 +87,15 @@ pub(crate) fn skill_tools(
         analytics,
         step_state,
     };
-    let mut tools: Vec<Arc<dyn for<'call> ToolExecutor<ToolCall<'call>>>> = vec![
-        Arc::new(list::ListTool {
+    let mut tools: Vec<Arc<dyn for<'call> ToolExecutor<ToolCall<'call>>>> = Vec::new();
+    if context.step_state.tools_enabled {
+        tools.push(Arc::new(list::ListTool {
             context: context.clone(),
-        }),
-        Arc::new(read::ReadTool {
-            context: context.clone(),
-        }),
-    ];
+        }));
+    }
+    tools.push(Arc::new(read::ReadTool {
+        context: context.clone(),
+    }));
     if context.step_state.discovery_v2 {
         tools.push(Arc::new(installations::InstallationsTool { context }));
     }

@@ -142,7 +142,26 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     };
                     let authority =
                         SkillToolAuthority::from_authority(&selected_source.authority)?.selector();
-                    Some((*entry, selected_source, authority))
+                    Some((*entry, selected_source, Some(authority)))
+                })
+                .or_else(|| {
+                    // Host plugin packages resolve through this step's host catalog and snapshot.
+                    if source.is_some() {
+                        return None;
+                    }
+                    let entry = self
+                        .context
+                        .step_state
+                        .host_catalog
+                        .as_ref()?
+                        .entries
+                        .iter()
+                        .find(|entry| {
+                            entry.enabled
+                                && entry.is_plugin_package()
+                                && entry.id.0 == args.package.as_str()
+                        })?;
+                    Some((entry, entry.primary_source(), None))
                 })
                 .ok_or_else(|| {
                     FunctionCallError::RespondToModel(if source.is_some() {
@@ -162,13 +181,19 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     .unwrap_or_else(|| SkillResourceId::new(resource)),
             };
             let (context, access_key) = match output_authority {
-                SkillToolAuthoritySelector::Cloud => (
+                None => (
+                    SkillReadContext::Host {
+                        host_snapshot: self.context.step_state.host_snapshot.clone(),
+                    },
+                    None,
+                ),
+                Some(SkillToolAuthoritySelector::Cloud) => (
                     SkillReadContext::Cloud {
                         mcp_resources: self.context.mcp_resources.clone(),
                     },
                     None,
                 ),
-                SkillToolAuthoritySelector::Executor => {
+                Some(SkillToolAuthoritySelector::Executor) => {
                     let fs = requested_resource
                         .environment_path()
                         .and_then(|(id, _)| {
@@ -303,7 +328,7 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     installations_truncated,
                 })
             } else {
-                let skill_root = if output_authority == SkillToolAuthoritySelector::Executor {
+                let skill_root = if output_authority == Some(SkillToolAuthoritySelector::Executor) {
                     main_prompt
                         .environment_path()
                         .and_then(|(_, path)| path.parent())
@@ -336,10 +361,11 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
             ) {
                 SkillToolAuthoritySelector::Cloud
             } else {
-                output_authority
+                // Host plugin package output is local content, like executor output.
+                output_authority.unwrap_or(SkillToolAuthoritySelector::Executor)
             };
             let output = skill_json_output(&response, response_authority)?;
-            if output_authority == super::SkillToolAuthoritySelector::Executor
+            if output_authority == Some(super::SkillToolAuthoritySelector::Executor)
                 && response.next_cursor.is_some()
                 && result.contents.len() <= MAX_SKILL_RESOURCE_CONTENT_BYTES
                 && let Some(access) = access_key
