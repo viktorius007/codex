@@ -1,5 +1,8 @@
 //! Immutable, policy-checked skill catalogs captured for one step.
 
+use std::sync::Arc;
+
+use crate::HostSkillsSnapshot;
 use crate::aliases::SkillCatalogAliases;
 use crate::catalog::SkillAuthority;
 use crate::catalog::SkillCatalog;
@@ -16,6 +19,8 @@ pub(crate) struct SkillsStepState {
     pub(crate) tools_enabled: bool,
     pub(crate) catalog: SkillStepCatalog,
     pub(crate) host_catalog: Option<SkillCatalog>,
+    /// Host snapshot behind `host_catalog`; plugin package reads resolve through it.
+    pub(crate) host_snapshot: Option<Arc<HostSkillsSnapshot>>,
     pub(crate) cloud_status: CatalogStatus,
     pub(crate) config: crate::SkillsExtensionConfig,
 }
