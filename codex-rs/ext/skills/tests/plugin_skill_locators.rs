@@ -2,6 +2,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use codex_attachment_store::InlineAttachmentStore;
 use codex_config::ConfigLayerEntry;
 use codex_config::ConfigLayerSource;
 use codex_config::ConfigLayerStack;
@@ -13,6 +14,8 @@ use codex_extension_api::ExtensionRegistryBuilder;
 use codex_extension_api::FunctionCallError;
 use codex_extension_api::NoopTurnItemEmitter;
 use codex_extension_api::PreviousWorldStateSection;
+use codex_extension_api::SelectedPluginSnapshot;
+use codex_extension_api::StepPreparationInput;
 use codex_extension_api::ThreadStartInput;
 use codex_extension_api::ToolCall;
 use codex_extension_api::ToolCallSource;
@@ -24,6 +27,7 @@ use codex_protocol::openai_models::ModelInfo;
 use codex_protocol::protocol::SessionSource;
 use codex_protocol::protocol::TruncationPolicy;
 use codex_protocol::user_input::UserInput;
+use codex_protocol_test_support::ContentItemTestExt;
 use codex_skills_extension::HostSkillsLoadInput;
 use codex_skills_extension::HostSkillsService;
 use codex_skills_extension::HostSkillsSnapshot;
@@ -159,6 +163,31 @@ async fn start_registry()
     Ok((registry, session_store, thread_store))
 }
 
+async fn prepare_step(
+    registry: &ExtensionRegistry<TestConfig>,
+    session_store: &ExtensionData,
+    thread_store: &ExtensionData,
+    turn_store: &ExtensionData,
+    turn_id: &str,
+) {
+    let selected_plugins = SelectedPluginSnapshot::default();
+    for contributor in registry.tool_contributors() {
+        contributor
+            .prepare_for_step(StepPreparationInput {
+                turn_id,
+                ready_selected_capability_roots: &[],
+                executor_capability_discovery: None,
+                executor_capability_discovery_v2: None,
+                selected_plugins: &selected_plugins,
+                session_store,
+                thread_store,
+                turn_store,
+                step_store: turn_store,
+            })
+            .await;
+    }
+}
+
 async fn load_snapshot(
     service: &HostSkillsService,
     cwd: &Path,
@@ -186,14 +215,13 @@ async fn render_host_catalog(
     let turn_store = ExtensionData::new(turn_id);
     turn_store.insert(snapshot);
     let model_info = catalog_model_info();
+    prepare_step(registry, session_store, thread_store, &turn_store, turn_id).await;
     let sections = registry.context_contributors()[0]
         .contribute_world_state(WorldStateContributionInput {
             thread_id: codex_protocol::ThreadId::new(),
             turn_id,
             model_info: &model_info,
             environments: &[],
-            ready_selected_capability_roots: &[],
-            executor_capability_discovery: None,
             extension_metrics: None,
             session_store,
             thread_store,
@@ -210,7 +238,8 @@ async fn render_host_catalog(
         .1
         .ok_or("host catalog should render")?
         .body()
-        .to_string();
+        .clone()
+        .expect_text();
     Ok((turn_store, catalog))
 }
 
@@ -253,6 +282,8 @@ async fn read_package(
             source: ToolCallSource::Direct,
             conversation_history: ConversationHistory::default(),
             turn_item_emitter: Arc::new(NoopTurnItemEmitter),
+            attachment_store: Arc::new(InlineAttachmentStore),
+            ephemeral: false,
             environments: Vec::new(),
             payload: payload.clone(),
         })
@@ -644,10 +675,19 @@ async fn ordinary_host_skills_keep_filesystem_locators_and_direct_prompt_reads()
     let (registry, session_store, thread_store) = start_registry().await?;
     let turn_store = ExtensionData::new("local-turn");
     turn_store.insert(snapshot);
+    prepare_step(
+        &registry,
+        &session_store,
+        &thread_store,
+        &turn_store,
+        "local-turn",
+    )
+    .await;
 
     let fragments = registry.turn_input_contributors()[0]
         .contribute(
             TurnInputContext {
+                step_store: &turn_store,
                 turn_id: "local-turn".to_string(),
                 user_input: vec![UserInput::Text {
                     text: "$local-check".to_string(),
@@ -676,6 +716,7 @@ async fn ordinary_host_skills_keep_filesystem_locators_and_direct_prompt_reads()
     assert_eq!(
         fragments[0]
             .render()
+            .expect_text()
             .lines()
             .filter(|line| line.starts_with("- `r"))
             .map(str::to_string)
@@ -685,6 +726,7 @@ async fn ordinary_host_skills_keep_filesystem_locators_and_direct_prompt_reads()
     assert_eq!(
         fragments[0]
             .render()
+            .expect_text()
             .lines()
             .filter(|line| line.starts_with("- local-check:"))
             .map(str::to_string)
@@ -692,7 +734,7 @@ async fn ordinary_host_skills_keep_filesystem_locators_and_direct_prompt_reads()
         vec!["- local-check: Check local files. (file: r0/local-check/SKILL.md)".to_string()]
     );
     assert_eq!(
-        fragments[1].render(),
+        fragments[1].render().expect_text(),
         format!(
             "<skill>\n<name>local-check</name>\n<path>{rendered_path}</path>\n{LOCAL_SKILL}\n</skill>"
         )
