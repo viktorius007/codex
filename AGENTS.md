@@ -630,3 +630,6 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Stable 0.163.0 update](research/stable-0.163.0-sync.md) — Records the local.12 rebase, regression fixes, validation limits on Linux, installation and rollback.
 - [Stable 0.163.0 evidence](research/stable-0.163.0-evidence/) — Stores the full-suite summary and failures, the upstream baseline comparison and the patch range-diff.
+
+- [Stable 0.165.0 update](research/stable-0.165.0-sync.md) — Records the local.13 rebase onto 0.165.0, the re-ported skills patch, compile fixes, validation, installation and rollback.
+- [Stable 0.165.0 evidence](research/stable-0.165.0-evidence/) — Stores the patch range-diff, the plugin-locator probe and port reports, and the test and build logs for local.13.
