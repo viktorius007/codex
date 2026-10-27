@@ -1149,7 +1149,9 @@ impl UnifiedExecProcessManager {
                 .await;
         }
 
-        if response.process_id.is_none() {
+        if response.process_id.is_none()
+            && let Some(wake_on_exit) = wake_on_exit
+        {
             wake_on_exit.store(false, Ordering::Release);
         }
 

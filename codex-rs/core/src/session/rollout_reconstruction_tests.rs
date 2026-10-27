@@ -523,7 +523,7 @@ async fn resumed_history_without_positioned_usage_recomputes_full_context(
             RolloutItem::ResponseItem(resumed_tail.into()),
         ],
         UnpositionedUsageReplay::CompactedHistory => vec![
-            RolloutItem::Compacted(CompactedItem {
+            RolloutItem::Compacted(Box::new(CompactedItem {
                 message: String::new(),
                 replacement_history: Some(annotated(vec![compacted_summary])),
                 retained_context: None,
@@ -536,7 +536,7 @@ async fn resumed_history_without_positioned_usage_recomputes_full_context(
                 compaction_response_id: None,
                 latest_token_usage_record: None,
                 resume_metadata: None,
-            }),
+            })),
             token_count(),
             RolloutItem::ResponseItem(resumed_tail.into()),
         ],

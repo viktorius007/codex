@@ -1119,7 +1119,7 @@ async fn terminal_async_result_is_retained_while_recipient_is_unloaded() {
         true,
     );
     let origin = Arc::new(codex_extension_api::ExtensionData::new("origin-turn"));
-    let input = crate::session::TurnInput::InterAgentCommunication(communication);
+    let input = crate::session::TurnInput::InterAgentCommunication(communication.into());
     control
         .deliver_async_result(
             recipient_id,

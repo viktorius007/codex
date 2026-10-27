@@ -317,7 +317,7 @@ impl InputQueue {
 
     pub(crate) async fn enqueue_mailbox_communication_with_origin(
         &self,
-        communication: InterAgentCommunication,
+        communication: crate::PendingAgentMessage,
         start_options: TurnStartOptions,
         async_result_origin: Option<Arc<ExtensionData>>,
     ) {
@@ -757,7 +757,7 @@ mod tests {
         let input = vec![TurnInput::ResponseItem(ResponseItem::Other.into())];
         queue
             .enqueue_mailbox_communication_with_origin(
-                communication.clone(),
+                communication.clone().into(),
                 options.clone(),
                 Some(Arc::clone(&mail_origin)),
             )
@@ -775,7 +775,7 @@ mod tests {
         else {
             panic!("expected communication");
         };
-        assert_eq!(*delivered, communication);
+        assert_eq!(*delivered, crate::PendingAgentMessage::from(communication));
         assert_eq!(
             (start_options.parent_turn_id, start_options.root_turn_id),
             (options.parent_turn_id, options.root_turn_id),

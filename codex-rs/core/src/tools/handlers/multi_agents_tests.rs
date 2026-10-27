@@ -2027,14 +2027,14 @@ async fn multi_agent_v2_followup_task_completion_notifies_parent_on_every_turn()
                 Vec::new(),
                 first_notification,
                 /*trigger_turn*/ true,
-            )),
+            ).into()),
             crate::session::TurnInput::InterAgentCommunication(InterAgentCommunication::new(
                 worker_path,
                 AgentPath::root(),
                 Vec::new(),
                 second_notification,
                 /*trigger_turn*/ true,
-            )),
+            ).into()),
         ]
     );
     assert_eq!(
