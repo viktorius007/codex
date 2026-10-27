@@ -5639,13 +5639,15 @@ async fn auto_compact_accounts_for_encrypted_reasoning() {
 
     let requests = request_log.requests();
     // Responses Lite includes retained reasoning in its usage without a header.
-    // 80 must remain below the limit; 81 must trigger compaction before turn 4.
+    // The local pre-turn check projects the incoming prompt onto the reported usage, so
+    // 80 plus the third prompt already reaches the 81 limit and compaction runs before
+    // turn 3; the 81 reported afterwards triggers it again before turn 4.
     assert_eq!(
         requests
             .iter()
             .map(|request| request.inputs_of_type("compaction_trigger").len())
             .collect::<Vec<_>>(),
-        vec![0, 0, 0, 1, 0],
+        vec![0, 0, 1, 1, 0],
     );
 }
 

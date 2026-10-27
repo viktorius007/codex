@@ -203,8 +203,9 @@ pub struct McpConfig {
     pub connector_snapshot: ConnectorSnapshot,
 }
 
-/// Snapshots are equal when every setting matches; the shared EMA sign-in state and
-/// cancellation scope compare by identity because they are runtime handles, not settings.
+/// Snapshots are equal when every setting matches. The shared EMA sign-in state and
+/// cancellation scope are runtime handles created per publication, not settings, so an
+/// equivalent republish must still compare equal; they are excluded.
 impl PartialEq for McpConfig {
     fn eq(&self, other: &Self) -> bool {
         self.chatgpt_base_url == other.chatgpt_base_url
@@ -212,9 +213,7 @@ impl PartialEq for McpConfig {
             && self.requires_read_only_mcp_tools == other.requires_read_only_mcp_tools
             && self.codex_home == other.codex_home
             && self.mcp_enterprise_managed_auth == other.mcp_enterprise_managed_auth
-            && self.mcp_ema_cancellation == other.mcp_ema_cancellation
             && self.xaa_enabled == other.xaa_enabled
-            && Arc::ptr_eq(&self.ema_state, &other.ema_state)
             && self.mcp_oauth_credentials_store_mode == other.mcp_oauth_credentials_store_mode
             && self.oauth_refresh_mode == other.oauth_refresh_mode
             && self.auth_keyring_backend_kind == other.auth_keyring_backend_kind

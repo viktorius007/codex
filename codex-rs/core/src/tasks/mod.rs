@@ -1136,9 +1136,16 @@ impl Session {
             TurnAbortReason::Interrupted | TurnAbortReason::BudgetLimited
         ) && let Some(active_turn) = active
             .as_mut()
-            .filter(|active_turn| active_turn.task.is_none())
+            .filter(|active_turn| active_turn.task.is_none() && active_turn.finishing.is_none())
         {
-            self.mark_interrupted();
+            // A reservation without a task is cancelled in place; finishing turns keep
+            // their status until completion is persisted. Explicit follow-up mail may
+            // start its own turn afterwards unless message wakes make later mail wait.
+            if self.enabled(Feature::WakeOnAgentMessages)
+                || !self.input_queue.has_trigger_turn_mailbox_items().await
+            {
+                self.mark_interrupted();
+            }
             active_turn.cancelled_before_start = true;
             return None;
         }

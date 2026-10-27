@@ -6,8 +6,8 @@ Scenario: Astra reads Cloud instructions, discovers an omitted deployment instal
 
 ## Window 1
 -- request 1 (request) --
-00:additional_tools/developer (3; hash=e075a43448be3246):
-        - namespace/functions; hash=bbcd688349ca7e12
+00:additional_tools/developer (3; hash=f33194fee6ea4f84):
+        - namespace/functions; hash=5637f4685e896fb8
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -27,12 +27,12 @@ Scenario: Astra reads Cloud instructions, discovers an omitted deployment instal
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
     [03] <SKILLS_INSTRUCTIONS>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Read the review and deployment instructions, find all deployment installations, then read the instructions from env-04.
 07:configuration_update:reasoning={"effort":"low"}
