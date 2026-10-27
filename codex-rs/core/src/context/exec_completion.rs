@@ -1,4 +1,6 @@
+use codex_protocol::models::ContentItem;
 use codex_protocol::models::ContentItemKind;
+use codex_protocol::models::input_text;
 use codex_utils_output_truncation::TruncationPolicy;
 use codex_utils_output_truncation::truncate_text;
 
@@ -46,8 +48,8 @@ impl ContextualUserFragment for ExecCompletion {
         Self::type_markers()
     }
 
-    fn body(&self) -> String {
-        self.body.clone()
+    fn body(&self) -> ContentItem {
+        input_text(self.body.clone())
     }
 
     fn type_markers() -> (&'static str, &'static str) {

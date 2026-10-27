@@ -58,6 +58,7 @@ use codex_protocol::models::ContentItem;
 use codex_protocol::models::ImageDetail;
 use codex_protocol::models::ImageReference;
 use codex_protocol::models::ResponseItem;
+use codex_protocol::openai_models::ReasoningEffort;
 use codex_protocol::openai_models::CodeModeToolMessages;
 use codex_protocol::openai_models::InputModality;
 use codex_protocol::openai_models::ReasoningEffort;

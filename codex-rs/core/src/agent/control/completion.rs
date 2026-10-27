@@ -117,7 +117,7 @@ impl LocalAgentControl {
         let delivery = self
             .deliver_async_result(
                 parent_thread_id,
-                TurnInput::InterAgentCommunication(communication),
+                TurnInput::InterAgentCommunication(communication.into()),
                 outcome.async_result_origin,
                 uuid::Uuid::new_v4().to_string(),
             )

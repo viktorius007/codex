@@ -818,6 +818,7 @@ async fn v2_residency_reload_preserves_inherited_environment_and_tools(
     .await;
     if let EventMsg::Error(error) = completion {
         anyhow::bail!("reloaded_worker failed: {}", error.message);
+    }
     if pending_owner {
         assert_eq!(
             reloaded_worker.environment_selections().await,

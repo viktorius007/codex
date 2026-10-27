@@ -122,6 +122,7 @@ async fn empty_timed_yields_stay_inside_one_wait_until_useful_output() -> anyhow
         payload: ToolPayload::Function {
             arguments: r#"{"cell_id":"cell-1","yield_time_ms":1}"#.to_string(),
         },
+        environments: Default::default(),
     };
 
     outcome_tx

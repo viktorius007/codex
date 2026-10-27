@@ -436,7 +436,7 @@ fn completion_preserves_small_result() {
         "done",
     );
     assert_eq!(
-        completion.body(),
+        completion.body().into_text().unwrap_or_default(),
         "<exec-command-completed call-id=\"call-1\" process-id=\"42\" exit-code=\"0\">\n<command>echo done</command>\n<output>\ndone\n</output>\n</exec-command-completed>"
     );
 }
@@ -454,7 +454,9 @@ fn completion_bounds_command_and_output_together() {
             /*exit_code*/ 7,
             &output,
         )
-        .body();
+        .body()
+        .into_text()
+        .unwrap_or_default();
         assert!(
             approx_token_count(&body) <= 1_000,
             "entire command, metadata, output, and truncation envelope must fit the context limit"

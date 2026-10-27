@@ -78,7 +78,7 @@ async fn turn_with_tools(
     let mut turn = session.new_default_turn().await;
     Arc::get_mut(&mut turn)
         .expect("new turn should be unshared")
-        .dynamic_tools = dynamic_tools;
+        .dynamic_tools = dynamic_tools.into();
     turn
 }
 
