@@ -18,6 +18,13 @@ struct State {
     published: AtomicBool,
 }
 
+/// Two handles are equal only when they share one cancellation scope.
+impl PartialEq for McpEmaCancellation {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
 impl McpEmaCancellation {
     /// Capture before loading configuration so reload can fence a delayed startup.
     pub fn pending(startup: CancellationToken, owner: CancellationToken) -> Self {

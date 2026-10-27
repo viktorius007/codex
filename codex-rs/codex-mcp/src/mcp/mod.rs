@@ -120,7 +120,7 @@ pub struct McpPermissionPromptAutoApproveContext {
 /// settings, so its connection, approval policy, and sandbox authority cannot
 /// change independently. Auth remains separate and is supplied explicitly to
 /// runtime entry points such as [`effective_mcp_servers`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct McpConfig {
     /// Base URL for ChatGPT-hosted app MCP servers, copied from the root config.
     pub chatgpt_base_url: String,
@@ -201,6 +201,48 @@ pub struct McpConfig {
     /// Plugin declarations used to attribute connector tools to plugin display names.
     /// MCP registrations retain their own package attribution in the catalog.
     pub connector_snapshot: ConnectorSnapshot,
+}
+
+/// Snapshots are equal when every setting matches; the shared EMA sign-in state and
+/// cancellation scope compare by identity because they are runtime handles, not settings.
+impl PartialEq for McpConfig {
+    fn eq(&self, other: &Self) -> bool {
+        self.chatgpt_base_url == other.chatgpt_base_url
+            && self.apps_mcp_product_sku == other.apps_mcp_product_sku
+            && self.requires_read_only_mcp_tools == other.requires_read_only_mcp_tools
+            && self.codex_home == other.codex_home
+            && self.mcp_enterprise_managed_auth == other.mcp_enterprise_managed_auth
+            && self.mcp_ema_cancellation == other.mcp_ema_cancellation
+            && self.xaa_enabled == other.xaa_enabled
+            && Arc::ptr_eq(&self.ema_state, &other.ema_state)
+            && self.mcp_oauth_credentials_store_mode == other.mcp_oauth_credentials_store_mode
+            && self.oauth_refresh_mode == other.oauth_refresh_mode
+            && self.auth_keyring_backend_kind == other.auth_keyring_backend_kind
+            && self.mcp_oauth_callback_port == other.mcp_oauth_callback_port
+            && self.mcp_oauth_callback_url == other.mcp_oauth_callback_url
+            && self.optional_mcp_startup_grace == other.optional_mcp_startup_grace
+            && self.skill_mcp_dependency_install_enabled == other.skill_mcp_dependency_install_enabled
+            && self.approval_policy == other.approval_policy
+            && self.permission_profile == other.permission_profile
+            && self.config_layer_stack == other.config_layer_stack
+            && self.plugins == other.plugins
+            && self.approvals_reviewer == other.approvals_reviewer
+            && self.environment_cwds == other.environment_cwds
+            && self.environment_use_mxc == other.environment_use_mxc
+            && self.server_permission_profiles == other.server_permission_profiles
+            && self.codex_self_exe == other.codex_self_exe
+            && self.codex_linux_sandbox_exe == other.codex_linux_sandbox_exe
+            && self.use_legacy_landlock == other.use_legacy_landlock
+            && self.apps_enabled == other.apps_enabled
+            && self.prefix_mcp_tool_names == other.prefix_mcp_tool_names
+            && self.non_prefixed_mcp_tool_servers == other.non_prefixed_mcp_tool_servers
+            && self.protocol_mode == other.protocol_mode
+            && self.mcp_tool_list_changed == other.mcp_tool_list_changed
+            && self.host_owned_apps_protocol_mode == other.host_owned_apps_protocol_mode
+            && self.client_elicitation_capability == other.client_elicitation_capability
+            && self.mcp_server_catalog == other.mcp_server_catalog
+            && self.connector_snapshot == other.connector_snapshot
+    }
 }
 
 /// Default amount of time a tool catalog capture waits for optional MCP servers.
