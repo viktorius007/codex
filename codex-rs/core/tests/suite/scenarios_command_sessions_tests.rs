@@ -177,11 +177,27 @@ text(result.output);"#
 
     // Command text is platform-specific; lifecycle assertions run on every native executor.
     if core_test_support::test_target_os() != core_test_support::TestTargetOs::Windows {
+        // Completion delivery races with explicit user input. Its causal delivery is
+        // covered by the dedicated exec-completion regressions; snapshot the stable
+        // command lifecycle here while retaining all lifecycle assertions above.
+        let mut requests: Vec<_> = responses::received_responses_requests(server)
+            .await
+            .into_iter()
+            .map(|request| request.body_json())
+            .collect();
+        for request in &mut requests {
+            if let Some(input) = request["input"].as_array_mut() {
+                input.retain(|item| !item.to_string().contains("<exec-command-completed"));
+            }
+        }
         insta::assert_snapshot!(
             "command_sessions_world_state",
-            context_snapshot::format_request_history_snapshot(
+            context_snapshot::format_context_snapshot(
                 "A Code Mode script drops its command handle. WorldState retains it while polling is unavailable, restores it after compaction, preserves exited results, clears drained sessions, and deletes stale handles after restart.",
-                &responses::received_responses_requests(server).await,
+                &requests
+                    .iter()
+                    .map(context_snapshot::SnapshotEntry::body)
+                    .collect::<Vec<_>>(),
                 &ContextSnapshotOptions::default().rewrite_known_segments(),
             )
         );
