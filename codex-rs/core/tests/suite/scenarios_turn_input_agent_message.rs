@@ -96,7 +96,6 @@ async fn agent_followup_preserves_native_boundaries(
     let test = test_codex()
         .with_model("gpt-5.4")
         .with_config(move |config| {
-            config.model_provider.base_url = Some(base_url);
             config.update_plan_enabled = true;
             config
                 .features
@@ -117,6 +116,18 @@ async fn agent_followup_preserves_native_boundaries(
         })
         .build_with_auto_env(&config_server)
         .await?;
+    // Parent completion wakes use a separate mock endpoint so they cannot consume
+    // the child's gated native-message responses.
+    responses::mount_sse_sequence(
+        &config_server,
+        vec![
+            responses::sse(vec![responses::ev_completed("parent-first")]),
+            responses::sse(vec![responses::ev_completed("parent-second")]),
+        ],
+    )
+    .await;
+    let mut child_options = test.start_thread_options().await;
+    child_options.config.model_provider.base_url = Some(base_url);
     let child_path = AgentPath::try_from("/root/worker").expect("child path");
     let child = test
         .thread_manager
@@ -128,7 +139,7 @@ async fn agent_followup_preserves_native_boundaries(
                 agent_nickname: None,
                 agent_role: None,
             })),
-            ..test.start_thread_options().await
+            ..child_options
         })
         .await?
         .thread;
