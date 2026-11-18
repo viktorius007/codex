@@ -164,9 +164,7 @@ async fn http_board_is_shared_with_children(mode: BoardMode) -> anyhow::Result<(
                 .as_array()
                 .expect("model input")
                 .iter()
-                .rev()
-                .find(|item| item["role"] == "user")
-                .is_some_and(|item| {
+                .any(|item| {
                     item.to_string()
                         .contains("Find the board tools and read the worker's decision.")
                 })
@@ -398,13 +396,24 @@ async fn http_board_is_shared_with_children(mode: BoardMode) -> anyhow::Result<(
                 board_turn(name, name, json!({"channel_name":"design"})),
             )
             .await;
-            child
+            let submission = child
                 .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
                     text: format!("{name} to the design channel."),
                     text_elements: vec![],
                 }]))
                 .await?;
-            wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+            let turn_id = match submission {
+                codex_protocol::turn_input::TurnInputSubmission::Started { turn_id, .. }
+                | codex_protocol::turn_input::TurnInputSubmission::Steered { turn_id, .. } => {
+                    turn_id
+                }
+                other => anyhow::bail!("subscription submission: {other:?}"),
+            };
+            wait_for_event(
+                &child,
+                |event| matches!(event, EventMsg::TurnComplete(done) if done.turn_id == turn_id),
+            )
+            .await;
             assert_eq!(
                 board_result(
                     subscribed

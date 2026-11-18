@@ -95,13 +95,22 @@ impl LocalAgentControl {
                 Err(err) if matches!(err.details(), CodexErrorDetails::ThreadNotFound(_)) => {}
                 Err(err) => return Err(err),
             }
-            let stored = state
+            let stored = match state
                 .read_stored_thread(ReadThreadParams {
                     thread_id: ancestor_id,
                     include_archived: true,
                     include_history: false,
                 })
-                .await?;
+                .await
+            {
+                Ok(stored) => stored,
+                // An explicitly removed ephemeral parent has no durable state to
+                // restore. Its surviving child can still execute without a result pin.
+                Err(err) if matches!(err.details(), CodexErrorDetails::ThreadNotFound(_)) => {
+                    return Ok(None);
+                }
+                Err(err) => return Err(err),
+            };
             missing.push(ancestor_id);
             ancestor_id = stored
                 .parent_thread_id
