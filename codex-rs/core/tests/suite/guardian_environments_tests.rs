@@ -21,7 +21,7 @@ use wiremock::matchers::method;
 use wiremock::matchers::path;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn direct_mcp_approval_uses_the_server_owners_denied_paths() -> Result<()> {
+async fn direct_mcp_rejects_changed_server_owner_permissions_after_sampling() -> Result<()> {
     skip_if_no_network!(Ok(()));
     let server = start_mock_server().await;
     let workspace = TempDir::new()?;
@@ -96,17 +96,7 @@ async fn direct_mcp_approval_uses_the_server_owners_denied_paths() -> Result<()>
         .with_priority(1)
         .mount(&server)
         .await;
-    let responses = mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_assistant_message("review", r#"{"outcome":"deny"}"#),
-                ev_completed("review"),
-            ]),
-            sse(vec![ev_completed("done")]),
-        ],
-    )
-    .await;
+    let responses = mount_sse_once(&server, sse(vec![ev_completed("done")])).await;
     let mut policy = FileSystemSandboxPolicy::read_only();
     policy.entries.push(FileSystemSandboxEntry::new(
         FileSystemPath::Special {
@@ -124,18 +114,26 @@ async fn direct_mcp_approval_uses_the_server_owners_denied_paths() -> Result<()>
         release.send(()).expect("let the model call the tool");
         Ok(())
     })?;
-    let review = responses
-        .requests()
-        .into_iter()
-        .find(|request| request.body_json()["client_metadata"]["x-openai-subagent"] == "guardian")
-        .context("expected a Guardian review")?;
-    let owner_label = format!("permission profile for environment {REMOTE_ENVIRONMENT_ID:?}");
-    let permissions = review
-        .message_input_texts("user")
-        .into_iter()
-        .find(|text| text.contains(&owner_label))
-        .context("expected the MCP server owner's permission rules")?;
-    assert!(permissions.contains(&denied), "{permissions}");
+    let request = responses.single_request();
+    let body = request.body_json();
+    let output = body["input"]
+        .as_array()
+        .context("model input")?
+        .iter()
+        .find(|item| item["type"] == "function_call_output" && item["call_id"] == "call")
+        .context("expected rejected MCP output")?;
+    assert!(
+        output["output"]
+            .as_array()
+            .context("structured MCP output")?
+            .iter()
+            .any(|item| item["text"] == "MCP tool authority changed after sampling")
+    );
+    assert_ne!(
+        request.body_json()["client_metadata"]["x-openai-subagent"],
+        "guardian",
+        "changed sampled authority must be rejected before requesting approval"
+    );
     Ok(())
 }
 
