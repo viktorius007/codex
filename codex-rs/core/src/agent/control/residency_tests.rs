@@ -108,7 +108,18 @@ async fn residency_slot_reservation_unloads_oldest_idle_v2_agent() {
         .local_agent_runtime
         .mailboxes
         .take(first.thread_id);
-    assert_eq!(retained, vec![communication.into()]);
+    assert_eq!(retained.len(), 1);
+    let crate::agent::api::AgentMailboxPayload::Communication {
+        communication: retained_message,
+        ..
+    } = &retained[0].0
+    else {
+        panic!("expected retained communication")
+    };
+    assert_eq!(
+        &**retained_message,
+        &crate::PendingAgentMessage::from(communication)
+    );
     let second = spawn_v2_subagent(&control, &state, config, root.thread_id, "worker-2").await;
     second_slot.commit(second.thread_id);
 

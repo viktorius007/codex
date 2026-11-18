@@ -2046,7 +2046,8 @@ fn result_metadata_apps_builder(base_url: String, account_email: &str) -> TestCo
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn code_mode_mcp_metadata_keeps_originating_window_after_compaction() -> Result<()> {
+async fn code_mode_mcp_metadata_keeps_originating_window_after_compaction_and_rejects_changed_authority()
+-> Result<()> {
     skip_if_no_network!(Ok(()));
     let server = responses::start_mock_server().await;
     let tools = Arc::new(Mutex::new(vec![serde_json::json!({
@@ -2090,7 +2091,7 @@ async fn code_mode_mcp_metadata_keeps_originating_window_after_compaction() -> R
 const pending = tools[tool.name]({{}});
 yield_control();
 await pending;
-await tools[tool.name]({{}});
+text(await tools[tool.name]({{}}));
 text("done");"#,
         ),
     );
@@ -2168,11 +2169,24 @@ text("done");"#,
             .any(|item| item["text"] == "done")
     );
     let calls = recorded_apps_tool_calls(&server).await;
-    assert_eq!(calls.len(), 2);
+    // The first call retains its originating attribution. The refreshed catalog is new
+    // execution authority, so the second call must be rejected before reaching MCP.
+    let output = function_tool_output_items(&resumed.completion.single_request(), "call-wait");
+    let rejected: Value = serde_json::from_str(
+        output
+            .iter()
+            .filter_map(|item| item["text"].as_str())
+            .find(|text| text.contains("MCP tool authority changed after sampling"))
+            .expect("the second call must report changed sampled authority"),
+    )?;
     assert_eq!(
-        calls[1]["params"]["_meta"]["_codex_apps"]["resource_uri"],
-        "connector://messages/search"
+        rejected,
+        serde_json::json!({
+            "content": [{"text": "MCP tool authority changed after sampling", "type": "text"}],
+            "isError": true,
+        })
     );
+    assert_eq!(calls.len(), 1);
     for call in calls {
         let meta = &call["params"]["_meta"];
         assert_eq!(meta["_codex_apps"]["invocation_context"], "original");

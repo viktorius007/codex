@@ -323,7 +323,7 @@ async fn output_context(session: Arc<Session>, turn_context: Arc<TurnContext>) -
 #[tokio::test]
 async fn malformed_tool_search_call_records_matching_search_output() {
     let (session, turn_context) = make_session_and_context().await;
-    let mut ctx = output_context(Arc::new(session), Arc::new(turn_context));
+    let mut ctx = output_context(Arc::new(session), Arc::new(turn_context)).await;
     let call = serde_json::from_value(json!({
         "type": "tool_search_call",
         "call_id": "search-invalid",
@@ -332,9 +332,11 @@ async fn malformed_tool_search_call_records_matching_search_output() {
     }))
     .expect("well-formed response item with invalid search arguments");
 
-    let result = handle_output_item_done(&mut ctx, call, /*previously_active_item*/ None)
-        .await
-        .expect("invalid search arguments should be answered in history");
+    let result = handle_output_item_done(
+        &mut ctx, call, /*previously_active_item*/ None, /*moderation*/ None,
+    )
+    .await
+    .expect("invalid search arguments should be answered in history");
     assert!(result.needs_follow_up);
     let history = ctx.sess.clone_history().await;
     let call_and_outputs = history

@@ -528,6 +528,7 @@ async fn resumed_history_without_positioned_usage_recomputes_full_context(
                     ..Default::default()
                 },
                 model_context_window: Some(128_000),
+                last_usage_includes_reasoning: None,
             }),
             rate_limits: None,
         }))

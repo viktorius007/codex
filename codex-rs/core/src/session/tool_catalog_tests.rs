@@ -75,11 +75,13 @@ async fn turn_with_tools(
     session: &Session,
     dynamic_tools: Vec<DynamicToolSpec>,
 ) -> Arc<TurnContext> {
-    let mut turn = session.new_default_turn().await;
-    Arc::get_mut(&mut turn)
-        .expect("new turn should be unshared")
+    session
+        .state
+        .lock()
+        .await
+        .session_configuration
         .dynamic_tools = dynamic_tools.into();
-    turn
+    session.new_default_turn().await
 }
 
 async fn select_step(session: &Arc<Session>, turn: Arc<TurnContext>) -> Arc<StepContext> {

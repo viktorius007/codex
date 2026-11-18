@@ -238,7 +238,8 @@ async fn guardian_circuit_breaker_notifies_parent(action: CircuitBreakAction) ->
         .respond_with(sse_response(sse(vec![ev_completed("parent-continued")])))
         .mount(&server)
         .await;
-    let TurnInputSubmission::Started { turn_id, .. } = test
+    let (TurnInputSubmission::Started { turn_id, .. }
+    | TurnInputSubmission::Steered { turn_id, .. }) = test
         .codex
         .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
             text: "Report the worker's status.".into(),

@@ -1090,9 +1090,13 @@ fn total_token_usage_respects_saved_reasoning_accounting(
     if let Some(included) = includes_reasoning {
         saved["last_usage_includes_reasoning"] = json!(included);
     }
-    history.set_token_info(Some(
-        serde_json::from_value(saved).expect("saved token count"),
-    ));
+    history.set_token_info_and_accepted_usage(
+        Some(serde_json::from_value(saved).expect("saved token count")),
+        Some(AcceptedTokenUsage::server_reported(
+            usage,
+            history.items.len(),
+        )),
+    );
 
     assert_eq!(history.get_total_token_usage(), expected);
 }
@@ -1551,7 +1555,7 @@ fn encrypted_reasoning_is_counted_once_across_the_accepted_boundary(
 #[test_case(true; "server includes reasoning")]
 #[test_case(false; "server omits reasoning")]
 fn forced_full_usage_uses_the_context_window_as_the_active_total(_server_reasoning_included: bool) {
-    let mut history = ContextManager::new();
+    let mut history = ContextManager::default();
     history.update_token_info(
         &TokenUsage {
             total_tokens: 120,

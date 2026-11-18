@@ -71,7 +71,10 @@ impl CodeModeSession for SequencedSession {
         })
     }
 
-    fn terminate<'a>(&'a self, _cell_id: CellId) -> CodeModeSessionResultFuture<'a, WaitOutcome> {
+    fn terminate<'a>(
+        &'a self,
+        _request: codex_code_mode::TerminateRequest,
+    ) -> CodeModeSessionResultFuture<'a, WaitOutcome> {
         Box::pin(async { Err("test session cannot terminate cells".to_string()) })
     }
 
@@ -119,6 +122,7 @@ async fn empty_timed_yields_stay_inside_one_wait_until_useful_output() -> anyhow
         call_id: "wait-call".to_string(),
         tool_name: codex_tools::ToolName::plain(WAIT_TOOL_NAME).with_default_namespace(),
         source: ToolCallSource::Direct,
+        native_call: None,
         payload: ToolPayload::Function {
             arguments: r#"{"cell_id":"cell-1","yield_time_ms":1}"#.to_string(),
         },

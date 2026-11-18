@@ -13855,12 +13855,35 @@ impl MutableCatalogModelsManager {
             metadata: StaticModelsManager::new(
                 /*auth_manager*/ None,
                 bundled_models_response().expect("bundled models"),
+                codex_protocol::openai_models::ModelOrigin::Bundled,
             ),
         }
     }
 }
 
 impl ModelsManager for MutableCatalogModelsManager {
+    fn ensure_initialized(&self, _factory: HttpClientFactory) -> ModelsManagerFuture<'_, ()> {
+        Box::pin(async {})
+    }
+    fn model_catalog_with_origins(
+        &self,
+        _strategy: RefreshStrategy,
+        _factory: HttpClientFactory,
+    ) -> ModelsManagerFuture<'_, Vec<codex_protocol::openai_models::CatalogModel>> {
+        Box::pin(async move {
+            self.models
+                .read()
+                .await
+                .iter()
+                .cloned()
+                .map(|model| codex_protocol::openai_models::CatalogModel {
+                    model: Arc::new(model),
+                    origin: codex_protocol::openai_models::ModelOrigin::Provider,
+                })
+                .collect()
+        })
+    }
+
     fn raw_model_catalog(
         &self,
         _refresh_strategy: RefreshStrategy,
@@ -13893,7 +13916,7 @@ impl ModelsManager for MutableCatalogModelsManager {
         &'a self,
         model: &'a str,
         config: &'a ModelsManagerConfig,
-    ) -> ModelsManagerFuture<'a, ModelInfo> {
+    ) -> ModelsManagerFuture<'a, codex_protocol::openai_models::CatalogModel> {
         self.metadata.get_model_info(model, config)
     }
 
@@ -13962,6 +13985,7 @@ fn collaboration_tool_specs(session: &Session, turn: &Arc<TurnContext>) -> Vec<T
         /*apps_enabled*/ false,
         &turn.extension_data,
         /*tool_suggest_candidates*/ None,
+        &[],
     )
     .expect("build collaboration tool router");
     let specs = router

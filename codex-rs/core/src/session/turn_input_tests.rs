@@ -1201,7 +1201,7 @@ async fn scored_prompt_keeps_its_submission_item_id() {
         .await
         .unwrap();
     }
-    let (pending, _) = session
+    let (pending, _, _) = session
         .input_queue
         .get_pending_input(&session.active_turn)
         .await;
