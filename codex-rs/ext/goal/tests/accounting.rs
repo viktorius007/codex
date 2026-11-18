@@ -70,6 +70,7 @@ fn empty_continuations_require_three_turns_without_model_output_or_goal_changes(
         memory_citation: None,
         delivery: None,
         questions: None,
+        moderation: None,
     });
     for (interruption, blocking_turn) in [
         ("none", 3),
@@ -141,6 +142,7 @@ fn nonempty_polling_output_resets_the_empty_continuation_streak() {
         memory_citation: None,
         delivery: None,
         questions: None,
+        moderation: None,
     });
     for turn in 1..=3 {
         let turn_id = turn.to_string();
