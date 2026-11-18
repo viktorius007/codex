@@ -1,0 +1,2 @@
+{"mode": "isolate", "outer_exit": -9, "supervisor_exited": true, "detached_child_exited": true, "lock_still_held": false}
+{"mode": "inherit", "outer_exit": -9, "supervisor_exited": true, "detached_child_exited": false, "lock_still_held": true}

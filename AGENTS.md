@@ -892,3 +892,7 @@ Codex supports running connected app-server and exec-server on different operati
 - [Failure causal shell-syscall-trace.txt](research/failure-causal/shell-syscall-trace.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
 
 - [Failure causal shell-tmp.log](research/failure-causal/shell-tmp.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Lifecycle repair lane report](/home/agent/fix170-run/lifecycle/report.md) — Records the unresolved all-mode containment requirement and rejected process-group approximation.
+- [Lifecycle containment probe](research/lifecycle-repair/containment-probe.py) — Reproduces the detached-child difference between isolated and inherited Linux PID namespaces.
+- [Lifecycle containment probe results](research/lifecycle-repair/containment-probe.jsonl) — Preserves exact-process exit and exclusive-lock observations for both namespace modes.
