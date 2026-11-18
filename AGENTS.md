@@ -725,3 +725,75 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Stable 0.170.0 frozen scoped lint](research/stable-0.170.0-evidence/validation/frozen-lint.log) — Checks the final synchronized HTTP-board fixture before shipping validation.
 - [Stable 0.170.0 shipping focused final](research/stable-0.170.0-evidence/validation/shipping-focused-final.log) — Gates the full workspace suite on the final affected-crate and regression selection.
+
+- [Stable 0.170.0 final two replay](research/stable-0.170.0-evidence/validation/final-two-replay.log) — Isolates the HTTP-board feature response routing and command-session snapshot timing failures.
+
+- [Stable 0.170.0 final-format.log](research/stable-0.170.0-evidence/validation/final-format.log) — Records final formatting.
+
+- [Stable 0.170.0 final-two.log](research/stable-0.170.0-evidence/validation/final-two.log) — Preserves initial fixture replay and compile correction.
+
+- [Stable 0.170.0 final-two-2.log](research/stable-0.170.0-evidence/validation/final-two-2.log) — Preserves normalized lifecycle success and surviving-child failure.
+
+- [Stable 0.170.0 feature-cause.log](research/stable-0.170.0-evidence/validation/feature-cause.log) — Preserves bounded child admission probe.
+
+- [Stable 0.170.0 feature-events.log](research/stable-0.170.0-evidence/validation/feature-events.log) — Preserves initial event probe attempt.
+
+- [Stable 0.170.0 feature-events-2.log](research/stable-0.170.0-evidence/validation/feature-events-2.log) — Proves missing ephemeral parent blocks child admission before inference.
+
+- [Stable 0.170.0 final-causal.log](research/stable-0.170.0-evidence/validation/final-causal.log) — Records all 23 passing causal and residency tests.
+
+- [Stable 0.170.0 shipping-lint.log](research/stable-0.170.0-evidence/validation/shipping-lint.log) — Records frozen source lint.
+
+- [Stable 0.170.0 frozen-workspace.log](research/stable-0.170.0-evidence/validation/frozen-workspace.log) — Records complete frozen workspace validation.
+
+- [Stable 0.170.0 api-format.log](research/stable-0.170.0-evidence/validation/api-format.log) — Preserves stable-update validation commands or results.
+
+- [Stable 0.170.0 goal-format.log](research/stable-0.170.0-evidence/validation/goal-format.log) — Preserves stable-update validation commands or results.
+
+- [Stable 0.170.0 workspace-final.log](research/stable-0.170.0-evidence/validation/workspace-final.log) — Preserves stable-update validation commands or results.
+
+- [Stable 0.170.0 workspace-shipping.log](research/stable-0.170.0-evidence/validation/workspace-shipping.log) — Preserves stable-update validation commands or results.
+
+- [Stable 0.170.0 audio-replay.log](research/stable-0.170.0-evidence/validation/audio-replay.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 direct-runner-replay.log](research/stable-0.170.0-evidence/validation/direct-runner-replay.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 failed-filter.txt](research/stable-0.170.0-evidence/validation/failed-filter.txt) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 goal-format-corrected.log](research/stable-0.170.0-evidence/validation/goal-format-corrected.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 group-final-format.log](research/stable-0.170.0-evidence/validation/group-final-format.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 group-final-replay.log](research/stable-0.170.0-evidence/validation/group-final-replay.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 group-format.log](research/stable-0.170.0-evidence/validation/group-format.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 group-replay.log](research/stable-0.170.0-evidence/validation/group-replay.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 host-repair.txt](research/stable-0.170.0-evidence/validation/host-repair.txt) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 profile-repair.log](research/stable-0.170.0-evidence/validation/profile-repair.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 shipping-helpers.log](research/stable-0.170.0-evidence/validation/shipping-helpers.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 upstream-baseline.log](research/stable-0.170.0-evidence/validation/upstream-baseline.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 v8-binding-checksums.txt](research/stable-0.170.0-evidence/validation/v8-binding-checksums.txt) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 v8-binding-linux.rs](research/stable-0.170.0-evidence/validation/v8-binding-linux.rs) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 v8-binding-replay.log](research/stable-0.170.0-evidence/validation/v8-binding-replay.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 workspace-shipping-2.log](research/stable-0.170.0-evidence/validation/workspace-shipping-2.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 baseline-disposition.json](research/stable-0.170.0-evidence/validation/baseline-disposition.json) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 final-fixture-lint.log](research/stable-0.170.0-evidence/validation/final-fixture-lint.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 final-validation.json](research/stable-0.170.0-evidence/validation/final-validation.json) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 verified-workspace.log](research/stable-0.170.0-evidence/validation/verified-workspace.log) — Preserves stable-update validation setup or evidence.
+
+- [Stable 0.170.0 validation-evidence.tar.gz](research/stable-0.170.0-evidence/validation-evidence.tar.gz) — Preserves all stable-update validation logs, setup and baseline results.
+
+- [Stable 0.170.0 validation-manifest.json](research/stable-0.170.0-evidence/validation-manifest.json) — Records SHA-256 checksums for archived stable-update validation evidence.

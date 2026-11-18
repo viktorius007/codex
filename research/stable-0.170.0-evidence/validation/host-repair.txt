@@ -1,0 +1,1 @@
+Home profile kache completion guard changed from Bash [[ syntax to POSIX [ checks, guarded by BASH_VERSION. /bin/sh -lc printf profile-ok now exits 0 with no stderr. env.sh ensures scratch TMPDIR mode 0700. prepare-gstreamer.sh supplies plugins-good and plugins-base runtime; env.sh supplies plugin and scanner paths. Original failures and replay are preserved.
