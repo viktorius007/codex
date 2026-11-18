@@ -809,3 +809,5 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable 0.170.0 validation/stable170-opus.log](research/stable-0.170.0-evidence/validation/stable170-opus.log) — Preserves stable-update installation, setup or validation evidence.
 
 - [Stable local.14 installed provenance](/home/agent/.local/lib/codex-local/0.170.0+local.14-4817bb6c459a/provenance.json) — Records installed binaries, source, checksums, rollback and validation limits.
+
+- [Stable 0.170.0 initial handoff](research/stable-0.170.0-evidence/initial-handoff.tar.gz) — Preserves the first interrupted rebase report and release verification evidence before worktree cleanup.
