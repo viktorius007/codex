@@ -70,7 +70,6 @@ fn empty_continuations_require_three_turns_without_model_output_or_goal_changes(
         memory_citation: None,
         delivery: None,
         questions: None,
-        moderation: None,
     });
     for (interruption, blocking_turn) in [
         ("none", 3),
