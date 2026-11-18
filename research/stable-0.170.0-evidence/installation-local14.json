@@ -78,5 +78,13 @@
     "unclassified_failures": [],
     "source_commit": "092c3a4aa1f66c321684c81a881b7b11f36bb12c"
   },
-  "publication": "not performed; coordinator owns integration and publication"
+  "publication": "not performed; coordinator owns integration and publication",
+  "package_files_sha256": {
+    "codex-package.json": "08ae4a0f706765c519543d07bcd42b9efb0b7222f13c658c3fd71210704f93c4",
+    "bin/codex": "0c42228a4998bfdfef17a659668db2adb512d63c123147694bb466cc0740a686",
+    "bin/codex-code-mode-host": "727e5e0b8a2c93a70795df19353968f80dce3d89e1d4382919deeb7c86ddea8d",
+    "bin/codex-exec-server": "42aeb4373cde905a434b560500519492cd4248b9672250631e9d0f99ca834cd6",
+    "codex-resources/bwrap": "34b63df01ba6803c575615dd9fdd7474b8b42002a33d67eaf66d09992fd8074d",
+    "codex-path/rg": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849"
+  }
 }
