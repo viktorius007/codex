@@ -639,3 +639,15 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable 0.170.0 validation environment](research/stable-0.170.0-evidence/validation/env.sh) — Defines scratch-backed Cargo output, Linux V8 overrides and local GStreamer paths for validation.
 - [Stable 0.170.0 GStreamer setup](research/stable-0.170.0-evidence/validation/prepare-gstreamer.sh) — Reproduces the administrator-free GStreamer development dependency setup on scratch.
 - [Stable 0.170.0 early build](research/stable-0.170.0-evidence/validation/build.log) — Captures the first CLI and code-mode-host compilation and any compile failures.
+- [Stable 0.170.0 build retry](research/stable-0.170.0-evidence/validation/build-2.log) — Captures compilation after adapting MCP snapshot equality to upstream fields.
+- [Stable 0.170.0 third build](research/stable-0.170.0-evidence/validation/build-3.log) — Records successful MCP compilation and the skills filesystem-access interface failures.
+- [Stable 0.170.0 fourth build](research/stable-0.170.0-evidence/validation/build-4.log) — Captures compilation after adapting stable plugin reads to current filesystem accessors.
+- [Stable 0.170.0 fifth build](research/stable-0.170.0-evidence/validation/build-5.log) — Captures compilation after core interface and provisional child ownership adaptations.
+- [Stable 0.170.0 sixth build](research/stable-0.170.0-evidence/validation/build-6.log) — Captures compilation after narrowing the rollout match correction to the single unreachable arm.
+- [Stable 0.170.0 formatter](research/stable-0.170.0-evidence/validation/fmt.log) — Records the required repository formatter run after compile fixes.
+- [Stable 0.170.0 host launch](research/stable-0.170.0-evidence/validation/host-help.txt) — Records the successfully built code-mode host help output.
+- [Stable 0.170.0 workspace binaries](research/stable-0.170.0-evidence/validation/workspace-bins.log) — Captures helper-binary compilation including the locally supplied GStreamer dependencies.
+- [Stable 0.170.0 workspace binary retry](research/stable-0.170.0-evidence/validation/workspace-bins-2.log) — Captures the helper build after supplying ALSA development files locally.
+- [Stable 0.170.0 workspace binary third attempt](research/stable-0.170.0-evidence/validation/workspace-bins-3.log) — Captures the helper build with local ALSA and CMake dependencies available.
+- [Stable 0.170.0 workspace binary fourth attempt](research/stable-0.170.0-evidence/validation/workspace-bins-4.log) — Captures the build using compiler shims compatible with CMake and complete GIO metadata.
+- [Stable 0.170.0 focused validation](research/stable-0.170.0-evidence/validation/focused.log) — Captures required exec completion and preserved patch behavior tests plus affected support-crate suites.

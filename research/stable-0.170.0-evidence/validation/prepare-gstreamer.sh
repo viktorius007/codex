@@ -10,7 +10,7 @@ apt-get download libgstreamer1.0-dev libgstreamer1.0-0 \
   libgstreamer-plugins-base1.0-dev=1.28.2-1 libglib2.0-dev \
   libglib2.0-dev-bin libglib2.0-0t64 libgio-2.0-dev liborc-0.4-dev \
   liborc-0.4-0t64 libffi-dev libpcre2-dev libmount-dev libblkid-dev \
-  libsysprof-capture-4-dev
+  libsysprof-capture-4-dev libasound2-dev libasound2t64 cmake cmake-data libarchive13t64 librhash1 libjsoncpp26 libselinux-dev libsepol-dev
 for package in *.deb; do dpkg-deb -x "$package" "$base/sysroot"; done
 python3 - <<'PY'
 from pathlib import Path

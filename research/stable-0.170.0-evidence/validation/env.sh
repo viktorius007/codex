@@ -1,4 +1,7 @@
 # Source from this worktree's codex-rs directory before build/test commands.
+export PATH=/scratch/agent/stable170/sysroot/usr/bin:$PATH
+export HOST_CC=/home/agent/.local/lib/kache/shims/cc
+export HOST_CXX=/home/agent/.local/lib/kache/shims/c++
 export TMPDIR=/scratch/agent/stable170/tmp
 export CARGO_TARGET_DIR=/scratch/agent/stable170/target
 export CARGO_BUILD_BUILD_DIR=/scratch/agent/stable170/target
