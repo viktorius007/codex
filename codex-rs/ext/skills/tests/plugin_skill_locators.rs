@@ -77,6 +77,8 @@ fn skills_extension_config(_: &TestConfig) -> SkillsExtensionConfig {
         bundled_skills_enabled: false,
         cloud_skill_enabled: false,
         shadow_selection_enabled: false,
+        catalog_deltas_enabled: false,
+        omit_descriptions: false,
     }
 }
 

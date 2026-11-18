@@ -91,6 +91,7 @@ fn request(canary: &str, input_count: usize, tool_count: usize) -> ResponsesApiR
         include: vec![format!("include-{canary}")],
         service_tier: Some(format!("tier-{canary}")),
         prompt_cache_key: Some(format!("prompt-cache-key-{canary}")),
+        prompt_cache_options: None,
         text: None,
         client_metadata: Some(HashMap::from([(
             format!("metadata-key-{canary}"),

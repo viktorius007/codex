@@ -449,10 +449,10 @@ mod tests {
             Utc::now(),
             SessionSource::Cli,
         );
-        builder.model_provider = Some(config.default_model_provider_id.clone());
-        builder.history_mode = ThreadHistoryMode::Paginated;
-        builder.cwd = home.path().to_path_buf();
-        builder.cli_version = Some("test_version".to_string());
+        builder = builder.with_model_provider(Some(config.default_model_provider_id.clone()));
+        builder = builder.with_history_mode(ThreadHistoryMode::Paginated);
+        builder = builder.with_cwd(home.path().to_path_buf());
+        builder = builder.with_cli_version("test_version".to_string());
         let metadata = builder.build(config.default_model_provider_id.as_str());
         runtime
             .upsert_thread(&metadata)
@@ -582,7 +582,7 @@ mod tests {
             Utc::now(),
             SessionSource::Cli,
         );
-        builder.history_mode = ThreadHistoryMode::Paginated;
+        builder = builder.with_history_mode(ThreadHistoryMode::Paginated);
         let metadata = builder.build(config.default_model_provider_id.as_str());
         runtime
             .upsert_thread(&metadata)

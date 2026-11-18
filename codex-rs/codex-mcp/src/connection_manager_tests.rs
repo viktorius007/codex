@@ -3226,6 +3226,7 @@ async fn capture_cached_binding_then_start_apps_tool(
     manager.set_test_server_metadata(
         CODEX_APPS_MCP_SERVER_NAME,
         McpServerMetadata {
+            server_key: McpServerKey::unscoped(CODEX_APPS_MCP_SERVER_NAME),
             environment_id: codex_config::DEFAULT_MCP_SERVER_ENVIRONMENT_ID.to_string(),
             pollutes_memory: false,
             origin: None,
@@ -3240,7 +3241,7 @@ async fn capture_cached_binding_then_start_apps_tool(
     let manager_for_startup = Arc::clone(&manager);
     let startup = tokio::spawn(async move {
         manager_for_startup
-            .wait_for_server_startup(CODEX_APPS_MCP_SERVER_NAME)
+            .wait_for_server_startup(&McpServerKey::unscoped(CODEX_APPS_MCP_SERVER_NAME))
             .await
     });
     wait_for_startup.await.expect("client startup should begin");
@@ -3262,7 +3263,10 @@ async fn cached_binding_accepts_matching_live_tool_with_live_execution_annotatio
     let (cached_binding, live_binding) =
         capture_cached_binding_then_start_apps_tool(tool.clone(), tool).await;
     let current = live_binding
-        .prepare_call(CODEX_APPS_MCP_SERVER_NAME, "shared_cached_tool")
+        .prepare_call(
+            &McpServerKey::unscoped(CODEX_APPS_MCP_SERVER_NAME),
+            "shared_cached_tool",
+        )
         .expect("the live catalog should prepare the matching tool");
     assert_eq!(
         current.tool_info().tool.annotations,
@@ -3306,7 +3310,10 @@ async fn cached_binding_rejects_changed_live_tool_schema() {
     let (cached_binding, live_binding) =
         capture_cached_binding_then_start_apps_tool(cached_tool, live_tool).await;
     let current = live_binding
-        .prepare_call(CODEX_APPS_MCP_SERVER_NAME, "shared_cached_tool")
+        .prepare_call(
+            &McpServerKey::unscoped(CODEX_APPS_MCP_SERVER_NAME),
+            "shared_cached_tool",
+        )
         .expect("the live catalog should prepare the changed tool");
 
     assert!(cached_binding.prepare_call_if_current(current).is_none());

@@ -425,16 +425,17 @@ async fn snapshot_preserves_host_precedence_for_symlinked_plugin_root() {
         /*bundled_skills_enabled*/ false,
     );
     let input = HostSkillsLoadInput::new(cwd.path().abs(), Vec::new(), config_layer_stack);
+    let access = codex_exec_server::FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS);
     let roots = vec![
         HostSkillRoot::host(
             codex_home.path().join("skills").abs(),
             SkillScope::User,
-            Arc::clone(&LOCAL_FS),
+            &access,
         ),
-        HostSkillRoot::plugin(plugin_skill_root, Arc::clone(&LOCAL_FS)),
+        HostSkillRoot::plugin(plugin_skill_root, &access),
     ];
     let rules = skill_config_rules_from_stack(&input.config_layer_stack);
-    let cache_key = config_skills_cache_key(&roots, &rules, input.plugin_skill_snapshots.as_ref());
+    let cache_key = config_skills_cache_key(&roots, &rules, &input);
     let snapshot = skills_service
         .snapshot_for_skill_roots(
             &input, roots, &rules, cache_key, /*force_reload*/ false,
