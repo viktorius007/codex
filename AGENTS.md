@@ -636,3 +636,6 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Stable 0.170.0 patch rebase](research/stable-0.170.0-sync.md) — Records local.14 patch preservation, conflict resolutions, cheap checks and coordinator validation obligations.
 - [Stable 0.170.0 patch comparison](research/stable-0.170.0-evidence/range-diff.txt) — Compares all original local commits with the completed rebased patch series.
+- [Stable 0.170.0 validation environment](research/stable-0.170.0-evidence/validation/env.sh) — Defines scratch-backed Cargo output, Linux V8 overrides and local GStreamer paths for validation.
+- [Stable 0.170.0 GStreamer setup](research/stable-0.170.0-evidence/validation/prepare-gstreamer.sh) — Reproduces the administrator-free GStreamer development dependency setup on scratch.
+- [Stable 0.170.0 early build](research/stable-0.170.0-evidence/validation/build.log) — Captures the first CLI and code-mode-host compilation and any compile failures.

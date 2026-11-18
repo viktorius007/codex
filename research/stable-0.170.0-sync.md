@@ -45,3 +45,11 @@ Per explicit scope, **no builds or tests ran**. Coordinator owns compilation, fo
 ## Cleanup
 
 No build artifacts were created. Temporary merge scripts, merge inputs and formatter logs under `/tmp/rebase170` were removed after preserving the range comparison. Unknown files, existing diagnostic evidence, other worktrees and all installed binaries were preserved. Home free space was about 1.3 GB and scratch about 423 GB at the final cleanup check.
+
+## Implementation/build validation continuation
+
+Validation started in the prepared `chore/rebase-rust-v170` worktree at `3de2ac0ef53a8cb9d299bc7a3143ba4036108502`, without editing the root checkout. Registry relocation was confirmed complete before Cargo: `/home/agent/.cargo/registry` is a symlink to `/scratch/agent/cache/cargo-registry`. Home free space increased from 1.2 to 5.8 GB; scratch retained 419 GB. Open-file soft limit is 524288.
+
+The indexed validation environment places Cargo target/build outputs together on scratch (so spawned test helper binaries resolve consistently), uses 32 jobs, disables debug symbols, and overrides stale macOS V8 paths with cached Linux 152.2.0 assets. GStreamer 1.28.2 development dependencies were extracted into a private scratch sysroot without sudo; all three required pkg-config checks pass. The stale Ubuntu update index advertised unavailable plugins-base packages (404); the matching release-pocket packages download successfully. The indexed setup script reproduces this repair. Full compilation and runtime linking remain to be verified.
+
+Early `cargo build --profile dev-small -p codex-cli -p codex-code-mode-host` is running; no passing build or test result is claimed yet. Installation and publication remain excluded from this continuation.
