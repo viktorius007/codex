@@ -1526,7 +1526,7 @@ fn encrypted_reasoning_is_counted_once_across_the_accepted_boundary(
             },
             /*model_context_window*/ None,
             /*includes_reasoning*/ false,
-            /*input_item_count*/ 0,
+            /*input_item_count*/ 2,
         ),
         AcceptedReasoningUsage::FullyAccounted => history.set_token_usage_full(100),
     }

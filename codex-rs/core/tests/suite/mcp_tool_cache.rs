@@ -454,13 +454,16 @@ async fn complete_sampled_mcp_call(
     Ok((output, old_calls, new_calls))
 }
 
-fn assert_stale_sampled_call_failed(output: &str, old_calls: &[Value], new_calls: &[Value]) {
+fn assert_stale_sampled_call_failed(
+    output: &str,
+    old_calls: &[Value],
+    new_calls: &[Value],
+    expected_error: &str,
+) {
     assert_eq!(old_calls, &[] as &[Value]);
     assert_eq!(new_calls, &[] as &[Value]);
     assert!(
-        output.contains(&format!(
-            "MCP tool `{SERVER_NAME}/calendar_create_event` is not available to the model"
-        )),
+        output.contains(expected_error),
         "sampled MCP call should fail at the stale authority boundary: {output}"
     );
 }
@@ -528,7 +531,12 @@ async fn sampled_mcp_call_does_not_switch_to_replacement_server() -> anyhow::Res
     wait_for_mcp_server(&test.fixture.codex, SERVER_NAME).await?;
 
     let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
-    assert_stale_sampled_call_failed(&output, &old_calls, &new_calls);
+    assert_stale_sampled_call_failed(
+        &output,
+        &old_calls,
+        &new_calls,
+        "MCP tool authority changed after sampling",
+    );
     Ok(())
 }
 
@@ -552,7 +560,12 @@ async fn sampled_mcp_call_does_not_bypass_narrowed_tool_allowlist() -> anyhow::R
     assert_eq!(outcome, codex_core::ConfigRefreshOutcome::Published);
 
     let (output, old_calls, new_calls) = complete_sampled_mcp_call(test).await?;
-    assert_stale_sampled_call_failed(&output, &old_calls, &new_calls);
+    assert_stale_sampled_call_failed(
+        &output,
+        &old_calls,
+        &new_calls,
+        "MCP tool is no longer available",
+    );
     Ok(())
 }
 
