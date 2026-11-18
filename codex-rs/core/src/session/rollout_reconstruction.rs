@@ -596,7 +596,6 @@ impl ContextManager {
                 | RolloutItem::RealtimeItem(_)
                 | RolloutItem::WorldState(_)
                 | RolloutItem::SecurityRiskScore(_)
-                | RolloutItem::TokenUsageRecord(_)
                 | RolloutItem::DynamicToolsUpdated { .. }
                 | RolloutItem::SessionMeta(_) => {}
             }

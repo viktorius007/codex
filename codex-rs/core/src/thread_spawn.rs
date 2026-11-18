@@ -2,6 +2,8 @@
 //!
 //! Callers supply captured step settings; the configured agent backend owns child lifetimes.
 
+use std::sync::Arc;
+
 use crate::agent::api::AgentInput;
 use crate::agent::api::SpawnRequest;
 use crate::agent::child_config::SpawnConfigOptions;

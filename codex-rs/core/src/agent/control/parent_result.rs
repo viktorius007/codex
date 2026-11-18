@@ -108,14 +108,14 @@ impl LocalAgentControl {
                 .ok_or(CodexErr::ThreadNotFound(ancestor_id))?;
         };
         let mut restoration_pins = Vec::new();
-        let mut direct_pin = self.runtime.pin_v2_residency(&state, &parent).await?;
+        let mut direct_pin = self.runtime.pin_v2_residency(&parent).await?;
         for descendant_id in missing.into_iter().rev() {
             restoration_pins.push(direct_pin.take());
             let config = parent.session.get_config().await.as_ref().clone();
             // Keep session restoration out of the turn-start future's inline layout.
             Box::pin(self.ensure_v2_agent_loaded(config, descendant_id, Some(parent))).await?;
             parent = state.get_thread(descendant_id).await?;
-            direct_pin = self.runtime.pin_v2_residency(&state, &parent).await?;
+            direct_pin = self.runtime.pin_v2_residency(&parent).await?;
         }
         let Some(direct_pin) = direct_pin else {
             return Ok(None);

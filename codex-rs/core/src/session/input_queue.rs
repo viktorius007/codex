@@ -313,7 +313,7 @@ impl InputQueue {
     pub(crate) async fn deliver_mailbox_communication_to_current_turn(
         &self,
         active_turn: &Mutex<Option<ActiveTurn>>,
-        communication: InterAgentCommunication,
+        communication: crate::PendingAgentMessage,
         expected_turn_id: Option<&str>,
     ) -> bool {
         let active = active_turn.lock().await;
