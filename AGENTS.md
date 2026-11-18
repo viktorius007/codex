@@ -815,3 +815,6 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable 0.170.0 CI investigation](research/stable-0.170.0-ci-investigation.md) — Explains the verified release workflow, full-suite gate gap, and limits of the public CI evidence.
 - [Stable 0.170.0 CI evidence](research/stable-0.170.0-ci-evidence/) — Preserves public GitHub release and check results with an integrity manifest.
 - [Stable 0.170.0 failure investigation](research/stable-0.170.0-failure-investigation.md) — Separates 17 failed assertions, scratch permission assumptions, possible lifecycle defects and unresolved causal checks.
+
+- [Failure causal replay commands](research/failure-causal/replay.sh) — Reproduces the selected lifecycle, search, shell and sandbox failure investigations using an isolated scratch target.
+- [Failure causal search replay](research/failure-causal/search.log) — Records executed search failures and exact binding identity, catalog revision and metadata comparisons.

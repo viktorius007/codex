@@ -77,3 +77,11 @@ Scratch temporary-root assumptions explain a specific sandbox fixture mismatch a
 No Rust test reruns were performed: artifacts were removed, and evidence-first inspection avoided a substantial rebuild. Thus exact causal diagnosis of all 17 remains unfinished. Follow-up should instrument and run the named focused tests through just test, not rebuild/test the full workspace or weaken assertions. Root coordinator owns CI/release gates and any fix selection.
 
 Cleanup: extracted archive and transient instruction-read files removed after report creation; no original evidence, source, installation or unknown artifacts deleted. No build artifacts created. Home about 1.9 GB free; scratch 360 GB.
+
+## Executed causal follow-up (18 November, in progress)
+
+The authorized follow-up uses this prepared worktree, no agents, and an isolated `/scratch/agent/failure-investigation/target` after sourcing the checked-in validation environment. No full suite, installed binary change, publication, or production repair is authorized or performed. Commands are preserved in [failure-causal/replay.sh](failure-causal/replay.sh). Temporary diagnostic source edits will be preserved as a patch and removed.
+
+**Search mechanism now observed:** the focused `model_lab_search_provider` replay ran 23 cases: 14 passed, nine failed (the eight original cases plus the previously known `inherit_connector_version`). Instrumentation shows the first `stable_catalog_revisions` result is `None`; the next is `Some(Ready(client identity, 0))`. The second search resolve has a different base binding pointer, pointer equality false, and request metadata equality true. Later resolves reuse that second pointer. Thus startup readiness changes binding identity and invalidates the per-turn discovery cache. This causes the second tools/list; it does not establish repeated search execution. The source predicate is `runtime.rs::binding_from_published_runtime` plus `model_search.rs::resolve`'s `Arc::ptr_eq`. No assertion has been loosened.
+
+Lifecycle and shell focused replays are still building/running. This section is an interim checkpoint, not a completion claim.
