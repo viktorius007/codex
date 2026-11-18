@@ -119,7 +119,7 @@ pub struct McpPermissionPromptAutoApproveContext {
 }
 
 /// Which rules a registered MCP server uses.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum McpServerPermissions {
     Thread,
     Environment(Arc<FileSystemSandboxContext>),
@@ -241,19 +241,22 @@ impl PartialEq for McpConfig {
                 == other.skill_mcp_dependency_install_enabled
             && self.approval_policy == other.approval_policy
             && self.permission_profile == other.permission_profile
+            && self.host_cwd == other.host_cwd
             && self.config_layer_stack == other.config_layer_stack
             && self.plugins == other.plugins
             && self.approvals_reviewer == other.approvals_reviewer
             && self.environment_cwds == other.environment_cwds
             && self.environment_use_mxc == other.environment_use_mxc
-            && self.server_permission_profiles == other.server_permission_profiles
+            && self.server_permissions == other.server_permissions
             && self.codex_self_exe == other.codex_self_exe
             && self.codex_linux_sandbox_exe == other.codex_linux_sandbox_exe
             && self.use_legacy_landlock == other.use_legacy_landlock
             && self.apps_enabled == other.apps_enabled
+            && self.apps_early_resource_discovery == other.apps_early_resource_discovery
             && self.prefix_mcp_tool_names == other.prefix_mcp_tool_names
             && self.non_prefixed_mcp_tool_servers == other.non_prefixed_mcp_tool_servers
             && self.protocol_mode == other.protocol_mode
+            && self.discover_local_stdio == other.discover_local_stdio
             && self.mcp_tool_list_changed == other.mcp_tool_list_changed
             && self.host_owned_apps_protocol_mode == other.host_owned_apps_protocol_mode
             && self.client_elicitation_capability == other.client_elicitation_capability
