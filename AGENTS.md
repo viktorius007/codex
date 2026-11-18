@@ -651,3 +651,77 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable 0.170.0 workspace binary third attempt](research/stable-0.170.0-evidence/validation/workspace-bins-3.log) — Captures the helper build with local ALSA and CMake dependencies available.
 - [Stable 0.170.0 workspace binary fourth attempt](research/stable-0.170.0-evidence/validation/workspace-bins-4.log) — Captures the build using compiler shims compatible with CMake and complete GIO metadata.
 - [Stable 0.170.0 focused validation](research/stable-0.170.0-evidence/validation/focused.log) — Captures required exec completion and preserved patch behavior tests plus affected support-crate suites.
+- [Stable 0.170.0 focused retry](research/stable-0.170.0-evidence/validation/focused-2.log) — Captures focused validation after updating the cache-diagnostics request fixture.
+- [Stable 0.170.0 focused third attempt](research/stable-0.170.0-evidence/validation/focused-3.log) — Captures focused validation after migrating cached MCP regression fixtures to explicit server keys.
+- [Stable 0.170.0 fixture formatting](research/stable-0.170.0-evidence/validation/fmt-2.log) — Records formatting after adapting regression fixtures to upstream interfaces.
+- [Stable 0.170.0 focused fourth attempt](research/stable-0.170.0-evidence/validation/focused-4.log) — Captures focused validation after skills-accessor and archive metadata fixture repairs.
+- [Stable 0.170.0 focused fifth attempt](research/stable-0.170.0-evidence/validation/focused-5.log) — Captures validation after adding upstream catalog settings to stable plugin-locator fixtures.
+- [Stable 0.170.0 core fixture formatting](research/stable-0.170.0-evidence/validation/fmt-3.log) — Records formatting after updating preserved core regression fixtures.
+- [Stable 0.170.0 focused sixth attempt](research/stable-0.170.0-evidence/validation/focused-6.log) — Captures validation after model catalog, tool routing, stream and residency fixture adaptations.
+- [Stable 0.170.0 focused seventh attempt](research/stable-0.170.0-evidence/validation/focused-7.log) — Captures validation with the reasoning flag confined to the incomplete usage fixture.
+- [Stable 0.170.0 assertion replay](research/stable-0.170.0-evidence/validation/assertion-replay.log) — Isolates non-snapshot failures after aligning the saved-usage fixture with explicit accepted boundaries.
+- [Stable 0.170.0 schema regeneration](research/stable-0.170.0-evidence/validation/schema.log) — Captures protocol fixture generation through the ignored schema writer test using just test.
+- [Stable 0.170.0 dependency probe](research/stable-0.170.0-evidence/validation/dependency-probe.log) — Records a bounded count/boolean probe of skill dependency admission and Guardian parent-turn replay.
+
+- [Stable 0.170.0 scratch setup recovery](research/stable-0.170.0-evidence/validation/setup-recovery.log) — Records successful private library restoration after the scratch reset.
+- [Stable 0.170.0 registry recovery](research/stable-0.170.0-evidence/validation/registry-recovery.log) — Records the successful locked dependency fetch into the recreated registry target.
+- [Stable 0.170.0 recovered replay](research/stable-0.170.0-evidence/validation/recovered-replay.log) — Records targeted causal-test rebuilding and replay after restoring scratch dependencies.
+
+- [Stable 0.170.0 recovered workspace build](research/stable-0.170.0-evidence/validation/recovered-workspace-build.log) — Records regeneration of workspace helper binaries lost in the scratch reset.
+- [Stable 0.170.0 restored-helper replay](research/stable-0.170.0-evidence/validation/recovered-replay-2.log) — Records the conditional causal-test replay after rebuilding workspace helper binaries.
+
+- [Stable 0.170.0 recovered formatting](research/stable-0.170.0-evidence/validation/recovered-fmt.log) — Records successful repository formatting after scratch recovery.
+
+- [Stable 0.170.0 causal probe](research/stable-0.170.0-evidence/validation/causal-probe.log) — Records bounded dependency-stage diagnostics and Code Mode completion output for the two remaining causal failures.
+
+- [Stable 0.170.0 client-isolation replay](research/stable-0.170.0-evidence/validation/causal-probe-2.log) — Checks OAuth admission without inherited client identity and inspects the second Code Mode tool result.
+
+- [Stable 0.170.0 resolved formatting](research/stable-0.170.0-evidence/validation/resolved-fmt.log) — Records formatting after removing probes and adapting the sampled-authority fixture.
+- [Stable 0.170.0 resolved replay](research/stable-0.170.0-evidence/validation/resolved-replay.log) — Verifies OAuth client isolation, sampled-authority rejection, Guardian and background exec completion.
+
+- [Stable 0.170.0 final scoped lint](research/stable-0.170.0-evidence/validation/final-lint.log) — Records automatic lint checks for the adapted core, MCP, skills, storage and diagnostics crates.
+
+- [Stable 0.170.0 lint cache retry](research/stable-0.170.0-evidence/validation/final-lint-retry.log) — Repeats scoped lint without the failing incremental-cache writes.
+
+- [Stable 0.170.0 shipping formatting](research/stable-0.170.0-evidence/validation/shipping-fmt.log) — Records formatting of reviewed lint edits before final validation.
+- [Stable 0.170.0 shipping focused validation](research/stable-0.170.0-evidence/validation/shipping-focused.log) — Validates adapted support crates and core cache, MCP, compaction, scenarios and asynchronous behaviors.
+- [Stable 0.170.0 frozen workspace suite](research/stable-0.170.0-evidence/validation/frozen-workspace.log) — Records the complete workspace test run gated on passing focused validation.
+
+- [Stable 0.170.0 causal triage formatting](research/stable-0.170.0-evidence/validation/triage-fmt.log) — Records formatting of explicit usage-boundary and stale-authority fixture corrections.
+- [Stable 0.170.0 serial causal triage](research/stable-0.170.0-evidence/validation/triage-causal.log) — Isolates accounting, stale MCP authority, message delivery and remote permissions after the broader replay.
+
+- [Stable 0.170.0 delivery probe](research/stable-0.170.0-evidence/validation/delivery-probe.log) — Captures bounded synthetic request shapes for the reproducible board-final sampling failure.
+
+- [Stable 0.170.0 board-fixture-fmt](research/stable-0.170.0-evidence/validation/board-fixture-fmt.log) — Formats the board fixture response-isolation corrections.
+
+- [Stable 0.170.0 board-fixture-replay](research/stable-0.170.0-evidence/validation/board-fixture-replay.log) — Checks dedicated completion responses and exactly-once retained board notices.
+
+- [Stable 0.170.0 native-fixture-fmt](research/stable-0.170.0-evidence/validation/native-fixture-fmt.log) — Formats parent and child mock endpoint isolation.
+
+- [Stable 0.170.0 native-fixture-replay](research/stable-0.170.0-evidence/validation/native-fixture-replay.log) — Checks native follow-up boundaries with independent parent completion responses.
+
+- [Stable 0.170.0 owner fixture formatting](research/stable-0.170.0-evidence/validation/owner-fixture-fmt.log) — Formats the remote owner sampled-authority regression.
+- [Stable 0.170.0 owner fixture replay](research/stable-0.170.0-evidence/validation/owner-fixture-replay.log) — Checks rejection before Guardian when owner permissions change after sampling.
+
+- [Stable 0.170.0 fixture final lint](research/stable-0.170.0-evidence/validation/fixture-final-lint.log) — Checks the final fixture adaptations with scoped core lint.
+- [Stable 0.170.0 shipping focused retry](research/stable-0.170.0-evidence/validation/shipping-focused-2.log) — Repeats the complete affected fixture selection before the frozen workspace run.
+
+- [Stable 0.170.0 owner fixture second formatting](research/stable-0.170.0-evidence/validation/owner-fixture-fmt-2.log) — Formats structured MCP rejection inspection.
+- [Stable 0.170.0 owner fixture second replay](research/stable-0.170.0-evidence/validation/owner-fixture-replay-2.log) — Verifies exact sampled-authority rejection from the structured MCP call output.
+
+- [Stable 0.170.0 preserved rollback](research/stable-0.170.0-evidence/rollback-local13.json) — Records checksums and launch checks for the preserved local.13 installation before switching releases.
+
+- [Stable 0.170.0 mock isolation formatting](research/stable-0.170.0-evidence/validation/mock-isolation-fmt.log) — Formats independent parent completion and child board model endpoints.
+- [Stable 0.170.0 mock isolation replay](research/stable-0.170.0-evidence/validation/mock-isolation-replay.log) — Verifies all six HTTP-board and native-boundary cases with isolated model responses.
+
+- [Stable 0.170.0 HTTP routing formatting](research/stable-0.170.0-evidence/validation/http-routing-fmt.log) — Formats thread-specific mock response routing for parent terminal wakes.
+- [Stable 0.170.0 HTTP routing replay](research/stable-0.170.0-evidence/validation/http-routing-replay.log) — Checks independent parent completion routing and child board authorship.
+
+- [Stable 0.170.0 HTTP routing second formatting](research/stable-0.170.0-evidence/validation/http-routing-fmt-2.log) — Records formatting after the wiremock matcher type correction.
+- [Stable 0.170.0 HTTP routing second replay](research/stable-0.170.0-evidence/validation/http-routing-replay-2.log) — Repeats the six parent/child response-isolation regressions.
+
+- [Stable 0.170.0 HTTP completion synchronization formatting](research/stable-0.170.0-evidence/validation/http-sync-fmt.log) — Formats exact parent completion event synchronization.
+- [Stable 0.170.0 HTTP completion synchronization replay](research/stable-0.170.0-evidence/validation/http-sync-replay.log) — Verifies parent completion before HTTP board posting and restart.
+
+- [Stable 0.170.0 frozen scoped lint](research/stable-0.170.0-evidence/validation/frozen-lint.log) — Checks the final synchronized HTTP-board fixture before shipping validation.
+- [Stable 0.170.0 shipping focused final](research/stable-0.170.0-evidence/validation/shipping-focused-final.log) — Gates the full workspace suite on the final affected-crate and regression selection.

@@ -1,0 +1,17 @@
+{
+  "captured_at": "2026-11-18T20:51:16.818720+00:00",
+  "release": "/home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c",
+  "binaries": {
+    "codex": {
+      "path": "/home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c/bin/codex",
+      "size": 420930744,
+      "sha256": "0365bde70e5b346a7ed8b4bb1ebdc00538938d99c85ceb51fee6845fce6ef265"
+    },
+    "codex-code-mode-host": {
+      "path": "/home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c/bin/codex-code-mode-host",
+      "size": 100589808,
+      "sha256": "e9d17e5f0d9378a7dfd403767040cb1cb05585c26b1e259d6aeced66fd5c89f3"
+    }
+  },
+  "cli_version": "codex-cli 0.165.0+local.13"
+}

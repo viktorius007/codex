@@ -12,4 +12,8 @@ export RUSTY_V8_ARCHIVE=/home/agent/.cache/rusty-v8-codex/librusty_v8_ptrcomp_sa
 export RUSTY_V8_SRC_BINDING_PATH=/home/agent/.cache/rusty-v8-codex/src_binding_ptrcomp_sandbox_release_x86_64-unknown-linux-gnu.rs
 export PKG_CONFIG_PATH=/scratch/agent/stable170/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig
 export LD_LIBRARY_PATH=/scratch/agent/stable170/sysroot/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+mkdir -p /scratch/agent/cache/cargo-registry /scratch/agent/stable170/tmp /scratch/agent/stable170/target
 test -L /home/agent/.cargo/registry || { echo 'Registry relocation has not completed' >&2; return 1; }
+
+# Keep the invoking T3 client identity out of first-party-only test fixtures.
+unset CODEX_INTERNAL_ORIGINATOR_OVERRIDE
