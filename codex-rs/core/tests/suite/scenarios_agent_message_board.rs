@@ -490,11 +490,17 @@ async fn board_is_shared_with_children_and_queues_idle_notices(
     )
     .await;
     root.submit_turn("Read the worker's decision.").await?;
-    assert!(
-        [read.0.single_request(), read.1.single_request()]
-            .iter()
-            .all(|request| !request.body_contains_text("Message Type: CHANNEL_POST"))
-    );
+    for request in [read.0.single_request(), read.1.single_request()] {
+        assert_eq!(
+            request
+                .body_json()
+                .to_string()
+                .matches("Message Type: CHANNEL_POST")
+                .count(),
+            1,
+            "the notification consumed by the terminal wake must remain in history exactly once"
+        );
+    }
     let output = read
         .1
         .single_request()
@@ -609,6 +615,8 @@ async fn board_notifications_do_not_reopen_a_final_answer(
             gate: Some(child_gate),
             body: done(),
         }],
+        // The local terminal-completion wake has its own response before the next user turn.
+        response(done()),
         // Native mail is drained after the new task's first model step.
         response(tool("next-step", "get_channels", json!({}))),
         response(done()),
