@@ -118,14 +118,13 @@ async fn agent_followup_preserves_native_boundaries(
         .await?;
     // Parent completion wakes use a separate mock endpoint so they cannot consume
     // the child's gated native-message responses.
-    responses::mount_sse_sequence(
-        &config_server,
-        vec![
-            responses::sse(vec![responses::ev_completed("parent-first")]),
-            responses::sse(vec![responses::ev_completed("parent-second")]),
-        ],
-    )
-    .await;
+    wiremock::Mock::given(wiremock::matchers::method("POST"))
+        .and(wiremock::matchers::path("/v1/responses"))
+        .respond_with(responses::sse_response(responses::sse(vec![
+            responses::ev_completed("parent-completion"),
+        ])))
+        .mount(&config_server)
+        .await;
     let mut child_options = test.start_thread_options().await;
     child_options.config.model_provider.base_url = Some(base_url);
     let child_path = AgentPath::try_from("/root/worker").expect("child path");
