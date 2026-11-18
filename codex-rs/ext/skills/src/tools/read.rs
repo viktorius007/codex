@@ -243,6 +243,11 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     None => (
                         SkillReadContext::Host {
                             host_snapshot: self.context.step_state.host_snapshot.clone(),
+                            accessors: call
+                                .environments
+                                .iter()
+                                .map(|env| env.fs() as &dyn codex_exec_server::EnvironmentAccess)
+                                .collect(),
                         },
                         None,
                     ),

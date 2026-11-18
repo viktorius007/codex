@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 use std::path::Component;
 use std::path::Path;
-use std::sync::Arc;
 
 use crate::SkillLoadOutcome;
+use codex_exec_server::EnvironmentAccess;
+use codex_exec_server::EnvironmentAccessExt;
+use codex_exec_server::FileSystemEnvironmentAccessor;
 use codex_exec_server::LOCAL_FS;
 use codex_exec_server::ReadFileOptions;
+use codex_protocol::protocol::SkillScope;
 use codex_skills::SkillMetadata;
 use codex_utils_path_uri::PathUri;
 
@@ -102,18 +105,28 @@ impl SkillProvider for HostSkillProvider {
                 let requested_path = package_root
                     .join(relative_resource)
                     .map_err(|_| outside_package())?;
-                let file_system = outcome
-                    .file_system_for_skill(skill)
-                    .unwrap_or_else(|| Arc::clone(&LOCAL_FS));
+                let host = FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS);
+                let file_system: &dyn EnvironmentAccess = match skill.scope {
+                    SkillScope::Repo => outcome
+                        .file_system_for_skill(skill)
+                        .and_then(|source| {
+                            accessors
+                                .iter()
+                                .copied()
+                                .find(|access| source.same_file_system(&access.cache_key()))
+                        })
+                        .ok_or_else(read_error)?,
+                    SkillScope::User | SkillScope::System | SkillScope::Admin => &host,
+                };
                 let resource = file_system
-                    .canonicalize(&requested_path, /*sandbox*/ None)
+                    .canonicalize(&requested_path)
                     .await
                     .map_err(|_| read_error())?;
                 if !resource.starts_with(&package_root) {
                     return Err(outside_package());
                 }
                 let contents = file_system
-                    .read_file_text(&resource, ReadFileOptions::default(), /*sandbox*/ None)
+                    .read_file_text(&resource, ReadFileOptions::default())
                     .await
                     .map_err(|_| read_error())?;
 
