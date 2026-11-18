@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios_incremental_tools_resume.rs
+assertion_line: 141
 expression: "context_snapshot::format_request_history_snapshot(\"A resumed legacy window retains its generated prefix; rebuilding the next window emits no incremental notice. A later update appends one developer notice, changed definitions, then the removal notice. Unchanged turns and another restart preserve that pair without duplication.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
 ---
 Scenario: A resumed legacy window retains its generated prefix; rebuilding the next window emits no incremental notice. A later update appends one developer notice, changed definitions, then the removal notice. Unchanged turns and another restart preserve that pair without duplication.
@@ -16,8 +17,8 @@ Settings:
   text: {"verbosity":"low"}
   tool_choice: "auto"
 -- request 1 (turn) --
-00:additional_tools/developer (2; hash=019c865b71a05fec):
-        - namespace/functions; hash=f3355f5705e28592
+00:additional_tools/developer (2; hash=0322817489ca8a92):
+        - namespace/functions; hash=8cc14226bcb35888
           - custom/exec
           - function/wait
           - function/exec_command
@@ -49,8 +50,8 @@ Settings:
 ## Window 2 (after request 3: input diverged at item 02)
 Settings: same as window 1
 -- request 4 (turn) --
-00:additional_tools/developer (2; hash=019c865b71a05fec):
-        - namespace/functions; hash=f3355f5705e28592
+00:additional_tools/developer (2; hash=0322817489ca8a92):
+        - namespace/functions; hash=8cc14226bcb35888
           - custom/exec
           - function/wait
           - function/exec_command

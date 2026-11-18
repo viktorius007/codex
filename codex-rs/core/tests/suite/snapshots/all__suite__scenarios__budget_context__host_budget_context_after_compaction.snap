@@ -1,20 +1,21 @@
 ---
 source: core/tests/suite/scenarios_budget_context.rs
+assertion_line: 300
 expression: snapshot
 ---
 Scenario: Core renders the host's roster with native World State cadence. Compaction rebuilds it from current membership, and the next sampling step refreshes the budget after compaction spending.
 
 ## Window 1
 -- request 1 (turn) --
-00:additional_tools/developer (3; hash=e019c949fc483f83):
-        - namespace/functions; hash=03340277aa23936f
+00:additional_tools/developer (3; hash=37a385d16166ab96):
+        - namespace/functions; hash=b2b13b037fd6603d
           - custom/exec
           - function/wait
           - function/request_user_input
           - function/request_user_input_async
         - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -26,11 +27,7 @@ Scenario: Core renders the host's roster with native World State cadence. Compac
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <environment_context>
       <cwd><CWD></cwd>
       <shell><HOST_SHELL></shell>
@@ -41,6 +38,10 @@ Scenario: Core renders the host's roster with native World State cadence. Compac
         <agent name="/root/release" />
       </subagents>
     </environment_context>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Start planning the release.
 07:message/developer:
@@ -63,15 +64,15 @@ Scenario: Core renders the host's roster with native World State cadence. Compac
 
 ## Window 2 (after request 4: input diverged at item 02)
 -- request 5 (turn) --
-00:additional_tools/developer (3; hash=e019c949fc483f83):
-        - namespace/functions; hash=03340277aa23936f
+00:additional_tools/developer (3; hash=37a385d16166ab96):
+        - namespace/functions; hash=b2b13b037fd6603d
           - custom/exec
           - function/wait
           - function/request_user_input
           - function/request_user_input_async
         - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -87,11 +88,7 @@ Scenario: Core renders the host's roster with native World State cadence. Compac
 04:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-05:message/developer:
-    <MULTI_AGENT_ROLE>
-06:message/developer:
-    <MULTI_AGENT_MODE>
-07:message/user:
+05:message/user:
     <environment_context>
       <cwd><CWD></cwd>
       <shell><HOST_SHELL></shell>
@@ -103,6 +100,10 @@ Scenario: Core renders the host's roster with native World State cadence. Compac
         <agent name="/root/testing" />
       </subagents>
     </environment_context>
+06:message/developer:
+    <MULTI_AGENT_ROLE>
+07:message/developer:
+    <MULTI_AGENT_MODE>
 08:message/user:
     Check the release plan.
 09:compaction:encrypted=true; chars=25; hash=455278c90f6b4d93
