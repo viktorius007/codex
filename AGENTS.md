@@ -633,3 +633,6 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Stable 0.165.0 update](research/stable-0.165.0-sync.md) — Records the local.13 rebase onto 0.165.0, the re-ported skills patch, compile fixes, validation, installation and rollback.
 - [Stable 0.165.0 evidence](research/stable-0.165.0-evidence/) — Stores the patch range-diff, the plugin-locator probe and port reports, and the test and build logs for local.13.
+
+- [Stable 0.170.0 patch rebase](research/stable-0.170.0-sync.md) — Records local.14 patch preservation, conflict resolutions, cheap checks and coordinator validation obligations.
+- [Stable 0.170.0 patch comparison](research/stable-0.170.0-evidence/range-diff.txt) — Compares all original local commits with the completed rebased patch series.
