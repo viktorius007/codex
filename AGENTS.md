@@ -797,3 +797,15 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable 0.170.0 validation-evidence.tar.gz](research/stable-0.170.0-evidence/validation-evidence.tar.gz) — Preserves all stable-update validation logs, setup and baseline results.
 
 - [Stable 0.170.0 validation-manifest.json](research/stable-0.170.0-evidence/validation-manifest.json) — Records SHA-256 checksums for archived stable-update validation evidence.
+
+- [Stable 0.170.0 installation-local14.json](research/stable-0.170.0-evidence/installation-local14.json) — Preserves stable-update installation, setup or validation evidence.
+
+- [Stable 0.170.0 installation.log](research/stable-0.170.0-evidence/installation.log) — Preserves stable-update installation, setup or validation evidence.
+
+- [Stable 0.170.0 installed-host-help.txt](research/stable-0.170.0-evidence/installed-host-help.txt) — Preserves stable-update installation, setup or validation evidence.
+
+- [Stable 0.170.0 validation/stable170-gst-runtime.log](research/stable-0.170.0-evidence/validation/stable170-gst-runtime.log) — Preserves stable-update installation, setup or validation evidence.
+
+- [Stable 0.170.0 validation/stable170-opus.log](research/stable-0.170.0-evidence/validation/stable170-opus.log) — Preserves stable-update installation, setup or validation evidence.
+
+- [Stable local.14 installed provenance](/home/agent/.local/lib/codex-local/0.170.0+local.14-4817bb6c459a/provenance.json) — Records installed binaries, source, checksums, rollback and validation limits.

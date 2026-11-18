@@ -1,1 +1,11 @@
 Home profile kache completion guard changed from Bash [[ syntax to POSIX [ checks, guarded by BASH_VERSION. /bin/sh -lc printf profile-ok now exits 0 with no stderr. env.sh ensures scratch TMPDIR mode 0700. prepare-gstreamer.sh supplies plugins-good and plugins-base runtime; env.sh supplies plugin and scanner paths. Original failures and replay are preserved.
+
+Exact POSIX replacement for the generated kache 2.1.1+patched.fbbb3b7e39ca home-profile guard:
+if [ -n "${BASH_VERSION-}" ] && [ "${-#*i}" != "$-" ] && [ -r '/home/agent/.local/share/kache/completions/kache.bash' ]; then
+    . '/home/agent/.local/share/kache/completions/kache.bash'
+fi
+
+Preserve caller-provided temporary directories in the home profile:
+export TMPDIR="${TMPDIR:-/scratch/agent/tmp}"
+
+Validation env.sh applies umask 077 and TMPDIR mode 0700.

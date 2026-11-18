@@ -1,0 +1,82 @@
+{
+  "installed_at": "2026-11-18T22:18:24Z",
+  "verified_at": "2026-11-18T22:18:59.057156+00:00",
+  "version": "0.170.0+local.14",
+  "source_head": "11a6ffe239896d7f1b66e0a2ca42301b75e6ec42",
+  "validated_source_commit": "092c3a4aa1f66c321684c81a881b7b11f36bb12c",
+  "release": "/home/agent/.local/lib/codex-local/0.170.0+local.14-4817bb6c459a",
+  "candidate_package": "/home/agent/.t3/worktrees/codex/t3-816209c6-9415cca435aeda6b/codex-rs/target/local-package",
+  "candidate_binaries": "/scratch/agent/stable170/target/x86_64-unknown-linux-gnu/dev-small",
+  "method": "just install-local-package",
+  "binaries": {
+    "codex": {
+      "sha256": "0c42228a4998bfdfef17a659668db2adb512d63c123147694bb466cc0740a686",
+      "size": 465813360,
+      "architecture": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=904f1c6b992dd8bc3b85c4a3d07506b207b36859, stripped"
+    },
+    "codex-code-mode-host": {
+      "sha256": "727e5e0b8a2c93a70795df19353968f80dce3d89e1d4382919deeb7c86ddea8d",
+      "size": 108622896,
+      "architecture": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=a303826b670e867ef0e5eac208bf4a811038cdcf, stripped"
+    },
+    "codex-exec-server": {
+      "sha256": "42aeb4373cde905a434b560500519492cd4248b9672250631e9d0f99ca834cd6",
+      "size": 170684440,
+      "architecture": "ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=f8fb0ff25d6dfc5cef28b166512bad12d867f925, stripped"
+    }
+  },
+  "links": {
+    "codex": "/home/agent/.local/lib/codex-local/current/bin/codex",
+    "codex-code-mode-host": "/home/agent/.local/lib/codex-local/current/bin/codex-code-mode-host"
+  },
+  "current": "/home/agent/.local/lib/codex-local/0.170.0+local.14-4817bb6c459a",
+  "cli_version": "codex-cli 0.170.0+local.14",
+  "host_help_passed": true,
+  "rollback": {
+    "captured_at": "2026-11-18T20:51:16.818720+00:00",
+    "release": "/home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c",
+    "binaries": {
+      "codex": {
+        "path": "/home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c/bin/codex",
+        "size": 420930744,
+        "sha256": "0365bde70e5b346a7ed8b4bb1ebdc00538938d99c85ceb51fee6845fce6ef265"
+      },
+      "codex-code-mode-host": {
+        "path": "/home/agent/.local/lib/codex-local/0.165.0+local.13-be77b674427c/bin/codex-code-mode-host",
+        "size": 100589808,
+        "sha256": "e9d17e5f0d9378a7dfd403767040cb1cb05585c26b1e259d6aeced66fd5c89f3"
+      }
+    },
+    "cli_version": "codex-cli 0.165.0+local.13"
+  },
+  "rollback_hashes_unchanged": true,
+  "validation": {
+    "tests_run": 24783,
+    "passed": 24766,
+    "failed": 17,
+    "skipped": 54,
+    "all_failures_reproduced_on_upstream": true,
+    "failures": [
+      "shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path",
+      "shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery",
+      "shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery",
+      "shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox",
+      "suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::accepted_review",
+      "suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::latest_rejection",
+      "suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::pending_review",
+      "suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata",
+      "suite::v2::command_exec::command_exec_process_ids_are_connection_scoped_and_disconnect_terminates_process",
+      "suite::v2::web_search::model_lab_search_provider::critical_discovery_error",
+      "suite::v2::web_search::model_lab_search_provider::failed_invocation_never_replays_on_native",
+      "suite::v2::web_search::model_lab_search_provider::host_disables_literature_only",
+      "suite::v2::web_search::model_lab_search_provider::matching_query_filter_cannot_authorize_cached_navigation",
+      "suite::v2::web_search::model_lab_search_provider::model_with_other_supported_tools",
+      "suite::v2::web_search::model_lab_search_provider::work_hosted_only",
+      "suite::v2::web_search::model_lab_search_provider::xatu_control",
+      "suite::v2::web_search::model_lab_search_provider::xatu_literature_treatment"
+    ],
+    "unclassified_failures": [],
+    "source_commit": "092c3a4aa1f66c321684c81a881b7b11f36bb12c"
+  },
+  "publication": "not performed; coordinator owns integration and publication"
+}
