@@ -894,3 +894,8 @@ Codex supports running connected app-server and exec-server on different operati
 - [Failure causal shell-tmp.log](research/failure-causal/shell-tmp.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
 
 - [Shell repair lane report](/home/agent/fix170-run/shell/report.md) — Records the restricted-network shell startup repair, verification, and unresolved descriptor denial.
+- [Shell repair startup-test.log](/home/agent/fix170-run/shell/startup-test.log) — Records all 18 passing shell startup and recovery cases after the getpeername repair.
+- [Shell repair fmt.log](/home/agent/fix170-run/shell/fmt.log) — Records final shell-lane formatting.
+- [Shell repair lint.log](/home/agent/fix170-run/shell/lint.log) — Preserves the first shell-lane lint failure in incremental cache writes.
+- [Shell repair lint-retry.log](/home/agent/fix170-run/shell/lint-retry.log) — Records passing shell-lane scoped lint with incremental compilation disabled.
+- [Shell repair gate.log](/home/agent/fix170-run/shell/gate.log) — Records the complete Linux sandbox crate and four original shell regression results.
