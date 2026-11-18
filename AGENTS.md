@@ -39,6 +39,8 @@
 
 - For stable-release updates, pursue reproduced failures with surgical fixes only; avoid unrelated investigations and ceremony, and finish with passing validation before installation.
 
+- For the Linux lifecycle repair, preserve the process containment supplied when bubblewrap parent-death arming survives exec, across direct and mount-cleanup launches, without relying on timing; deliberately detached workloads under inherited PID mode are outside this repair scope.
+
 ## Syncing to a new upstream stable release
 
 Apply this workflow only when the user requests moving `local/customizations` to a newer upstream stable `rust-v*` release tag. Do not start it for `origin/main` updates, alpha tags, routine code changes, or merely discovering a new tag.
@@ -893,6 +895,31 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Failure causal shell-tmp.log](research/failure-causal/shell-tmp.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
 
-- [Lifecycle repair lane report](/home/agent/fix170-run/lifecycle/report.md) — Records the unresolved all-mode containment requirement and rejected process-group approximation.
+- [Lifecycle repair lane report](/home/agent/fix170-run/lifecycle/report.md) — Records the launcher-lifetime repair and its regression and gate results.
+- [Lifecycle round-one report](/home/agent/fix170-run/lifecycle/report-round1.md) — Preserves the first investigation under the superseded containment invariant.
 - [Lifecycle containment probe](research/lifecycle-repair/containment-probe.py) — Reproduces the detached-child difference between isolated and inherited Linux PID namespaces.
 - [Lifecycle containment probe results](research/lifecycle-repair/containment-probe.jsonl) — Preserves exact-process exit and exclusive-lock observations for both namespace modes.
+
+- [Lifecycle validation/run-gate.sh](research/lifecycle-repair/validation/run-gate.sh) — Reproduces the isolated lifecycle helper build, formatting, lint and required test gate.
+
+- [Lifecycle validation/red.log](research/lifecycle-repair/validation/red.log) — Records six causal containment failures with the production repair reverted.
+
+- [Lifecycle validation/green.log](research/lifecycle-repair/validation/green.log) — Records all six passing containment cases with the launcher-lifetime repair.
+
+- [Lifecycle validation/red-fixture-initial.log](research/lifecycle-repair/validation/red-fixture-initial.log) — Preserves the initial noncausal fixture replay before readiness and EOF isolation were finalized.
+
+- [Lifecycle validation/red-fixture-eof.log](research/lifecycle-repair/validation/red-fixture-eof.log) — Preserves the rejected fixture replay where waiting closed the surviving workload input pipe.
+
+- [Lifecycle validation/helpers.log](research/lifecycle-repair/validation/helpers.log) — Records the CLI, app-server, sandbox and code-mode-host helper build for lifecycle validation.
+
+- [Lifecycle validation/fmt.log](research/lifecycle-repair/validation/fmt.log) — Records the required repository formatting command for the lifecycle repair.
+
+- [Lifecycle validation/lint.log](research/lifecycle-repair/validation/lint.log) — Records scoped automatic lint checks for the Linux sandbox crate.
+
+- [Lifecycle validation/gate.log](research/lifecycle-repair/validation/gate.log) — Records the complete Linux sandbox crate tests and four named lifecycle regressions.
+
+- [Lifecycle incremental lint failure](research/lifecycle-repair/validation/lint-incremental-failure.log) — Preserves the missing compiler-cache directory failure before the command-local incremental setting repaired lint execution.
+
+- [Lifecycle lint incremental failure](research/lifecycle-repair/validation/lint-incremental-failure.log) — Preserves the failed incremental-cache writes before the successful scoped lint rerun.
+
+- [Lifecycle cleanup record](research/lifecycle-repair/validation/cleanup.json) — Records the final process scan, removal of lane build artifacts and preservation of shared and unknown files.

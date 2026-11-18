@@ -1,0 +1,473 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling rustix v1.1.4
+   Compiling hyper v1.11.1
+   Compiling tracing-subscriber v0.3.22
+   Compiling env_logger v0.11.9
+   Compiling hyper-util v0.1.20
+   Compiling quickcheck v1.1.0
+   Compiling tracing-opentelemetry v0.32.1
+   Compiling hyper-rustls v0.27.7
+   Compiling hyper-tls v0.6.0
+   Compiling sorted_vector_map v0.2.1
+   Compiling hyper-timeout v0.5.2
+   Compiling tempfile v3.27.0
+   Compiling reqwest v0.12.28
+   Compiling terminal_size v0.4.3
+   Compiling fd-lock v4.0.4
+   Compiling gethostname v1.1.0
+   Compiling pagable v0.4.1
+   Compiling tonic v0.14.3
+   Compiling gix-tempfile v26.0.0
+   Compiling opentelemetry-appender-tracing v0.31.1
+   Compiling clap_builder v4.5.58
+   Compiling codex-http-client v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/http-client)
+   Compiling rustyline v14.0.0
+   Compiling opentelemetry-http v0.31.0
+   Compiling similar v2.7.0
+   Compiling clap v4.5.58
+   Compiling starlark_map v0.14.2
+   Compiling tonic-prost v0.14.3
+   Compiling gix-lock v26.0.0
+   Compiling starlark_syntax v0.14.2
+   Compiling codex-network-proxy v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/network-proxy)
+   Compiling codex-utils-path v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/path-utils)
+   Compiling starlark v0.14.2
+   Compiling gix-ref v0.69.0
+   Compiling opentelemetry-proto v0.31.0
+   Compiling gix-shallow v0.15.0
+   Compiling which v8.0.0
+   Compiling codex-client v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/codex-client)
+   Compiling codex-websocket-client v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/websocket-client)
+   Compiling opentelemetry-otlp v0.31.0
+   Compiling gix-config v0.62.0
+   Compiling gix-odb v0.86.0
+   Compiling gix-discover v0.57.0
+   Compiling codex-execpolicy v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/execpolicy)
+   Compiling gix-protocol v0.67.0
+   Compiling polling v3.11.0
+   Compiling tracing-appender v0.2.4
+   Compiling gix v0.89.0
+   Compiling async-io v2.6.0
+   Compiling mxc-sdk v1.0.0 (https://github.com/microsoft/mxc?rev=b21120168d70befe12356411423266bfef168446#b2112016)
+   Compiling oauth2 v5.0.0
+   Compiling zbus v4.4.0
+   Compiling axum v0.8.8
+   Compiling codex-websocket-auth v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/websocket-auth)
+   Compiling codex-workload-identity v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/workload-identity)
+   Compiling aws-smithy-http-client v1.1.12
+   Compiling secret-service v4.0.0
+   Compiling rmcp v3.5.1 (https://github.com/modelcontextprotocol/rust-sdk?rev=98a54789b80110ad210495c4ad845c89e1980471#98a54789)
+   Compiling reqwest v0.13.4
+   Compiling keyring v3.6.3
+   Compiling aws-smithy-runtime v1.9.5
+   Compiling codex-file-search v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/file-search)
+   Compiling codex-keyring-store v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/keyring-store)
+   Compiling codex-backend-openapi-models v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/codex-backend-openapi-models)
+   Compiling float-cmp v0.10.0
+   Compiling normalize-line-endings v0.3.0
+   Compiling aws-runtime v1.5.17
+   Compiling assert-json-diff v2.0.2
+   Compiling deadpool v0.12.3
+   Compiling sdd v3.0.10
+   Compiling console v0.15.11
+   Compiling serial_test_derive v3.3.1
+   Compiling codex-user-verification v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/user-verification)
+   Compiling codex-utils-json-to-toml v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/json-to-toml)
+   Compiling test-log-macros v0.2.19
+   Compiling tracing-test-macro v0.2.5
+   Compiling codex-protocol v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/protocol)
+   Compiling aws-sdk-sts v1.95.0
+   Compiling aws-sdk-sso v1.91.0
+   Compiling aws-sdk-signin v1.2.0
+   Compiling aws-sdk-ssooidc v1.93.0
+   Compiling predicates v3.1.3
+   Compiling wiremock v0.6.5
+   Compiling scc v2.4.0
+   Compiling assert_matches v1.5.0
+   Compiling codex-windows-sandbox-test-support v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/windows-sandbox-rs/tests/support)
+   Compiling aws-config v1.8.12
+   Compiling assert_cmd v2.1.2
+   Compiling insta v1.46.3
+   Compiling serial_test v3.3.1
+   Compiling test-log v0.2.19
+   Compiling tracing-test v0.2.5
+   Compiling codex-aws-auth v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/aws-auth)
+   Compiling codex-utils-cargo-bin v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/cargo-bin)
+   Compiling codex-api v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/codex-api)
+   Compiling codex-file-system v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/file-system)
+   Compiling codex-model-provider-info v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/model-provider-info)
+   Compiling codex-features v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/features)
+   Compiling codex-shell-command v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/shell-command)
+   Compiling codex-history v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/history)
+   Compiling codex-utils-output-truncation v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/output-truncation)
+   Compiling codex-agent-identity v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/agent-identity)
+   Compiling codex-context-fragments v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/context-fragments)
+   Compiling codex-code-mode-protocol v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/code-mode-protocol)
+   Compiling codex-utils-audio v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/audio)
+   Compiling codex-protocol-test-support v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/protocol/tests/support)
+   Compiling codex-git-utils v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/git-utils)
+   Compiling codex-skills v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/skills)
+   Compiling codex-memories-read v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/memories/read)
+   Compiling codex-utils-cli v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/cli)
+   Compiling codex-state v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/state)
+   Compiling codex-guardian-context v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/guardian-context)
+   Compiling codex-otel v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/otel)
+   Compiling codex-response-debug-context v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/response-debug-context)
+   Compiling codex-cache-diagnostics v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/cache-diagnostics)
+   Compiling codex-exec-server-protocol v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/exec-server-protocol)
+   Compiling codex-agent-graph-store v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/agent-graph-store)
+   Compiling codex-config v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/config)
+   Compiling codex-secrets v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/secrets)
+   Compiling codex-prompts v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/prompts)
+   Compiling codex-utils-git-discovery v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/git-discovery)
+   Compiling codex-windows-sandbox v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/windows-sandbox-rs)
+   Compiling codex-rollout v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/rollout)
+   Compiling codex-code-mode v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/code-mode)
+   Compiling codex-mxc-sandbox v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/mxc-sandbox)
+   Compiling codex-sandboxing v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/sandboxing)
+   Compiling codex-linux-sandbox v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/linux-sandbox)
+   Compiling codex-rollout-trace v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/rollout-trace)
+   Compiling codex-app-server-protocol v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/app-server-protocol)
+   Compiling codex-exec-server v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/exec-server)
+   Compiling codex-login v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/login)
+   Compiling codex-agent-roles v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/agent-roles)
+   Compiling codex-models-manager v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/models-manager)
+   Compiling codex-runtime-agent-instance v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/runtime-agent-instance)
+   Compiling codex-feedback v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/feedback)
+   Compiling codex-model-provider v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/model-provider)
+   Compiling codex-backend-client v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/backend-client)
+   Compiling codex-cloud-config v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/cloud-config)
+   Compiling codex-utils-plugins v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/utils/plugins)
+   Compiling codex-rmcp-client v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/rmcp-client)
+   Compiling codex-apply-patch v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/apply-patch)
+   Compiling codex-exec-server-test-support v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/exec-server/tests/support)
+   Compiling codex-plugin v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/plugin)
+   Compiling codex-arg0 v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/arg0)
+   Compiling codex-connectors v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/connectors)
+   Compiling codex-hooks v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/hooks)
+   Compiling codex-test-binary-support v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/test-binary-support)
+   Compiling codex-tools v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/tools)
+   Compiling codex-message-board v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/message-board)
+   Compiling codex-mcp v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/codex-mcp)
+   Compiling codex-message-board-mcp v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/message-board-mcp)
+   Compiling codex-analytics v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/analytics)
+   Compiling codex-thread-store v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/thread-store)
+   Compiling codex-extension-api v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/extension-api)
+   Compiling codex-core-plugins v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/core-plugins)
+   Compiling codex-guardian-reviewer v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/guardian-reviewer)
+   Compiling codex-skills-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/skills)
+   Compiling codex-agent-message-board-client v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/agent-message-board-client)
+   Compiling codex-home v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/codex-home)
+   Compiling codex-multi-env-copy-file v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/multi-env-copy-file)
+   Compiling codex-git-attribution v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/git-attribution)
+   Compiling codex-agent-message-board-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/agent-message-board)
+   Compiling codex-guardian-v3 v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/guardian-v3)
+   Compiling codex-connectors-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/connectors)
+   Compiling codex-core v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/core)
+   Compiling codex-guardian-v2 v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/guardian-v2)
+   Compiling codex-agent-message-board-host v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/agent-message-board-host)
+   Compiling codex-web-search-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/web-search)
+   Compiling codex-image-generation-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/image-generation)
+   Compiling codex-mcp-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/mcp)
+   Compiling codex-memories-write v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/memories/write)
+   Compiling codex-app-server-transport v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/app-server-transport)
+   Compiling codex-chatgpt v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/chatgpt)
+   Compiling codex-memories-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/memories)
+   Compiling codex-goal-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/goal)
+   Compiling codex-history-notes-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/history-notes)
+   Compiling codex-queue-extension v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/ext/queue)
+   Compiling codex-external-agent-migration v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/external-agent-migration)
+   Compiling core_test_support v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/core/tests/common)
+   Compiling codex-app-server-daemon v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/app-server-daemon)
+   Compiling app_test_support v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/app-server/tests/common)
+warning: method `deliver_mailbox_communication_to_current_turn` is never used
+   --> core/src/session/input_queue.rs:313:25
+    |
+158 | impl InputQueue {
+    | --------------- method in this implementation
+...
+313 |     pub(crate) async fn deliver_mailbox_communication_to_current_turn(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `codex-core` (lib) generated 1 warning
+   Compiling codex-app-server v0.170.0+local.14 (/home/agent/src/codex-wt/lifecycle/codex-rs/app-server)
+warning: `codex-core` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized] target(s) in 5m 04s
+────────────
+ Nextest run ID 45f392b0-b988-4b7b-83a9-201d8516690b with nextest profile: local
+    Starting 246 tests across 16 binaries (8425 tests skipped)
+        PASS [   0.009s] (  1/246) codex-linux-sandbox bwrap::tests::full_disk_write_full_network_returns_unwrapped_command
+        PASS [   0.010s] (  2/246) codex-linux-sandbox bundled_bwrap::tests::digest_verification_skips_missing_expected_digest
+        PASS [   0.010s] (  3/246) codex-linux-sandbox bundled_bwrap::tests::digest_verification_rejects_mismatched_digest
+        PASS [   0.011s] (  4/246) codex-linux-sandbox bwrap::tests::default_unreadable_glob_scan_has_no_depth_cap
+        PASS [   0.012s] (  5/246) codex-linux-sandbox bwrap::tests::full_disk_write_proxy_only_keeps_full_filesystem_but_unshares_network
+        PASS [   0.011s] (  6/246) codex-linux-sandbox bwrap::tests::read_only_tmp_carveout_keeps_daemon_sockets_masked
+        PASS [   0.012s] (  7/246) codex-linux-sandbox bwrap::tests::non_utf8_daemon_socket_mask_path_is_rejected
+        PASS [   0.012s] (  8/246) codex-linux-sandbox bwrap::tests::protected_symlinked_directory_subpaths_fail_closed
+        PASS [   0.012s] (  9/246) codex-linux-sandbox bwrap::tests::pid_inheritance_and_legacy_proc_modes_read_only
+        PASS [   0.011s] ( 10/246) codex-linux-sandbox bundled_bwrap::tests::digest_verification_accepts_matching_digest
+        PASS [   0.013s] ( 11/246) codex-linux-sandbox bwrap::tests::mounts_dev_before_writable_dev_binds
+        PASS [   0.013s] ( 12/246) codex-linux-sandbox bwrap::tests::missing_read_only_subpath_uses_empty_file_bind_data
+        PASS [   0.013s] ( 13/246) codex-linux-sandbox bwrap::tests::missing_child_git_under_parent_repo_is_mounted_read_only
+        PASS [   0.013s] ( 14/246) codex-linux-sandbox bwrap::tests::pid_inheritance_and_legacy_proc_modes_full_filesystem
+        PASS [   0.014s] ( 15/246) codex-linux-sandbox bwrap::tests::missing_project_root_metadata_carveouts_use_metadata_path_masks
+        PASS [   0.014s] ( 16/246) codex-linux-sandbox bwrap::tests::missing_user_project_root_subpath_rules_are_still_enforced
+        PASS [   0.013s] ( 17/246) codex-linux-sandbox bundled_bwrap::tests::finds_legacy_standalone_bundled_bwrap_next_to_exe_resources
+        PASS [   0.016s] ( 18/246) codex-linux-sandbox bwrap::tests::registry_protection_precedes_denied_parent_mask
+        PASS [   0.017s] ( 19/246) codex-linux-sandbox bundled_bwrap::tests::finds_package_layout_bwrap_from_install_context
+        PASS [   0.019s] ( 20/246) codex-linux-sandbox bwrap::tests::full_disk_write_with_unreadable_glob_still_wraps_and_masks_match
+        PASS [   0.018s] ( 21/246) codex-linux-sandbox bundled_bwrap::tests::parses_sha256_hex_digest
+        PASS [   0.018s] ( 22/246) codex-linux-sandbox bwrap::tests::restricted_read_only_uses_scoped_read_roots_instead_of_erroring
+        PASS [   0.021s] ( 23/246) codex-linux-sandbox bundled_bwrap::tests::finds_adjacent_dev_bwrap
+        PASS [   0.021s] ( 24/246) codex-linux-sandbox bwrap::tests::restricted_policy_chdirs_to_canonical_command_cwd
+        PASS [   0.012s] ( 25/246) codex-linux-sandbox bwrap::tests::split_policy_masks_root_read_file_carveouts
+        PASS [   0.023s] ( 26/246) codex-linux-sandbox bundled_bwrap::tests::finds_npm_bundled_bwrap_next_to_target_vendor_dir
+        PASS [   0.017s] ( 27/246) codex-linux-sandbox bwrap::tests::restricted_read_only_with_platform_defaults_includes_usr_when_present
+        PASS [   0.014s] ( 28/246) codex-linux-sandbox bwrap::tests::split_policy_reapplies_unreadable_carveouts_after_writable_binds
+        PASS [   0.013s] ( 29/246) codex-linux-sandbox bwrap::tests::unreadable_glob_root_metadata_errors_fail_before_scanning
+        PASS [   0.017s] ( 30/246) codex-linux-sandbox bwrap::tests::root_prefix_unreadable_globs_fail_closed_on_linux
+        PASS [   0.014s] ( 31/246) codex-linux-sandbox bwrap::tests::symlinked_missing_child_git_under_parent_repo_mounts_effective_path_read_only
+        PASS [   0.013s] ( 32/246) codex-linux-sandbox bwrap::tests::symlinked_writable_roots_nested_symlink_escape_paths_fail_closed
+        PASS [   0.014s] ( 33/246) codex-linux-sandbox bwrap::tests::split_policy_reenables_writable_files_after_unreadable_parent
+        PASS [   0.015s] ( 34/246) codex-linux-sandbox bwrap::tests::split_policy_reenables_writable_subpaths_after_unreadable_parent
+        PASS [   0.028s] ( 35/246) codex-linux-sandbox bwrap::tests::ignores_missing_writable_roots
+        PASS [   0.009s] ( 36/246) codex-linux-sandbox bwrap::wslg_tests::explicit_wslg_alias_paths_are_rejected::executable
+        PASS [   0.010s] ( 37/246) codex-linux-sandbox bwrap::wslg_tests::explicit_wslg_alias_paths_are_rejected::command_cwd
+        PASS [   0.015s] ( 38/246) codex-linux-sandbox bwrap::tests::unreadable_globs_add_canonical_targets_for_symlink_matches
+        PASS [   0.016s] ( 39/246) codex-linux-sandbox bwrap::tests::transient_empty_preserved_file_uses_empty_file_bind_data
+        PASS [   0.016s] ( 40/246) codex-linux-sandbox bwrap::tests::unreadable_glob_traversal_errors_fail_closed
+        PASS [   0.016s] ( 41/246) codex-linux-sandbox bwrap::tests::symlinked_writable_roots_bind_real_target_and_remap_carveouts
+        PASS [   0.021s] ( 42/246) codex-linux-sandbox bwrap::tests::split_policy_masks_root_read_directory_carveouts
+        PASS [   0.013s] ( 43/246) codex-linux-sandbox bwrap::tests::unreadable_globs_skip_absent_and_non_directory_roots
+        PASS [   0.018s] ( 44/246) codex-linux-sandbox bwrap::tests::split_policy_reenables_nested_writable_roots_after_unreadable_parent
+        PASS [   0.010s] ( 45/246) codex-linux-sandbox bwrap::wslg_tests::explicit_wslg_alias_paths_are_rejected::policy_cwd
+        PASS [   0.019s] ( 46/246) codex-linux-sandbox bwrap::tests::split_policy_reenables_nested_writable_subpaths_after_read_only_parent
+        PASS [   0.010s] ( 47/246) codex-linux-sandbox bwrap::wslg_tests::explicit_wslg_alias_paths_are_rejected::write_grant
+        PASS [   0.011s] ( 48/246) codex-linux-sandbox bwrap::wslg_tests::explicit_wslg_alias_paths_are_rejected::read_grant
+        PASS [   0.012s] ( 49/246) codex-linux-sandbox bwrap::wslg_tests::unrestricted_filesystem_preserves_wslg_with_or_without_network_isolation
+        PASS [   0.018s] ( 50/246) codex-linux-sandbox bwrap::tests::writable_roots_under_symlinked_ancestors_bind_real_target
+        PASS [   0.011s] ( 51/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::escaped_alias
+        PASS [   0.020s] ( 52/246) codex-linux-sandbox bwrap::tests::unreadable_globs_follow_symlink_roots
+        PASS [   0.011s] ( 53/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::ancestor_alias
+        PASS [   0.010s] ( 54/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::nested_mount
+        PASS [   0.010s] ( 55/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::unrelated_project_bind
+        PASS [   0.011s] ( 56/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::root_alias
+        PASS [   0.013s] ( 57/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::directory_alias
+        PASS [   0.012s] ( 58/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::same_location
+        PASS [   0.010s] ( 59/246) codex-linux-sandbox daemon_mounts::tests::accepts_private_tmp_filesystem_and_resolves_stacked_mounts
+        PASS [   0.009s] ( 60/246) codex-linux-sandbox daemon_mounts::tests::btrfs_device_mismatch_still_rejects_unsafe_mounts::stat_device_socket_alias
+        PASS [   0.011s] ( 61/246) codex-linux-sandbox daemon_mounts::tests::btrfs_bind_mount_masks_aliases_for_both_device_numbers
+        PASS [   0.010s] ( 62/246) codex-linux-sandbox daemon_mounts::tests::device_mismatch_requires_verified_btrfs_mount::inconsistent_mount_filesystem
+        PASS [   0.011s] ( 63/246) codex-linux-sandbox daemon_mounts::tests::btrfs_device_mismatch_still_rejects_unsafe_mounts::mount_device_directory_alias
+        PASS [   0.014s] ( 64/246) codex-linux-sandbox daemon_mounts::tests::accepts_only_mounts_that_can_keep_the_directory_masked::socket_alias
+        PASS [   0.016s] ( 65/246) codex-linux-sandbox bwrap::wslg_tests::wslg_mask_is_omitted_when_policy_already_hides_an_ancestor
+        PASS [   0.012s] ( 66/246) codex-linux-sandbox daemon_mounts::tests::btrfs_device_mismatch_rejects_duplicate_mount_id
+        PASS [   0.017s] ( 67/246) codex-linux-sandbox bwrap::wslg_tests::wslg_masks_remain_when_glob_skips_directory_symlinks
+        PASS [   0.011s] ( 68/246) codex-linux-sandbox daemon_mounts::tests::device_mismatch_requires_verified_btrfs_mount::missing_mount_id
+        PASS [   0.014s] ( 69/246) codex-linux-sandbox daemon_mounts::tests::accepts_private_tmp_bind_and_maskable_aliases::tmp_on_root_filesystem
+        PASS [   0.016s] ( 70/246) codex-linux-sandbox daemon_mounts::tests::accepts_private_tmp_bind_and_maskable_aliases::tmp_on_separate_filesystem
+        PASS [   0.010s] ( 71/246) codex-linux-sandbox daemon_mounts::tests::device_mismatch_requires_verified_btrfs_mount::unverified_descriptor_filesystem
+        PASS [   0.009s] ( 72/246) codex-linux-sandbox daemon_mounts::tests::rejects_open_mount_that_has_been_covered
+        PASS [   0.011s] ( 73/246) codex-linux-sandbox daemon_mounts::tests::masks_alias_when_tmp_is_itself_a_bind_mount
+        PASS [   0.016s] ( 74/246) codex-linux-sandbox daemon_mounts::tests::device_mismatch_requires_verified_btrfs_mount::unavailable_mount_id
+        PASS [   0.009s] ( 75/246) codex-linux-sandbox daemon_mounts::tests::validates_namespace_mounts_by_device_and_destination::relative_destination
+        PASS [   0.010s] ( 76/246) codex-linux-sandbox daemon_mounts::tests::validates_namespace_mounts_by_device_and_destination::non_path_root_on_socket_filesystem
+        PASS [   0.010s] ( 77/246) codex-linux-sandbox daemon_mounts::tests::validates_namespace_mounts_by_device_and_destination::nested_namespace_mount
+        PASS [   0.009s] ( 78/246) codex-linux-sandbox fd_mount::tests::duplicate_mount_descriptors_are_rejected
+        PASS [   0.013s] ( 79/246) codex-linux-sandbox daemon_mounts::tests::validates_namespace_mounts_by_device_and_destination::invalid_destination_escape
+        PASS [   0.011s] ( 80/246) codex-linux-sandbox daemon_mounts::tests::validates_namespace_mounts_by_device_and_destination::unrelated_mount_namespace
+        PASS [   0.013s] ( 81/246) codex-linux-sandbox daemon_mounts::tests::unrelated_namespace_mount_does_not_hide_a_socket_alias
+        PASS [   0.015s] ( 82/246) codex-linux-sandbox daemon_mounts::tests::masked_wslg_alias_does_not_skip_other_socket_masks
+        PASS [   0.011s] ( 83/246) codex-linux-sandbox daemon_mounts::tests::validates_namespace_mounts_by_device_and_destination::unrelated_network_namespace
+        PASS [   0.015s] ( 84/246) codex-linux-sandbox daemon_mounts::tests::rejects_mount_hidden_by_an_ancestor_overmount
+        PASS [   0.012s] ( 85/246) codex-linux-sandbox fd_mount::tests::malformed_mount_markers_are_rejected
+        PASS [   0.011s] ( 86/246) codex-linux-sandbox fd_mount::tests::symlinked_mount_destination_closes_inherited_descriptor
+        PASS [   0.011s] ( 87/246) codex-linux-sandbox fd_mount::tests::matching_mount_closes_inherited_descriptor
+        PASS [   0.012s] ( 88/246) codex-linux-sandbox exec_util::tests::preserved_files_are_made_inheritable
+        PASS [   0.011s] ( 89/246) codex-linux-sandbox launcher::tests::ignores_system_bwrap_when_system_bwrap_lacks_perms
+        PASS [   0.009s] ( 90/246) codex-linux-sandbox launcher::tests::prefers_system_bwrap_when_help_lists_argv0
+        PASS [   0.010s] ( 91/246) codex-linux-sandbox launcher::tests::prefers_system_bwrap_when_system_bwrap_lacks_argv0
+        PASS [   0.012s] ( 92/246) codex-linux-sandbox launcher::tests::ignores_system_bwrap_when_system_bwrap_is_missing
+        PASS [   0.009s] ( 93/246) codex-linux-sandbox launcher::tests::rejects_duplicate_legacy_bubblewrap_fd_mounts
+        PASS [   0.015s] ( 94/246) codex-linux-sandbox fd_mount::tests::mismatched_mount_closes_inherited_descriptor
+        PASS [   0.014s] ( 95/246) codex-linux-sandbox launcher::tests::detects_fd_backed_read_only_mount_support_in_system_bwrap_help
+        PASS [   0.010s] ( 96/246) codex-linux-sandbox launcher::tests::rejects_malformed_legacy_bubblewrap_fd_mounts
+        PASS [   0.010s] ( 97/246) codex-linux-sandbox launcher::tests::rejects_fd_mounts_without_the_trusted_inner_sandbox_stage
+        PASS [   0.010s] ( 98/246) codex-linux-sandbox linux_run_main::tests::apply_seccomp_then_exec_with_legacy_landlock_panics
+        PASS [   0.011s] ( 99/246) codex-linux-sandbox launcher::tests::translates_fd_mounts_for_legacy_system_bubblewrap
+        PASS [   0.047s] (100/246) codex-linux-sandbox bwrap::tests::unreadable_globs_expand_existing_matches_with_configured_depth
+        PASS [   0.012s] (101/246) codex-linux-sandbox launcher::tests::translates_multiple_fd_mounts_for_legacy_system_bubblewrap
+        PASS [   0.011s] (102/246) codex-linux-sandbox linux_run_main::tests::bwrap_signal_forwarder_terminates_child_and_keeps_parent_alive
+        PASS [   0.010s] (103/246) codex-linux-sandbox linux_run_main::tests::detects_proc_mount_invalid_argument_failure
+        PASS [   0.009s] (104/246) codex-linux-sandbox linux_run_main::tests::detects_proc_mount_operation_not_permitted_failure
+        PASS [   0.010s] (105/246) codex-linux-sandbox linux_run_main::tests::cleanup_synthetic_mount_targets_waits_for_other_active_registrations
+        PASS [   0.011s] (106/246) codex-linux-sandbox linux_run_main::tests::cleanup_synthetic_mount_targets_removes_transient_file_after_concurrent_owner_exits
+        PASS [   0.009s] (107/246) codex-linux-sandbox linux_run_main::tests::ignores_non_proc_mount_errors
+        PASS [   0.012s] (108/246) codex-linux-sandbox linux_run_main::tests::cleanup_synthetic_mount_targets_preserves_real_pre_existing_empty_file
+        PASS [   0.013s] (109/246) codex-linux-sandbox linux_run_main::tests::cleanup_synthetic_mount_targets_removes_only_empty_mount_targets
+        PASS [   0.011s] (110/246) codex-linux-sandbox linux_run_main::tests::inner_command_includes_permission_profile_flag
+        PASS [   0.010s] (111/246) codex-linux-sandbox linux_run_main::tests::detects_proc_mount_permission_denied_failure
+        PASS [   0.011s] (112/246) codex-linux-sandbox linux_run_main::tests::inserts_bwrap_argv0_before_command_separator
+        PASS [   0.010s] (113/246) codex-linux-sandbox linux_run_main::tests::inserts_unshare_net_when_proxy_only_network_mode_requested
+        PASS [   0.010s] (114/246) codex-linux-sandbox linux_run_main::tests::legacy_landlock_cannot_bypass_daemon_socket_isolation
+        PASS [   0.010s] (115/246) codex-linux-sandbox linux_run_main::tests::inserts_unshare_net_when_network_isolation_requested
+        PASS [   0.010s] (116/246) codex-linux-sandbox linux_run_main::tests::malformed_managed_network_policy_is_rejected
+        PASS [   0.010s] (117/246) codex-linux-sandbox linux_run_main::tests::managed_network_policy_alone_enables_proxy_mode
+        PASS [   0.010s] (118/246) codex-linux-sandbox linux_run_main::tests::masks_inherited_procfs_when_wsl_interop_is_masked_without_fresh_proc
+        PASS [   0.011s] (119/246) codex-linux-sandbox linux_run_main::tests::managed_proxy_inner_command_requires_route_spec
+        PASS [   0.011s] (120/246) codex-linux-sandbox linux_run_main::tests::managed_proxy_preflight_argv_unshares_network
+        PASS [   0.011s] (121/246) codex-linux-sandbox linux_run_main::tests::masks_wsl_interop_with_full_network_and_restricted_filesystem
+        PASS [   0.009s] (122/246) codex-linux-sandbox linux_run_main::tests::resolve_permission_profile_rejects_missing_configuration
+        PASS [   0.009s] (123/246) codex-linux-sandbox linux_run_main::tests::resolve_permission_profile_derives_runtime_policies
+        PASS [   0.013s] (124/246) codex-linux-sandbox linux_run_main::tests::managed_proxy_inner_command_includes_route_spec
+        PASS [   0.010s] (125/246) codex-linux-sandbox linux_run_main::tests::proc_mount_preflight_does_not_bind_the_full_filesystem
+        PASS [   0.011s] (126/246) codex-linux-sandbox linux_run_main::tests::non_managed_inner_command_omits_route_spec
+        PASS [   0.011s] (127/246) codex-linux-sandbox linux_run_main::tests::proc_mount_preflight_preserves_wsl_masks
+        PASS [   0.011s] (128/246) codex-linux-sandbox linux_run_main::tests::resolve_permission_profile_preserves_direct_runtime_profile
+        PASS [   0.011s] (129/246) codex-linux-sandbox managed_tcp::tests::invalid_tun_requests_never_open_upstream
+        PASS [   0.015s] (130/246) codex-linux-sandbox linux_run_main::tests::proxy_only_mode_takes_precedence_over_full_network_policy
+        PASS [   0.013s] (131/246) codex-linux-sandbox linux_run_main::tests::root_write_read_only_carveout_requires_direct_runtime_enforcement
+        PASS [   0.011s] (132/246) codex-linux-sandbox linux_run_main::tests::valid_inner_stage_modes_do_not_panic
+        PASS [   0.051s] (133/246) codex-linux-sandbox bwrap::wslg_tests::wslg_mask_follows_filesystem_grants_and_denials::read_root
+        PASS [   0.011s] (134/246) codex-linux-sandbox managed_tcp::tests::denied_socks_connect_never_forwards_pipelined_payload
+        PASS [   0.015s] (135/246) codex-linux-sandbox linux_run_main::tests::rewrites_inner_command_path_when_bwrap_lacks_argv0
+        PASS [   0.016s] (136/246) codex-linux-sandbox linux_run_main::tests::rewrites_bwrap_helper_command_not_nested_user_command_when_current_exe_appears_later
+        PASS [   0.014s] (137/246) codex-linux-sandbox linux_run_main::tests::synthetic_mount_registry_root_is_unique_to_effective_user
+        PASS [   0.014s] (138/246) codex-linux-sandbox linux_run_main::tests::split_only_filesystem_policy_requires_direct_runtime_enforcement
+        PASS [   0.009s] (139/246) codex-linux-sandbox proxy_lifecycle::tests::rejects_missing_descriptors_and_invalid_payloads
+        PASS [   0.013s] (140/246) codex-linux-sandbox proxy_lifecycle::tests::malformed_handoff_closes_all_received_descriptors::extra_descriptors
+        PASS [   0.009s] (141/246) codex-linux-sandbox proxy_lifecycle::tests::rejects_listener_bound_to_all_interfaces
+        PASS [   0.011s] (142/246) codex-linux-sandbox proxy_lifecycle::tests::malformed_handoff_closes_all_received_descriptors::non_listener
+        PASS [   0.009s] (143/246) codex-linux-sandbox proxy_lifecycle::tests::transferred_listener_survives_sender_close_and_is_cloexec
+        PASS [   0.010s] (144/246) codex-linux-sandbox proxy_lifecycle::tests::rejects_extra_descriptors_even_when_first_is_a_listener::truncated_control_message
+        PASS [   0.010s] (145/246) codex-linux-sandbox proxy_routing::tests::attribution_token_is_extracted_before_proxy_route_planning
+        PASS [   0.009s] (146/246) codex-linux-sandbox proxy_routing::tests::default_proxy_ports_match_expected_schemes
+        PASS [   0.018s] (147/246) codex-linux-sandbox managed_tcp_dns::tests::both_families_retain_the_original_name_and_literal_ips_are_separate
+        PASS [   0.014s] (148/246) codex-linux-sandbox proxy_lifecycle::tests::malformed_handoff_closes_all_received_descriptors::truncated_control_message
+        PASS [   0.017s] (149/246) codex-linux-sandbox managed_tcp_dns::tests::malformed_and_unsupported_questions_cannot_allocate_an_alias
+        PASS [   0.011s] (150/246) codex-linux-sandbox proxy_routing::tests::ignores_non_loopback_proxy_endpoint
+        PASS [   0.015s] (151/246) codex-linux-sandbox proxy_lifecycle::tests::rejects_extra_descriptors_even_when_first_is_a_listener::extra_descriptors
+        PASS [   0.010s] (152/246) codex-linux-sandbox proxy_routing::tests::rewrites_proxy_url_to_local_loopback_port
+        PASS [   0.010s] (153/246) codex-linux-sandbox proxy_routing::tests::proxy_route_spec_serialization_omits_proxy_urls
+        PASS [   0.010s] (154/246) codex-linux-sandbox proxy_routing::tests::recognizes_only_proxy_url_keys_written_by_managed_setup
+        PASS [   0.010s] (155/246) codex-linux-sandbox proxy_routing::tests::parses_loopback_proxy_endpoint
+        PASS [   0.011s] (156/246) codex-linux-sandbox proxy_routing::tests::plan_proxy_routes_only_includes_valid_loopback_endpoints
+        PASS [   0.011s] (157/246) codex-linux-sandbox proxy_routing::tests::upload_failure_drains_the_pending_response
+        PASS [   0.009s] (158/246) codex-linux-sandbox seccomp::tests::full_network_without_managed_proxy_skips_network_seccomp_mode
+        PASS [   0.010s] (159/246) codex-linux-sandbox seccomp::tests::managed_network_enforces_seccomp_even_for_full_network_policy
+        PASS [   0.011s] (160/246) codex-linux-sandbox seccomp::tests::full_network_policy_without_managed_network_skips_seccomp
+        PASS [   0.064s] (161/246) codex-linux-sandbox bwrap::wslg_tests::wslg_mask_follows_filesystem_grants_and_denials::write_root
+        PASS [   0.010s] (162/246) codex-linux-sandbox seccomp::tests::restricted_network_policy_always_installs_seccomp
+        PASS [   0.011s] (163/246) codex-linux-sandbox seccomp::tests::managed_proxy_routes_use_proxy_routed_seccomp_mode
+        PASS [   0.011s] (164/246) codex-linux-sandbox wslg::tests::conflicting_stacked_mounts_are_ambiguous
+        PASS [   0.012s] (165/246) codex-linux-sandbox seccomp::tests::restricted_network_without_proxy_routing_uses_restricted_mode
+        PASS [   0.013s] (166/246) codex-linux-sandbox wslg::tests::ordinary_paths_do_not_identify_a_duplicate_root
+        PASS [   0.014s] (167/246) codex-linux-sandbox wslg::tests::mount_identity_distinguishes_roots_on_the_same_device
+        PASS [   0.016s] (168/246) codex-linux-sandbox::all suite::bundled_bwrap::bazel_build_rejects_tampered_bundled_bwrap
+        PASS [   0.047s] (169/246) codex-linux-sandbox::all suite::bwrap_path::full_disk_write_with_managed_network_does_not_probe_writable_bwrap
+        PASS [   0.095s] (170/246) codex-linux-sandbox::all suite::lifetime::launcher_death_ends_sandbox_after_exec::_no_proc_direct_expects
+        PASS [   0.106s] (171/246) codex-linux-sandbox::all suite::lifetime::launcher_death_ends_sandbox_after_exec::_inherit_direct_expects
+        PASS [   0.111s] (172/246) codex-linux-sandbox::all suite::lifetime::launcher_death_ends_sandbox_after_exec::_inherit_cleanup_expects
+        PASS [   0.125s] (173/246) codex-linux-sandbox::all suite::lifetime::launcher_death_ends_sandbox_after_exec::_no_proc_cleanup_expects
+        PASS [   0.147s] (174/246) codex-linux-sandbox managed_tcp_dns::tests::capacity_exhaustion_never_reassigns_an_existing_address
+        PASS [   0.149s] (175/246) codex-linux-sandbox::all suite::lifetime::launcher_death_ends_sandbox_after_exec::_isolate_direct_expects
+        PASS [   0.169s] (176/246) codex-linux-sandbox::all suite::lifetime::launcher_death_ends_sandbox_after_exec::_isolate_cleanup_expects
+        PASS [   0.262s] (177/246) codex-linux-sandbox::all suite::managed_proxy::unsupported_system_bwrap_falls_back_to_bundled_bwrap
+        PASS [   0.183s] (178/246) codex-linux-sandbox::all suite::sandbox::daemon_sockets_tests::daemon_socket_bind_mount_alias_rejects_sandbox_startup
+        PASS [   0.287s] (179/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_mode_fails_closed_without_proxy_env
+        PASS [   0.287s] (180/246) codex-linux-sandbox::all suite::managed_proxy::sandboxed_commands_have_a_seccomp_filtered_namespace_reaper
+        PASS [   0.305s] (181/246) codex-linux-sandbox::all suite::managed_proxy::proc_mount_denial_preserves_legacy_fallback_and_explicit_pid_inheritance
+        PASS [   0.317s] (182/246) codex-linux-sandbox::all suite::managed_proxy::approved_command_with_denied_reads_preserves_standard_devices
+        PASS [   0.344s] (183/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_bridges_release_command_output_after_exit
+        PASS [   0.348s] (184/246) codex-linux-sandbox::all suite::managed_proxy::namespace_reaper_collects_orphaned_descendants
+        PASS [   0.383s] (185/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_readiness_survives_closed_standard_descriptors
+        PASS [   0.385s] (186/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_mode_denies_af_unix_socket_but_allows_socketpair
+        PASS [   0.385s] (187/246) codex-linux-sandbox::all suite::sandbox::bwrap_populates_minimal_dev_nodes
+        PASS [   0.402s] (188/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_full_filesystem_uses_minimal_dev_nodes
+        PASS [   0.373s] (189/246) codex-linux-sandbox::all suite::sandbox::bwrap_preserves_writable_dev_shm_bind_mount
+        PASS [   0.333s] (190/246) codex-linux-sandbox::all suite::sandbox::daemon_sockets_tests::private_tmp_mount_preserves_daemon_socket_isolation
+        PASS [   0.501s] (191/246) codex-linux-sandbox::all suite::bwrap_path::child_workdir_does_not_probe_or_launch_writable_parent_bwrap
+        PASS [   0.520s] (192/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_commands_have_a_seccomp_filtered_namespace_reaper
+        PASS [   0.525s] (193/246) codex-linux-sandbox::all suite::managed_proxy::handoff_isolates_concurrent_endpoints_and_closes_privileged_descriptors
+        PASS [   0.404s] (194/246) codex-linux-sandbox::all suite::sandbox::denied_files_tests::sandbox_starts_with_multiple_denied_files::exact_paths
+        PASS [   0.537s] (195/246) codex-linux-sandbox::all suite::managed_proxy::managed_proxy_mode_routes_through_bridge_and_blocks_direct_egress
+        PASS [   0.146s] (196/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_dev_tcp_redirection
+        PASS [   0.153s] (197/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_curl
+        PASS [   0.157s] (198/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_getent
+        PASS [   0.447s] (199/246) codex-linux-sandbox::all suite::sandbox::denied_files_tests::sandbox_starts_with_multiple_denied_files::globs
+        PASS [   0.575s] (200/246) codex-linux-sandbox::all suite::managed_proxy::cancelling_sandbox_closes_active_proxy_connection
+        PASS [   0.433s] (201/246) codex-linux-sandbox::all suite::sandbox::denied_files_tests::sandbox_starts_with_multiple_denied_files::globs_from_root
+        PASS [   0.438s] (202/246) codex-linux-sandbox::all suite::sandbox::denied_files_tests::sandbox_starts_with_multiple_denied_files::globs_with_protected_rg
+        PASS [   0.527s] (203/246) codex-linux-sandbox::all suite::sandbox::daemon_sockets_tests::daemon_sockets_are_hidden_with_network_and_tmp_write_grants
+        PASS [   0.118s] (204/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_ping
+        PASS [   0.304s] (205/246) codex-linux-sandbox::all suite::sandbox::root_metadata_tests::root_metadata_symlinks_cannot_reopen_approved_denials
+        PASS [   0.379s] (206/246) codex-linux-sandbox::all suite::sandbox::nested_metadata_tests::sandbox_starts_with_nested_writable_metadata::home_cwd
+        PASS [   0.654s] (207/246) codex-linux-sandbox::all suite::managed_proxy::unix_sockets::managed_proxy_allow_all_unix_sockets_preserves_network_isolation
+        PASS [   0.276s] (208/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_codex_symlink_replacement_attack
+        PASS [   0.384s] (209/246) codex-linux-sandbox::all suite::sandbox::nested_metadata_tests::sandbox_starts_with_nested_writable_metadata::symlink_home_cwd
+        PASS [   0.149s] (210/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_nc
+        PASS [   0.134s] (211/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_ssh
+        PASS [   0.143s] (212/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_wget
+        PASS [   0.011s] (213/246) codex-linux-sandbox::all suite::sandbox::wsl_interop_bind_alias_cannot_run_windows_program
+        PASS [   0.350s] (214/246) codex-linux-sandbox::all suite::sandbox::nested_metadata_tests::workspace_write_protects_resolved_gitdir_in_another_writable_root::direct
+        PASS [   0.409s] (215/246) codex-linux-sandbox::all suite::sandbox::nested_metadata_tests::sandbox_starts_with_nested_writable_metadata::symlink_visualization_cwd
+        PASS [   0.010s] (216/246) codex-linux-sandbox::all suite::sandbox::wsl_interop_cannot_run_windows_program_with_network_access
+        PASS [   0.011s] (217/246) codex-linux-sandbox::all suite::sandbox::wsl_interop_cannot_reenter_distro_as_root_with_network_access
+        PASS [   0.392s] (218/246) codex-linux-sandbox::all suite::sandbox::nested_metadata_tests::workspace_write_protects_resolved_gitdir_in_another_writable_root::alias_outside_writable_roots
+        PASS [   0.012s] (219/246) codex-linux-sandbox::all suite::sandbox::wsl_no_proc_masks_inherited_procfs_and_windows_interop
+        PASS [   0.405s] (220/246) codex-linux-sandbox::all suite::sandbox::nested_metadata_tests::sandbox_starts_with_nested_writable_metadata::visualization_cwd
+        PASS [   0.446s] (221/246) codex-linux-sandbox::all suite::sandbox::denied_files_tests::sandbox_starts_with_multiple_denied_files::globs_without_rg
+        PASS [   0.010s] (222/246) codex-linux-sandbox::all suite::sandbox::wslg_tests::wslg_duplicate_view_is_masked_with_and_without_fresh_procfs
+        PASS [   0.165s] (223/246) codex-linux-sandbox::all suite::sandbox::sandbox_inner_stage_rejects_retained_capabilities
+        PASS [   0.071s] (224/246) codex-linux-sandbox::all suite::sandbox::test_timeout
+        PASS [   0.321s] (225/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_metadata_writes_inside_writable_root::_aws_config_expects
+        PASS [   0.363s] (226/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_explicit_split_policy_carveouts_under_bwrap
+        PASS [   0.185s] (227/246) codex-linux-sandbox::all suite::sandbox::sandbox_rejects_symlinked_synthetic_mount_registry
+        PASS [   0.295s] (228/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_metadata_writes_inside_writable_root::_codex_config_toml_expects
+        PASS [   0.131s] (229/246) codex-linux-sandbox::all suite::sandbox::test_root_read
+        PASS [   0.136s] (230/246) codex-linux-sandbox::all suite::sandbox::test_root_write
+        PASS [   0.151s] (231/246) codex-linux-sandbox::all suite::sandbox::test_no_new_privs_is_enabled
+        PASS [   0.293s] (232/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_metadata_writes_inside_writable_root::_git_config_expects
+        PASS [   0.279s] (233/246) codex-linux-sandbox::all suite::sandbox::sandbox_blocks_root_read_carveouts_under_bwrap
+        PASS [   0.150s] (234/246) codex-linux-sandbox::all suite::sandbox::test_writable_root
+        PASS [   0.210s] (235/246) codex-linux-sandbox::all suite::sandbox::sandbox_reports_codex_symlink_build_failure_without_panicking
+        PASS [   0.263s] (236/246) codex-linux-sandbox::all suite::sandbox::sandbox_reenables_writable_subpaths_under_unreadable_parents
+        PASS [   0.286s] (237/246) codex-linux-sandbox::all suite::sandbox::sandbox_ignores_missing_writable_roots_under_bwrap
+        PASS [   0.216s] (238/246) codex-linux-sandbox::all suite::sandbox::test_dev_null_write
+        PASS [   0.222s] (239/246) codex-linux-sandbox::all suite::sandbox::sandboxed_command_has_no_effective_or_permitted_capabilities
+        FAIL [   0.326s] (240/246) codex-linux-sandbox::all suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+  stdout ───
+
+    running 1 test
+    git version 2.53.0
+    Python 3.14.4
+    test suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata ... FAILED
+
+    failures:
+
+    failures:
+        suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 75 filtered out; finished in 0.32s
+
+  stderr ───
+
+    thread 'suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata' (39417) panicked at linux-sandbox/tests/suite/sandbox.rs:1183:6:
+    sandboxed command should execute: Sandbox(Denied { output: ExecToolCallOutput { exit_code: 1, stdout: StreamOutput { text: "", truncated_after_lines: None }, stderr: StreamOutput { text: "mkdir: Read-only file system\n", truncated_after_lines: None }, aggregated_output: StreamOutput { text: "mkdir: Read-only file system\n", truncated_after_lines: None }, duration: 111.187288ms, timed_out: false }, network_policy_decision: None })
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.325s] (241/246) codex-linux-sandbox::all suite::sandbox::sandbox_starts_with_denied_tmp_without_exposing_registry
+        PASS [   1.243s] (242/246) codex-app-server::all suite::v2::command_exec::command_exec_process_ids_are_connection_scoped_and_disconnect_terminates_process
+        PASS [   1.530s] (243/246) codex-core::all suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::pending_review
+        PASS [   1.560s] (244/246) codex-core::all suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::latest_rejection
+        PASS [   2.025s] (245/246) codex-core::all suite::network_approval::network_rejection_preserves_execution_and_review_outcomes::accepted_review
+        PASS [   2.012s] (246/246) codex-linux-sandbox proxy_routing::tests::a_reset_on_either_side_releases_the_bridge_permit
+────────────
+     Summary [   2.138s] 246 tests run: 245 passed, 1 failed, 8425 skipped
+        FAIL [   0.326s] (240/246) codex-linux-sandbox::all suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+error: test run failed
+error: recipe `test` failed on line 96 with exit code 100
