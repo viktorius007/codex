@@ -150,6 +150,50 @@ async fn http_board_is_shared_with_children(mode: BoardMode) -> anyhow::Result<(
     let child = root.thread_manager.get_thread(child_id).await?;
     wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
 
+    let (completion_tx, mut completion_rx) = tokio::sync::mpsc::unbounded_channel();
+    // Route parent terminal wakes separately from the child's board response sequence.
+    wiremock::Mock::given(wiremock::matchers::method("POST"))
+        .and(wiremock::matchers::path("/v1/responses"))
+        .and(wiremock::matchers::header_regex(
+            "x-codex-window-id",
+            &format!("^{root_id}:"),
+        ))
+        .and(|request: &wiremock::Request| {
+            let body: Value = serde_json::from_slice(&request.body).expect("model request");
+            !body["input"]
+                .as_array()
+                .expect("model input")
+                .iter()
+                .rev()
+                .find(|item| item["role"] == "user")
+                .is_some_and(|item| {
+                    item.to_string()
+                        .contains("Find the board tools and read the worker's decision.")
+                })
+        })
+        .respond_with(move |request: &wiremock::Request| {
+            let body: Value = serde_json::from_slice(&request.body).expect("parent request");
+            let turn = body["client_metadata"]["turn_id"]
+                .as_str()
+                .expect("parent turn")
+                .to_owned();
+            let _ = completion_tx.send(turn);
+            responses::sse_response(done())
+        })
+        .with_priority(1)
+        .mount(&server)
+        .await;
+
+    let completion_turn = completion_rx
+        .recv()
+        .await
+        .context("initial parent completion")?;
+    wait_for_event(
+        &root.codex,
+        |event| matches!(event, EventMsg::TurnComplete(done) if done.turn_id == completion_turn),
+    )
+    .await;
+
     let mut host_state = None;
     if let Some(local) = &local {
         let host = Arc::new(board_host::Host {
@@ -215,6 +259,15 @@ async fn http_board_is_shared_with_children(mode: BoardMode) -> anyhow::Result<(
         }]))
         .await?;
     wait_for_event(&child, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+    let completion_turn = completion_rx
+        .recv()
+        .await
+        .context("parent post completion")?;
+    wait_for_event(
+        &root.codex,
+        |event| matches!(event, EventMsg::TurnComplete(done) if done.turn_id == completion_turn),
+    )
+    .await;
     let post = board_result(
         posted.requests().last().context("child follow-up")?,
         "worker-post",
