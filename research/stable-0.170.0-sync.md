@@ -175,3 +175,9 @@ Canonical `just install-local-package` completed successfully. Installed codex-c
 Validation remains explicitly limited: 24,766/24,783 pass; all 17 remaining failures reproduce in the unmodified stable upstream baseline. No unclassified failures or timeouts remain. Final scoped lint passed. No publication or root checkout integration performed.
 
 Cleanup: removed baseline scratch source/target and temporary probe/read files; preserved all diagnostic evidence, existing worktree, candidate package and scratch candidate binaries for the coordinator. Home has 2.1 GB free and scratch about 348 GB. No pending snapshots or source probes remain.
+
+## Coordinator integration and final verification
+
+Integrated the verified worker tip `5948d823c9` into `local/customizations`; preserved the previous published tip at `backup/local13-before-0.170.0`. Fast-forwarded local main to upstream/main (`b82943092c`), using this clone's actual upstream remote mapping. Independently verified CLI version, host help, all six installed package SHA-256 values, current symlink and unchanged rollback binary hashes. Made the validation binding path relative to its checked-in environment script so worktree removal does not break reproduction. This documentation/setup-path correction does not change compiled source or invalidate runtime validation.
+
+Cleanup removes the completed update worktrees, their branches, scratch target and test temporary files, and redundant candidate package after installed-file verification. Keeps checked-in evidence, corrected V8 binding, reproducible dependency setup, Cargo registry cache, and both current/rollback installations. Publication uses an explicit lease against the freshly observed fork branch tip and verifies the resulting remote head.

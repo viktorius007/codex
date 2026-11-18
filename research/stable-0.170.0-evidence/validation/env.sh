@@ -26,5 +26,5 @@ export GST_PLUGIN_SCANNER=/scratch/agent/stable170/sysroot/usr/lib/x86_64-linux-
 unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER
 
 umask 077
-export RUSTY_V8_SRC_BINDING_PATH=/home/agent/.t3/worktrees/codex/t3-816209c6-9415cca435aeda6b/research/stable-0.170.0-evidence/validation/v8-binding-linux.rs
+export RUSTY_V8_SRC_BINDING_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/v8-binding-linux.rs"
 export GST_REGISTRY=/scratch/agent/stable170/gst-registry-complete.bin
