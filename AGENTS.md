@@ -811,3 +811,6 @@ Codex supports running connected app-server and exec-server on different operati
 - [Stable local.14 installed provenance](/home/agent/.local/lib/codex-local/0.170.0+local.14-4817bb6c459a/provenance.json) — Records installed binaries, source, checksums, rollback and validation limits.
 
 - [Stable 0.170.0 initial handoff](research/stable-0.170.0-evidence/initial-handoff.tar.gz) — Preserves the first interrupted rebase report and release verification evidence before worktree cleanup.
+
+- [Stable 0.170.0 CI investigation](research/stable-0.170.0-ci-investigation.md) — Explains the verified release workflow, full-suite gate gap, and limits of the public CI evidence.
+- [Stable 0.170.0 CI evidence](research/stable-0.170.0-ci-evidence/) — Preserves public GitHub release and check results with an integrity manifest.

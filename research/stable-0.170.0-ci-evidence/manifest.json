@@ -1,0 +1,14 @@
+{
+  "captured_at": "2026-11-18T22:31:06.206222+00:00",
+  "tag": "rust-v0.170.0",
+  "tag_object": "72f97c309fb0f78b6f35cce455adf416e6a51571",
+  "commit": "29eb79e9866b3262a777fdf8195c1b9e63684c91",
+  "files": {
+    "status.json": "06e357ac65310241b7ba1666da3fee34094bc241c3517c06ff38ebdfd3bd25c4",
+    "release.json": "f01f0ab92d9d7feaa7f671362ae0aba56fd364b3373a13c36a5bb98771614090",
+    "runs.json": "c999a005a6f614f0f69ec1833922c7fad8ca8c9a6fb587b6111536e5ca86ad37",
+    "checks.json": "6ebf03d3a75c4b8ab0c8e8ac6792484ec91c469f819ad2695b804c1762a32b15",
+    "parent-runs.json": "36bd93afa62e2046cd044cd12e2a2401f7a54527b0d2296b10563c5389bf9abf",
+    "parent-checks.json": "41a758df914ad9f63dfffd5887f05fcef02037d200e9756027ef83a6ccc851a8"
+  }
+}
