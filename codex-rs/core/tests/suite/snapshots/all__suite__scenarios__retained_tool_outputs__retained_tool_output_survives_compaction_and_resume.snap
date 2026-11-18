@@ -1,20 +1,21 @@
 ---
 source: core/tests/suite/scenarios_retained_tool_outputs.rs
-expression: "context_snapshot::format_request_history_snapshot(if enabled\n{\n    \"Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.\"\n} else\n{\n    \"With retention disabled, the client can still send retain=true. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.\"\n}, &requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
+assertion_line: 181
+expression: "context_snapshot::format_request_history_snapshot(if enabled\n{\n    \"Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.\"\n} else\n{\n    \"With retention disabled, the client can still send retain=true. The unretained task details trigger a pre-turn compaction before they are sent. Tool outputs use ordinary emergency trimming and are not retained after compaction and cold resume.\"\n}, &requests, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
 ---
 Scenario: Retained thread instructions stop emergency tool-output trimming. Compaction keeps whole outputs within the shared 64K retention budget, dropping oversized task details and older instructions. A cold resume preserves the latest instruction unchanged.
 
 ## Window 1
 -- request 1 (turn) --
-00:additional_tools/developer (3; hash=e019c949fc483f83):
-        - namespace/functions; hash=03340277aa23936f
+00:additional_tools/developer (3; hash=37a385d16166ab96):
+        - namespace/functions; hash=b2b13b037fd6603d
           - custom/exec
           - function/wait
           - function/request_user_input
           - function/request_user_input_async
         - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -26,12 +27,12 @@ Scenario: Retained thread instructions stop emergency tool-output trimming. Comp
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:function_call_output/codex_app.send_message_to_thread:Investigate the failing tests; report your findings without changing files.
 07:configuration_update:reasoning={"effort":"low"}
 -- request 2 (turn) --
@@ -48,15 +49,15 @@ Scenario: Retained thread instructions stop emergency tool-output trimming. Comp
 
 ## Window 2 (after request 4: input diverged at item 06)
 -- request 5 (turn) --
-00:additional_tools/developer (3; hash=e019c949fc483f83):
-        - namespace/functions; hash=03340277aa23936f
+00:additional_tools/developer (3; hash=37a385d16166ab96):
+        - namespace/functions; hash=b2b13b037fd6603d
           - custom/exec
           - function/wait
           - function/request_user_input
           - function/request_user_input_async
         - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -68,12 +69,12 @@ Scenario: Retained thread instructions stop emergency tool-output trimming. Comp
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:function_call_output/codex_app.send_message_to_thread:Report your findings without changing files.
 07:compaction:encrypted=true; chars=31; hash=dc1cfb1784ca88e3
 08:message/user:

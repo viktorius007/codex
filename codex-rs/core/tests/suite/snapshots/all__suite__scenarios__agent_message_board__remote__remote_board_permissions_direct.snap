@@ -1,13 +1,14 @@
 ---
 source: core/tests/suite/scenarios_agent_message_board_remote.rs
+assertion_line: 376
 expression: "context_snapshot::format_context_snapshot(\"Permission discovery preserves legacy output, exposes reply-only access, and returns a denied post before an allowed reply.\",\n&bodies.iter().map(SnapshotEntry::body).collect::<Vec<_>>(),\n&ContextSnapshotOptions::default().rewrite_known_segments(),)"
 ---
 Scenario: Permission discovery preserves legacy output, exposes reply-only access, and returns a denied post before an allowed reply.
 
 ## Window 1
 -- request 1 (request) --
-00:additional_tools/developer (3; hash=ffbbdab1ef8f8687):
-        - namespace/functions; hash=5fe7992d16964702
+00:additional_tools/developer (3; hash=fd3d6b1b6732d165):
+        - namespace/functions; hash=2b93d3114aaf966f
           - function/exec_command
           - function/write_stdin
           - function/request_user_input
@@ -17,7 +18,7 @@ Scenario: Permission discovery preserves legacy output, exposes reply-only acces
         - namespace/clock: Tools for reading and waiting on time.; hash=a80435c7a3a3943f
           - function/curr_time
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=5c5c29d91fa33d4a
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=593fb84e9f532667
           - function/create_channel
           - function/followup_task
           - function/get_channels
@@ -38,12 +39,12 @@ Scenario: Permission discovery preserves legacy output, exposes reply-only acces
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Check board permissions, try publishing, then ask a question in the existing thread.
 07:configuration_update:reasoning={"effort":"low"}

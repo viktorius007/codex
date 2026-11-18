@@ -1,20 +1,21 @@
 ---
 source: core/tests/suite/scenarios.rs
+assertion_line: 2206
 expression: "context_snapshot::format_context_snapshot(\"Astra reads Cloud instructions, discovers an omitted deployment installation, and reads its instructions from env-04.\",\n&bodies.iter().map(SnapshotEntry::body).collect::<Vec<_>>(),\n&ContextSnapshotOptions::default().rewrite_known_segments(),)"
 ---
 Scenario: Astra reads Cloud instructions, discovers an omitted deployment installation, and reads its instructions from env-04.
 
 ## Window 1
 -- request 1 (request) --
-00:additional_tools/developer (3; hash=c989fc4f95fb6f22):
-        - namespace/functions; hash=80f0e6670cf933cc
+00:additional_tools/developer (3; hash=49673ab18df67f8f):
+        - namespace/functions; hash=26f19c373df7ab56
           - custom/exec
           - function/wait
           - function/request_user_input
           - function/request_user_input_async
         - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -27,12 +28,12 @@ Scenario: Astra reads Cloud instructions, discovers an omitted deployment instal
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
     [03] <SKILLS_INSTRUCTIONS>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Read the review and deployment instructions, find all deployment installations, then read the instructions from env-04.
 07:configuration_update:reasoning={"effort":"low"}

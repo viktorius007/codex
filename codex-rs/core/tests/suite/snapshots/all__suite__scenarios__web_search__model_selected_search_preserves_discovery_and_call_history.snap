@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios_web_search.rs
+assertion_line: 346
 expression: "context_snapshot::format_request_history_snapshot(\"MCP returns a paper reference. A discovery outage withholds native search, then MCP opens the same reference after recovery. Switching to a standalone model retains the history.\",\n&requests,\n&ContextSnapshotOptions::default().rewrite_known_segments().include_request_settings(),)"
 ---
 Scenario: MCP returns a paper reference. A discovery outage withholds native search, then MCP opens the same reference after recovery. Switching to a standalone model retains the history.
@@ -15,9 +16,9 @@ Settings:
   stream: true
   text: {"verbosity":"low"}
   tool_choice: "auto"
-  tools (9; hash=1439533a92960b54):
-    - function/exec_command: Runs a command in a PTY, returning output or a session ID for ongoing interaction.; args=[cmd, justification, login, max_output_tokens, prefix_rule, sandbox_permissions, shell, tty, workdir, yield_time_ms]; hash=c04108e51a8548c5
-    - function/write_stdin: Writes characters to an existing unified exec session and returns recent output.; args=[chars, max_output_tokens, session_id, yield_time_ms]; hash=7fb62d8a3e2df4e2
+  tools (9; hash=fead5bb9a8bdff91):
+    - function/exec_command: Runs a command in a PTY, returning output or a session ID for ongoing interaction. If the command...; args=[cmd, justification, login, max_output_tokens, prefix_rule, sandbox_permissions, shell, tty, workdir, yield_time_ms]; hash=2d1a1da8b275fbaf
+    - function/write_stdin: Writes characters to an existing unified exec session and returns recent output. Do not use empty...; args=[chars, max_output_tokens, session_id, yield_time_ms]; hash=e086a7b1d569fd37
     - function/list_mcp_resources: Lists resources provided by MCP servers. Resources allow servers to share data that provides cont...; args=[cursor, server]; hash=6792edaff13561bd
     - function/list_mcp_resource_templates: Lists resource templates provided by MCP servers. Parameterized resource templates allow servers ...; args=[cursor, server]; hash=60f17c90ef7a4ebb
     - function/read_mcp_resource: Read a specific resource from an MCP server given the server name and resource URI.; args=[server, uri]; hash=24246896b39008ae
@@ -78,7 +79,7 @@ Settings:
 ## Window 2 (after request 7)
 Settings: relative to window 1
   model: "native-paper"
-  tools (10; hash=29176ecf1284679a):
+  tools (10; hash=db425c3478c55935):
     + namespace/web: Tools in the web namespace.; hash=0037b1ed8d50fab5
       - function/run
 -- request 8 (turn) --

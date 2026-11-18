@@ -1,17 +1,18 @@
 ---
 source: core/tests/suite/scenarios_partial_answers.rs
+assertion_line: 325
 expression: "context_snapshot::format_request_history_snapshot(\"A worker inherits the parent prefix unchanged and receives its own instructions. Requests are grouped by parent, then child.\",\n&requests, &ContextSnapshotOptions::default().rewrite_known_segments())"
 ---
 Scenario: A worker inherits the parent prefix unchanged and receives its own instructions. Requests are grouped by parent, then child.
 
 ## Window 1
 -- request 1 (turn) --
-00:additional_tools/developer (2; hash=855bf977570202a9):
-        - namespace/functions; hash=2e61665749f6eed1
+00:additional_tools/developer (2; hash=3cd114f29336b228):
+        - namespace/functions; hash=210ffe4c19a5d8b7
           - custom/exec
           - function/wait
           - function/request_user_input
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -23,12 +24,12 @@ Scenario: A worker inherits the parent prefix unchanged and receives its own ins
 02:message/developer[2]:
     [01] Coordinate the investigation.
     [02] <PERMISSIONS_INSTRUCTIONS>
-03:message/developer:
-    You are /root. Coordinate the investigation.
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    You are /root. Coordinate the investigation.
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Give me both results.
 -- request 2 (turn) --
@@ -46,12 +47,12 @@ Scenario: A worker inherits the parent prefix unchanged and receives its own ins
 
 ## Window 2 (after request 3: input diverged at item 12)
 -- request 4 (turn) --
-00:additional_tools/developer (2; hash=855bf977570202a9):
-        - namespace/functions; hash=2e61665749f6eed1
+00:additional_tools/developer (2; hash=3cd114f29336b228):
+        - namespace/functions; hash=210ffe4c19a5d8b7
           - custom/exec
           - function/wait
           - function/request_user_input
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -63,12 +64,12 @@ Scenario: A worker inherits the parent prefix unchanged and receives its own ins
 02:message/developer[2]:
     [01] Coordinate the investigation.
     [02] <PERMISSIONS_INSTRUCTIONS>
-03:message/developer:
-    You are /root. Coordinate the investigation.
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    You are /root. Coordinate the investigation.
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Give me both results.
 07:message/assistant:

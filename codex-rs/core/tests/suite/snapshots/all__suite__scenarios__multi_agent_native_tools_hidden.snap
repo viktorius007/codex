@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios.rs
+assertion_line: 2298
 expression: "context_snapshot::format_request_history_snapshot(description,\n&mock.requests(),\n&ContextSnapshotOptions::default().include_request_settings(),)"
 ---
 Scenario: Native tools and native usage guidance are unavailable.
@@ -16,8 +17,8 @@ Settings:
   text: {"verbosity":"low"}
   tool_choice: "auto"
 -- request 1 (turn) --
-00:additional_tools/developer (2; hash=5ea7a55416afee55):
-        - namespace/functions; hash=03340277aa23936f
+00:additional_tools/developer (2; hash=18a3ab6881b09f6f):
+        - namespace/functions; hash=b2b13b037fd6603d
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -63,13 +64,7 @@ Settings:
 
         Never use the `request_user_input` tool for permission requests or permission-related escalations.
         </collaboration_mode>
-03:message/developer:
-    <multi_agent_mode>
-    Any earlier instruction enabling proactive multi-agent delegation no longer applies. Do not spawn sub-ag...k for sub-agents, delegation, or parallel agent work. [hash=6e1e1baf5a87faf5]
-
-    Before calling any multi-agent tool, read the full multi-agent skill using its listed package locator. S...context. If the read fails, make note of the blocker. [hash=104096cdd6a881da]
-    </multi_agent_mode>
-04:message/user:
+03:message/user:
     <environment_context>
       <cwd><CWD></cwd>
       <shell><HOST_SHELL></shell>
@@ -77,6 +72,12 @@ Settings:
       <timezone><HOST_TIMEZONE></timezone>
       <filesystem><workspace_roots><root><CWD></root></workspace_roots><permission_profile type="disabled"><...e="unrestricted" /></permission_profile></filesystem> [hash=d40b2f45cb028888]
     </environment_context>
+04:message/developer:
+    <multi_agent_mode>
+    Any earlier instruction enabling proactive multi-agent delegation no longer applies. Do not spawn sub-ag...k for sub-agents, delegation, or parallel agent work. [hash=6e1e1baf5a87faf5]
+
+    Before calling any multi-agent tool, read the full multi-agent skill using its listed package locator. S...context. If the read fails, make note of the blocker. [hash=104096cdd6a881da]
+    </multi_agent_mode>
 05:message/user:
     Check which agents are working under /root before delegating more work.
 06:configuration_update:reasoning={"effort":"low"}

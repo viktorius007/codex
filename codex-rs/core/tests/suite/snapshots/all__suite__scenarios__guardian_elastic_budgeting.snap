@@ -1,5 +1,6 @@
 ---
 source: core/tests/suite/scenarios.rs
+assertion_line: 3219
 expression: snapshot
 ---
 Scenario: Elastic sync budgeting keeps retained instructions, caps ordinary tool evidence, and reserves space for the exec output that ran the configured nested tool.
@@ -33,8 +34,8 @@ Scenario: Elastic sync budgeting keeps retained instructions, caps ordinary tool
 
 ## Window 2 (after request 3: input diverged at item 00, settings changed (model, parallel_tool_calls, prompt_cache_key, reasoning, text, tools))
 -- request 4 (turn) --
-00:additional_tools/developer (1; hash=7758f662cd124827):
-        - namespace/functions; hash=70d14ec929ba5cd7
+00:additional_tools/developer (1; hash=d1120c13efdcb081):
+        - namespace/functions; hash=e2580e686af96729
           - custom/exec
           - function/wait
 01:message/developer:

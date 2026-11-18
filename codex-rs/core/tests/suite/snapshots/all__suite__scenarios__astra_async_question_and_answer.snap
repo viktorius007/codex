@@ -1,20 +1,21 @@
 ---
 source: core/tests/suite/scenarios.rs
+assertion_line: 1134
 expression: "context_snapshot::format_context_snapshot(\"Astra uses the catalog question schema to ask who a launch update is for, keeps working, and receives the user's answer in the active turn.\",\n&entries, &ContextSnapshotOptions::default().rewrite_known_segments(),)"
 ---
 Scenario: Astra uses the catalog question schema to ask who a launch update is for, keeps working, and receives the user's answer in the active turn.
 
 ## Window 1
 -- request 1 (request) --
-00:additional_tools/developer (3; hash=42141f5d3211bed3):
-        - namespace/functions; hash=80c4fbeb0cbc76f5
+00:additional_tools/developer (3; hash=e1e96a33362ca7da):
+        - namespace/functions; hash=2f87b7fc30f683af
           - custom/exec
           - function/wait
           - function/request_user_input
           - function/request_user_input_async
         - namespace/clock: Tools for reading and waiting on time.; hash=f402e8c5e9b5e317
           - function/sleep
-        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=2c8d6295978dbe63
+        - namespace/collaboration: Tools for spawning and managing sub-agents.; hash=ae875a9d734f2fc2
           - function/followup_task
           - function/interrupt_agent
           - function/list_agents
@@ -26,12 +27,12 @@ Scenario: Astra uses the catalog question schema to ask who a launch update is f
 02:message/developer[2]:
     [01] <PERMISSIONS_INSTRUCTIONS>
     [02] <COLLABORATION_MODE>
-03:message/developer:
-    <MULTI_AGENT_ROLE>
-04:message/developer:
-    <MULTI_AGENT_MODE>
-05:message/user:
+03:message/user:
     <ENVIRONMENT_CONTEXT>
+04:message/developer:
+    <MULTI_AGENT_ROLE>
+05:message/developer:
+    <MULTI_AGENT_MODE>
 06:message/user:
     Draft a short launch update. Ask me who it is for and keep working while I answer.
 07:configuration_update:reasoning={"effort":"low"}

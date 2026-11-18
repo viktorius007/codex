@@ -1,13 +1,14 @@
 ---
 source: core/tests/suite/scenarios_exec_tools.rs
+assertion_line: 415
 expression: snapshot
 ---
 Scenario: Configured exec updates and removals use the catalog wording. Empty overrides omit that wording while retaining the changed definitions and removal keys. Compaction restores the current catalog.
 
 ## Window 1
 -- request 1 (turn) --
-00:additional_tools/developer (1; hash=b2c6697017b587f1):
-        - namespace/functions; hash=e9ce2d0830f744bb
+00:additional_tools/developer (1; hash=983e9d1996304b45):
+        - namespace/functions; hash=932388566d7a5cb3
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -55,8 +56,8 @@ Scenario: Configured exec updates and removals use the catalog wording. Empty ov
 
 ## Window 2 (after request 4: settings changed (model))
 -- request 5 (turn) --
-00:additional_tools/developer (1; hash=b2c6697017b587f1):
-        - namespace/functions; hash=e9ce2d0830f744bb
+00:additional_tools/developer (1; hash=983e9d1996304b45):
+        - namespace/functions; hash=932388566d7a5cb3
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -171,8 +172,8 @@ Scenario: Configured exec updates and removals use the catalog wording. Empty ov
 
 ## Window 3 (after request 10: settings changed (model))
 -- request 11 (turn) --
-00:additional_tools/developer (1; hash=b2c6697017b587f1):
-        - namespace/functions; hash=e9ce2d0830f744bb
+00:additional_tools/developer (1; hash=983e9d1996304b45):
+        - namespace/functions; hash=932388566d7a5cb3
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -297,8 +298,8 @@ Scenario: Configured exec updates and removals use the catalog wording. Empty ov
 
 ## Window 4 (after request 11: settings changed (model))
 -- request 12 (turn) --
-00:additional_tools/developer (1; hash=b2c6697017b587f1):
-        - namespace/functions; hash=e9ce2d0830f744bb
+00:additional_tools/developer (1; hash=983e9d1996304b45):
+        - namespace/functions; hash=932388566d7a5cb3
           - custom/exec
           - function/wait
           - function/request_user_input
@@ -431,8 +432,8 @@ Scenario: Configured exec updates and removals use the catalog wording. Empty ov
 
 ## Window 5 (after request 13: input diverged at item 00)
 -- request 14 (turn) --
-00:additional_tools/developer (1; hash=c3cdfbca78ae91e2):
-        - namespace/functions; hash=36087e37fe329f5c
+00:additional_tools/developer (1; hash=67ccce33e29e4db6):
+        - namespace/functions; hash=06e1aebf9f837080
           - custom/exec
           - function/wait
           - function/request_user_input
