@@ -5,7 +5,7 @@ mkdir -p "$base/debs" "$base/sysroot" "$base/tmp"
 cd "$base/debs"
 # Pin plugins-base to the available release pocket; the stale updates index
 # advertises 1.28.2-1ubuntu0.2 files that return HTTP 404.
-apt-get download libgstreamer1.0-dev libgstreamer1.0-0 \
+apt-get download libopus0 gstreamer1.0-plugins-good=1.28.2-2 gstreamer1.0-plugins-base=1.28.2-1 libgstreamer1.0-dev libgstreamer1.0-0 \
   libgstreamer-gl1.0-0=1.28.2-1 libgstreamer-plugins-base1.0-0=1.28.2-1 \
   libgstreamer-plugins-base1.0-dev=1.28.2-1 libglib2.0-dev \
   libglib2.0-dev-bin libglib2.0-0t64 libgio-2.0-dev liborc-0.4-dev \
