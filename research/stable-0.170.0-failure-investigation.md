@@ -2,6 +2,16 @@
 
 18 November 2026. Scope: independent evidence/source diagnosis only. No agents, production edits, installed-binary changes, CI investigation, upstream filing, or Rust rebuilds. **This report establishes the failed assertions and several causal constraints; final root causes remain unresolved for some families.** It must not be represented as complete causal proof for all 17.
 
+## Current coordinator assessment
+
+The executed follow-up below supersedes the initial evidence-only audit. All seventeen original failing tests were replayed. Fifteen failures map to three observed production mechanisms: four Linux sandbox termination failures, eight redundant discovery failures, and three unexpected shell-startup executions. One failure is a temporary-directory permission assumption in the test fixture. The final descriptor-path case has a proven bubblewrap mount-preparation blocker, but its subsequent executor disconnect remains unresolved. These are not fifteen independent bugs, and they do not prove the same behavior on macOS or that maintainers knew of the failures.
+
+The highest-priority mechanism is Linux workload survival after cancellation/disconnect under this host's AppArmor profile transition. Killing the outer process group succeeds; live inner Python commands retain their locks. The direct reproducer observes a cleared parent-death signal after target exec; rearming it after exec changes the outcome. That experimental control establishes the host-policy interaction, not a production repair.
+
+Search rediscovery follows a startup catalog-readiness/binding-identity transition while request metadata stays equal. Shell profile re-execution follows the restricted filter returning EPERM for getpeername, triggering Bash startup behavior; the three unchanged shell assertions pass in the diagnostic network-enabled control. Enabling networking is evidence only and is not an acceptable security workaround.
+
+No production changes or installation were made. Coordinator independently checked all 38 evidence-file hashes/sizes, reviewed the controlled results, and confirmed the integrated diff contains research and instruction-index changes only. Public release-gate findings are in [the CI investigation](stable-0.170.0-ci-investigation.md). Fix selection, regression implementation, and the remaining executor-disconnect diagnosis are future work outside this investigation's completed findings.
+
 ## Evidence
 
 Read AGENTS.md, stable-0.170.0-sync.md, installation-local14.json, validation/final-validation.json and baseline-disposition.json. Extracted and inspected the original validation archive and current source. Independently verified the archive SHA-256 against validation-manifest.json: `6dab02f43decb6b0a7d8394b431a6ddddf1edeba3e6981db71927432cfbd3d8e`.
