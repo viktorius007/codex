@@ -846,3 +846,49 @@ Codex supports running connected app-server and exec-server on different operati
 - [Causal evidence bwrap-copy-probe.txt](research/failure-causal/bwrap-copy-probe.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
 
 - [Causal evidence host-bwrap-profile.txt](research/failure-causal/host-bwrap-profile.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Failure causal bash-direct.txt](research/failure-causal/bash-direct.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal bash-socket-probe.py](research/failure-causal/bash-socket-probe.py) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal bash-socket-probe.txt](research/failure-causal/bash-socket-probe.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal descriptor-mount.txt](research/failure-causal/descriptor-mount.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal final-controls.patch](research/failure-causal/final-controls.patch) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal final-process-cleanup.json](research/failure-causal/final-process-cleanup.json) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal format.txt](research/failure-causal/format.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal instrumentation-and-controls.patch](research/failure-causal/instrumentation-and-controls.patch) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal lifecycle-instrumentation.patch](research/failure-causal/lifecycle-instrumentation.patch) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal manifest.json](research/failure-causal/manifest.json) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal sandbox-link-syscall-run.log](research/failure-causal/sandbox-link-syscall-run.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal sandbox-link-syscalls.txt](research/failure-causal/sandbox-link-syscalls.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal sandbox-link.log](research/failure-causal/sandbox-link.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal sandbox-tmp-control.log](research/failure-causal/sandbox-tmp-control.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-causal.log](research/failure-causal/shell-causal.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-initial.txt](research/failure-causal/shell-initial.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-network-control.log](research/failure-causal/shell-network-control.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-peer-run.log](research/failure-causal/shell-peer-run.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-peer-trace.txt](research/failure-causal/shell-peer-trace.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-state-2.log](research/failure-causal/shell-state-2.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-syscall-run.log](research/failure-causal/shell-syscall-run.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-syscall-trace.txt](research/failure-causal/shell-syscall-trace.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Failure causal shell-tmp.log](research/failure-causal/shell-tmp.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.

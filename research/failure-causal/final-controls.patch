@@ -1,0 +1,199 @@
+diff --git a/codex-rs/app-server/src/command_exec.rs b/codex-rs/app-server/src/command_exec.rs
+index c71aff3ddf..3e85e560f3 100644
+--- a/codex-rs/app-server/src/command_exec.rs
++++ b/codex-rs/app-server/src/command_exec.rs
+@@ -517,6 +517,7 @@ async fn run_command(params: RunCommandParams) {
+                                 handle_process_resize(&session, size)
+                             }
+                             CommandControl::Terminate => {
++                                eprintln!("CAUSAL received Terminate");
+                                 session.request_terminate();
+                                 Ok(())
+                             }
+diff --git a/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs b/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs
+index 8fe51274df..04f8127fea 100644
+--- a/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs
++++ b/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs
+@@ -69,6 +69,15 @@ pub(crate) enum BindingCatalogRevision {
+     Cached(u64),
+ }
+ 
++impl std::fmt::Debug for BindingCatalogRevision {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        match self {
++            Self::Ready(v) => write!(f, "Ready({:p}, {})", Arc::as_ptr(&v.catalog), v.revision),
++            Self::Cached(v) => write!(f, "Cached({v})"),
++        }
++    }
++}
++
+ enum PendingCallToolInfo {
+     BindingCatalog(usize),
+     Owned(PreparedToolInfo),
+diff --git a/codex-rs/codex-mcp/src/runtime.rs b/codex-rs/codex-mcp/src/runtime.rs
+index 451bfb5eae..7cb44224cb 100644
+--- a/codex-rs/codex-mcp/src/runtime.rs
++++ b/codex-rs/codex-mcp/src/runtime.rs
+@@ -582,6 +582,7 @@ impl McpRuntime {
+             .connections
+             .stable_catalog_revisions(required_servers, required_plugins)
+             .await;
++        eprintln!("CAUSAL binding revisions={stable_catalog_revisions:?}");
+         if let Some(catalog_revisions) = &stable_catalog_revisions {
+             let cached = current
+                 .cached_binding
+diff --git a/codex-rs/core/src/model_search.rs b/codex-rs/core/src/model_search.rs
+index 54aef70137..5f2c1b7b4c 100644
+--- a/codex-rs/core/src/model_search.rs
++++ b/codex-rs/core/src/model_search.rs
+@@ -381,6 +381,7 @@ pub(crate) async fn resolve(
+         .extension_data
+         .get::<CachedSearch>()
+         .filter(|cached| Arc::ptr_eq(&cached.base, base) && cached.request == request);
++    eprintln!("CAUSAL search base={:p} cached={:?}", Arc::as_ptr(base), turn.extension_data.get::<CachedSearch>().map(|old| (format!("{:p}", Arc::as_ptr(&old.base)), Arc::ptr_eq(&old.base, base), old.request == request, format!("old={:?} new={:?}", old.request, request))));
+     let fresh = cached.is_none();
+     let cached = match cached {
+         Some(cached) => cached,
+diff --git a/codex-rs/core/tests/suite/network_approval.rs b/codex-rs/core/tests/suite/network_approval.rs
+index fda399249a..c36a79b4b7 100644
+--- a/codex-rs/core/tests/suite/network_approval.rs
++++ b/codex-rs/core/tests/suite/network_approval.rs
+@@ -1504,6 +1504,12 @@ PY"#
+         }
+     })
+     .await
++    .inspect_err(|_| {
++        eprintln!("CAUSAL lock path {}", local_cwd.join("network-process-lock").display());
++        eprintln!("CAUSAL locks {}", fs::read_to_string("/proc/locks").unwrap_or_default());
++        let ps = std::process::Command::new("ps").args(["-eo", "pid,ppid,pgid,sid,stat,args"]).output().unwrap();
++        eprintln!("CAUSAL survivors {}", String::from_utf8_lossy(&ps.stdout));
++    })
+     .context("background process remained alive after network rejection")??;
+     assert!(test.codex.list_background_terminals().await.is_empty());
+ 
+diff --git a/codex-rs/exec-server/src/shell_snapshot.rs b/codex-rs/exec-server/src/shell_snapshot.rs
+index 55a831c7cb..894fdd99ca 100644
+--- a/codex-rs/exec-server/src/shell_snapshot.rs
++++ b/codex-rs/exec-server/src/shell_snapshot.rs
+@@ -196,6 +196,7 @@ impl ShellSnapshotCache {
+             Some(Err(_)) => "unavailable",
+             None => "capture_pending",
+         };
++        eprintln!("CAUSAL snapshot protected={protected} availability={availability} attempt={attempt} cwd={:?} sandbox={:?}", params.cwd, params.sandbox);
+         let capture = async {
+             let prewarmed = purpose == CapturePurpose::Prewarm;
+             let attempt = attempt.to_string();
+@@ -210,6 +211,7 @@ impl ShellSnapshotCache {
+                     snapshot.prewarmed = prewarmed;
+                     snapshot
+                 });
++            eprintln!("CAUSAL capture result={:?}", result.as_ref().map(|_| ()).map_err(|(why, err)| (why, err)));
+             telemetry.shell_snapshot_captured(
+                 started_at.elapsed(),
+                 result.as_ref().map(|_| ()).map_err(|(reason, _)| *reason),
+@@ -270,6 +272,7 @@ impl ShellSnapshotCache {
+ 
+         // POSIX sh cannot portably close arbitrary descriptors above 9. Keep its
+         // existing replay until the launcher supports remapping child descriptors.
++        eprintln!("CAUSAL restored state={} BASH_ENV={:?}", snapshot.state, snapshot.environment.get("BASH_ENV"));
+         let reader = if snapshot.file_source {
+             let state = snapshot.state.clone();
+             match tokio::task::spawn_blocking(move || {
+@@ -457,7 +460,7 @@ done
+         .env_remove(CODEX_TOOL_CALL_ID_ENV_VAR)
+         .stdin(Stdio::null())
+         .stdout(Stdio::piped())
+-        .stderr(Stdio::null());
++        .stderr(Stdio::inherit());
+     if let Some(arg0) = &prepared.arg0 {
+         command.arg0(arg0);
+     }
+diff --git a/codex-rs/exec-server/tests/exec_process.rs b/codex-rs/exec-server/tests/exec_process.rs
+index bfd8417e37..09967d9bb9 100644
+--- a/codex-rs/exec-server/tests/exec_process.rs
++++ b/codex-rs/exec-server/tests/exec_process.rs
+@@ -217,7 +217,7 @@ async fn shell_snapshot_v2_filters_profile_exports_and_stays_in_memory(
+ ) -> Result<()> {
+     if use_sandbox
+         && let Some(warning) = codex_sandboxing::system_bwrap_warning(
+-            &PermissionProfile::read_only(),
++            &{ let mut p = PermissionProfile::read_only(); if let PermissionProfile::Managed { network, .. } = &mut p { *network = codex_protocol::permissions::NetworkSandboxPolicy::Enabled; } p },
+             &std::env::current_dir()?,
+         )
+     {
+@@ -353,7 +353,7 @@ async fn shell_snapshot_v2_filters_profile_exports_and_stays_in_memory(
+                 arg0: (shell_name == "bash-sh").then(|| "sh".to_string()),
+                 sandbox: (use_sandbox && attempt == 0).then(|| {
+                     FileSystemSandboxContext::from_permission_profile(
+-                        PermissionProfile::read_only(),
++                        { let mut p = PermissionProfile::read_only(); if let PermissionProfile::Managed { network, .. } = &mut p { *network = codex_protocol::permissions::NetworkSandboxPolicy::Enabled; } p },
+                         cwd.clone(),
+                     )
+                 }),
+@@ -1042,7 +1042,7 @@ async fn shell_snapshot_v2_capture_failure_falls_back_and_retries(
+         arg0: None,
+         sandbox: use_remote.then(|| {
+             FileSystemSandboxContext::from_permission_profile(
+-                PermissionProfile::workspace_write(),
++                { let mut p = PermissionProfile::workspace_write(); if let PermissionProfile::Managed { network, .. } = &mut p { *network = codex_protocol::permissions::NetworkSandboxPolicy::Enabled; } p },
+                 cwd,
+             )
+         }),
+@@ -1105,7 +1105,7 @@ async fn shell_snapshot_v2_capture_failure_falls_back_and_retries(
+ 
+     std::fs::write(
+         home.path().join(profile_name),
+-        "printf x >> \"$HOME/captures\"\nprofile_helper() { printf recovered; }\n",
++        "printf '%s:%s\\n' \"$$\" \"$BASH_EXECUTION_STRING\" >> \"$HOME/profile-events\"\n printf x >> \"$HOME/captures\"\nprofile_helper() { printf recovered; }\n",
+     )?;
+     let (expected_output, expected_captures) = if failures_before_repair == 3 {
+         ("original", "xxx")
+@@ -1120,6 +1120,7 @@ async fn shell_snapshot_v2_capture_failure_falls_back_and_retries(
+             (expected_output.to_string(), String::new(), Some(0), true)
+         );
+     }
++    eprintln!("CAUSAL profile events {}", std::fs::read_to_string(home.path().join("profile-events")).unwrap_or_default());
+     assert_eq!(
+         std::fs::read_to_string(home.path().join("captures"))?,
+         expected_captures
+diff --git a/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs b/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs
+index 7d022116b1..46b2a28ee1 100644
+--- a/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs
++++ b/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs
+@@ -252,12 +252,12 @@ async fn shell_snapshot_concurrent_replays_keep_independent_readers(
+                 collect_process_output_from_events(started.process).await?;
+             assert!(
+                 output.ends_with(&format!("restored:input-{index}")),
+-                "{output:?}"
++                "stdout={output:?} stderr={errors:?} status={status:?} closed={closed}"
+             );
+             if shell == "zsh" {
+                 assert!(
+                     output.ends_with(&format!("one'two|restored:input-{index}")),
+-                    "{output:?}"
++                    "stdout={output:?} stderr={errors:?} status={status:?} closed={closed}"
+                 );
+             }
+             assert_eq!((errors, status, closed), (String::new(), Some(7), true));
+diff --git a/codex-rs/linux-sandbox/tests/suite/sandbox.rs b/codex-rs/linux-sandbox/tests/suite/sandbox.rs
+index e0167df88c..3e7724d24b 100644
+--- a/codex-rs/linux-sandbox/tests/suite/sandbox.rs
++++ b/codex-rs/linux-sandbox/tests/suite/sandbox.rs
+@@ -1116,7 +1116,7 @@ async fn sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata() {
+         return;
+     }
+ 
+-    let tmpdir = tempfile::tempdir().expect("tempdir");
++    let tmpdir = tempfile::tempdir_in("/tmp").expect("tempdir");
+     let repo = tmpdir.path().join("repo");
+     let subdir = repo.join("sub");
+     let real_tmp = tmpdir.path().join("real-tmp");
+@@ -1153,6 +1153,8 @@ for marker_dir in "$registry"/*; do
+   mkdir -p "$redirected_registry/${{marker_dir##*/}}"
+   touch "$redirected_registry/${{marker_dir##*/}}/1"
+ done
++ls -ld "$TMPDIR"
++readlink "$TMPDIR" || true
+ ln -sfn '{redirected_tmp}' "$TMPDIR"
+ git status --short > status.before
+ if grep -E '(^|[[:space:]])\.(git|codex|agents)(/|$)' status.before; then

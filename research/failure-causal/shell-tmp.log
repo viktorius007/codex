@@ -1,0 +1,61 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    Blocking waiting for file lock on artifact directory
+warning: method `deliver_mailbox_communication_to_current_turn` is never used
+   --> core/src/session/input_queue.rs:313:25
+    |
+158 | impl InputQueue {
+    | --------------- method in this implementation
+...
+313 |     pub(crate) async fn deliver_mailbox_communication_to_current_turn(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `codex-core` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 2m 38s
+────────────
+ Nextest run ID 969bd4d0-dcdd-48db-826d-a8067a9f8994 with nextest profile: local
+    Starting 1 test across 26 binaries (980 tests skipped)
+        FAIL [   0.249s] (1/1) codex-exec-server::exec_process shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.23s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/tmp/.tmp0l6L4f", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/tmp/.tmp0l6L4f", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/tmp/.tmp0l6L4f", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    /tmp/.tmp0l6L4f/.bashrc: line 1: /tmp/.tmp0l6L4f/captures: Read-only file system
+    /tmp/.tmp0l6L4f/profile-bin/wc: 2: cannot create /tmp/.tmp0l6L4f/tool-captures: Read-only file system
+    /tmp/.tmp0l6L4f/profile-bin/wc: 2: cannot create /tmp/.tmp0l6L4f/tool-captures: Read-only file system
+    CAUSAL capture result=Ok(())
+
+    thread 'shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox' (3144183) panicked at exec-server/tests/exec_process.rs:367:9:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+     (
+    >    "helper|profile|missing|missing|/tmp/.tmp0l6L4f/runtime-bin:/tmp/.tmp0l6L4f/profile-bin:/usr/bin:/bin|missing|missing",
+         "",
+    <    "/tmp/.tmp0l6L4f/.bashrc: line 1: /tmp/.tmp0l6L4f/captures: Read-only file system\n",
+         Some(
+    <        41,
+    >        0,
+         ),
+         true,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.257s] 1 test run: 0 passed, 1 failed, 980 skipped
+        FAIL [   0.249s] (1/1) codex-exec-server::exec_process shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+error: test run failed
+error: recipe `test` failed on line 96 with exit code 100

@@ -1,0 +1,154 @@
+{
+  "bash-direct.txt": {
+    "sha256": "a402c4336ebfd78227dea06341f394c60ab50d13d841cedf38df329afe4a304e",
+    "bytes": 9
+  },
+  "bash-socket-probe.py": {
+    "sha256": "f5f4250e464faa75b1017a930dfed15d9894590ab56faa222ba141e02fa06d5c",
+    "bytes": 646
+  },
+  "bash-socket-probe.txt": {
+    "sha256": "45ba1039f94b9cbfb4725ae07fe8937fe688f7a129a3d4a16798a748547246df",
+    "bytes": 70
+  },
+  "bwrap-copy-probe.txt": {
+    "sha256": "dd690cb9a2ccfb47815f0e7674adcb9ceb7da04030a7f3c4e4dac8a09a893463",
+    "bytes": 116
+  },
+  "bwrap-credentials-probe.txt": {
+    "sha256": "c26b13c87d86e3e08db3a952c0c8c2862379c88a7c8169e559725285347c0f2c",
+    "bytes": 405
+  },
+  "bwrap-credentials.txt": {
+    "sha256": "35b22fe4a5e3c3c23ee3d469cdc5b9165b204f13793c8b675cbfbcbe94249a8b",
+    "bytes": 6461
+  },
+  "bwrap-probe-2.txt": {
+    "sha256": "1436c64431cc5d57d3eb769c77a36600e67cb3e69dc0a6c811c022641b8078c0",
+    "bytes": 407
+  },
+  "bwrap-probe.py": {
+    "sha256": "78a46a98a54308c86d0015f7de9a61646d50cb8d466a114c20881fc066106f50",
+    "bytes": 1258
+  },
+  "bwrap-probe.txt": {
+    "sha256": "f86abcb7702ae82bd395ca75233953d9eb9598381eba1813a9d076b39e44660b",
+    "bytes": 400
+  },
+  "bwrap-rearm-probe.py": {
+    "sha256": "af6cf30024302648ae7c17e89d01b54f65b05d4b571939df951afdf784a989b1",
+    "bytes": 1403
+  },
+  "bwrap-rearm-probe.txt": {
+    "sha256": "b7a70f2f8b6a85857fb976ff39fd89d75d94654a76e1a8c332cd0fa87fcbde5f",
+    "bytes": 334
+  },
+  "bwrap-signals-2.txt": {
+    "sha256": "12bad14d6de527b5768ab4d56b15cae0be11ab6ee28236c4ad53b07c70039492",
+    "bytes": 5360
+  },
+  "bwrap-signals.txt": {
+    "sha256": "a78fe5988a0b93a3fe867eb298e7858aaad1cc17611b25a0296485a688f03b7e",
+    "bytes": 5316
+  },
+  "descriptor-mount.txt": {
+    "sha256": "afa4e553dc04c4cd875ea1ca085bd28e00bc4ad601d525432fc31bc341fc5940",
+    "bytes": 71
+  },
+  "final-controls.patch": {
+    "sha256": "5665f2b6ed283decaa8f33a6369e557b37133e414e8ebcf2ef6f19852983e30e",
+    "bytes": 10480
+  },
+  "final-process-cleanup.json": {
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "bytes": 3
+  },
+  "format.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "host-bwrap-profile.txt": {
+    "sha256": "d61facde27707b9c47ffe47921b7273e788784484cb5530eb819e6daac1f1990",
+    "bytes": 3028
+  },
+  "instrumentation-and-controls.patch": {
+    "sha256": "c6266c726ec13d92b97fb5530743949b73e3a21a54ebc63c9beaa86d83d7c9c6",
+    "bytes": 8012
+  },
+  "lifecycle-instrumentation.patch": {
+    "sha256": "e5588d5f6f4161a3aaa437b9b8243639e2fb4af8abf52def73d8d34cc3bd2d8b",
+    "bytes": 849
+  },
+  "lifecycle-trace.txt": {
+    "sha256": "0aa5481fb9dd4fef5faa2a8d19d942082245d41f793dff5e4b01bbb8bc84fd33",
+    "bytes": 349075
+  },
+  "replay.sh": {
+    "sha256": "5c9cf9018bcfca140dab425d022a6eaf2f95a0bec32ac3365418c85993bcc7f9",
+    "bytes": 1031
+  },
+  "sandbox-link-syscall-run.log": {
+    "sha256": "b16a51e8706da46da314687a7a371b4fa9a6618d77759a8e6ab7457131205b2d",
+    "bytes": 2572
+  },
+  "sandbox-link-syscalls.txt": {
+    "sha256": "5ea1cd85b9efce18ee694f1930dfe2bc9542513e519baccfa1ecd1a8ac752164",
+    "bytes": 55015
+  },
+  "sandbox-link.log": {
+    "sha256": "dc7ab78cf628d1f547ed8a2d2e484e79810b37e0694696ca9afc7e1f2437d887",
+    "bytes": 2422
+  },
+  "sandbox-tmp-control.log": {
+    "sha256": "daec8ab80cec0fc7440e13afece5aa91fb75ae1b4e76819b822041c8774a08aa",
+    "bytes": 1237
+  },
+  "search.log": {
+    "sha256": "e61f3b0213e98f8e57a5b315f305d3c40f1bbcc9411200dfd6eb48efb90c2dba",
+    "bytes": 388669
+  },
+  "shell-causal.log": {
+    "sha256": "5c9821311e38bf16211da249a8d91678d0f32081cf97355f4a4803de60a84aab",
+    "bytes": 31365
+  },
+  "shell-initial.txt": {
+    "sha256": "2a099255730b8e6c6777542f13b2ea5f7f4ff722a12b7a2ef1e66276f1ab1876",
+    "bytes": 77181
+  },
+  "shell-network-control.log": {
+    "sha256": "6b72087f554946b52304ccec1f534befda99855e2e67e7f56b1e5170b51295ba",
+    "bytes": 1469
+  },
+  "shell-peer-run.log": {
+    "sha256": "1561bccfe7446e8aef6f95e957610e41fdcc1d4ae3fa57517ca194a8747e4ff9",
+    "bytes": 30484
+  },
+  "shell-peer-trace.txt": {
+    "sha256": "8ebf7f40bae9f4608cfdb75128ee38bc585dca18e4a2aefc6483840f954fc7e8",
+    "bytes": 38709
+  },
+  "shell-state-2.log": {
+    "sha256": "a2155436cd9fa375a72e862d376aa65461252c3d6e545b7deb4e83c90bfdf5da",
+    "bytes": 18249
+  },
+  "shell-syscall-run.log": {
+    "sha256": "6887ecb64908e1464fe82d4091532d4ac6327dbdd24e25a651a285c35fd00b75",
+    "bytes": 15718
+  },
+  "shell-syscall-trace.txt": {
+    "sha256": "4b3c0013bf3c08d1aeed86fb7020986804bf0a9352e7fbf3dd75eee64893a321",
+    "bytes": 4657
+  },
+  "shell-tmp.log": {
+    "sha256": "d5fde76f26a2bacffe2ea8d7cd8788a7f016fcca60fe1f465777d4466b2a6e00",
+    "bytes": 3726
+  },
+  "survivor-cleanup.txt": {
+    "sha256": "19cfff559b6eed09b652d53346f7b733470ed4d2fc0701054a25497eaf90ea3d",
+    "bytes": 55
+  },
+  "survivors.json": {
+    "sha256": "d7f76ef905691b519ae2886b5219c3a083c5505ae5096c09596450c8270f2b92",
+    "bytes": 35492
+  }
+}

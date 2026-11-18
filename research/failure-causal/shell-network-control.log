@@ -1,0 +1,23 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+   Compiling codex-exec-server v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/exec-server)
+warning: method `deliver_mailbox_communication_to_current_turn` is never used
+   --> core/src/session/input_queue.rs:313:25
+    |
+158 | impl InputQueue {
+    | --------------- method in this implementation
+...
+313 |     pub(crate) async fn deliver_mailbox_communication_to_current_turn(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `codex-core` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 3.99s
+────────────
+ Nextest run ID 90ab08ac-09de-4c51-b631-e9763fe71080 with nextest profile: local
+    Starting 3 tests across 26 binaries (978 tests skipped)
+        PASS [   1.615s] (1/3) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery
+        PASS [   1.611s] (2/3) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery
+        PASS [   0.333s] (3/3) codex-exec-server::exec_process shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+────────────
+     Summary [   3.566s] 3 tests run: 3 passed, 978 skipped

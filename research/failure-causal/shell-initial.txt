@@ -1,0 +1,426 @@
+RUST_MIN_STACK=8388608 NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    Blocking waiting for file lock on artifact directory
+   Compiling rustix v1.1.4
+   Compiling tracing-subscriber v0.3.22
+   Compiling clap_builder v4.5.58
+   Compiling similar v2.7.0
+   Compiling rmcp v3.5.1 (https://github.com/modelcontextprotocol/rust-sdk?rev=98a54789b80110ad210495c4ad845c89e1980471#98a54789)
+   Compiling socks5-protocol v0.3.5
+   Compiling hickory-proto v0.26.3
+   Compiling tracing-opentelemetry v0.32.1
+   Compiling opentelemetry-appender-tracing v0.31.1
+   Compiling tracing-appender v0.2.4
+   Compiling codex-http-client v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/http-client)
+   Compiling clap v4.5.58
+   Compiling codex-network-proxy v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/network-proxy)
+   Compiling codex-websocket-auth v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/websocket-auth)
+   Compiling codex-file-search v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/file-search)
+   Compiling codex-client v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/codex-client)
+   Compiling codex-websocket-client v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/websocket-client)
+   Compiling codex-workload-identity v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/workload-identity)
+   Compiling codex-aws-auth v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/aws-auth)
+   Compiling tempfile v3.27.0
+   Compiling fd-lock v4.0.4
+   Compiling gethostname v1.1.0
+   Compiling which v8.0.0
+   Compiling polling v3.11.0
+   Compiling rustyline v14.0.0
+   Compiling async-io v2.6.0
+   Compiling gix-tempfile v26.0.0
+   Compiling gix-odb v0.86.0
+   Compiling codex-utils-path v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/utils/path-utils)
+   Compiling mxc-sdk v1.0.0 (https://github.com/microsoft/mxc?rev=b21120168d70befe12356411423266bfef168446#b2112016)
+   Compiling gix-lock v26.0.0
+   Compiling gix-ref v0.69.0
+   Compiling gix-shallow v0.15.0
+   Compiling zbus v4.4.0
+   Compiling starlark v0.14.2
+   Compiling gix-discover v0.57.0
+   Compiling gix-protocol v0.67.0
+   Compiling gix-config v0.62.0
+   Compiling gix v0.89.0
+   Compiling secret-service v4.0.0
+   Compiling keyring v3.6.3
+   Compiling codex-keyring-store v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/keyring-store)
+   Compiling codex-execpolicy v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/execpolicy)
+   Compiling codex-protocol v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/protocol)
+   Compiling codex-api v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/codex-api)
+   Compiling codex-file-system v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/file-system)
+   Compiling codex-model-provider-info v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/model-provider-info)
+   Compiling codex-features v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/features)
+   Compiling codex-shell-command v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/shell-command)
+   Compiling codex-utils-output-truncation v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/utils/output-truncation)
+   Compiling codex-history v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/history)
+   Compiling codex-agent-identity v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/agent-identity)
+   Compiling codex-context-fragments v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/context-fragments)
+   Compiling codex-code-mode-protocol v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/code-mode-protocol)
+   Compiling codex-utils-audio v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/utils/audio)
+   Compiling codex-git-utils v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/git-utils)
+   Compiling codex-skills v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/skills)
+   Compiling codex-memories-read v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/memories/read)
+   Compiling codex-state v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/state)
+   Compiling codex-guardian-context v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/guardian-context)
+   Compiling codex-exec-server-protocol v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/exec-server-protocol)
+   Compiling codex-config v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/config)
+   Compiling codex-secrets v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/secrets)
+   Compiling codex-utils-git-discovery v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/utils/git-discovery)
+   Compiling codex-prompts v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/prompts)
+   Compiling codex-otel v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/otel)
+   Compiling codex-response-debug-context v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/response-debug-context)
+   Compiling codex-cache-diagnostics v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/cache-diagnostics)
+   Compiling codex-agent-graph-store v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/agent-graph-store)
+   Compiling codex-windows-sandbox v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/windows-sandbox-rs)
+   Compiling codex-rollout v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/rollout)
+   Compiling codex-code-mode v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/code-mode)
+   Compiling codex-mxc-sandbox v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/mxc-sandbox)
+   Compiling codex-sandboxing v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/sandboxing)
+   Compiling codex-linux-sandbox v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/linux-sandbox)
+   Compiling codex-rollout-trace v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/rollout-trace)
+   Compiling codex-app-server-protocol v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/app-server-protocol)
+   Compiling codex-exec-server v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/exec-server)
+   Compiling codex-login v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/login)
+   Compiling codex-agent-roles v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/agent-roles)
+   Compiling codex-models-manager v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/models-manager)
+   Compiling codex-feedback v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/feedback)
+   Compiling codex-runtime-agent-instance v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/runtime-agent-instance)
+   Compiling codex-model-provider v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/model-provider)
+   Compiling codex-apply-patch v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/apply-patch)
+   Compiling codex-exec-server-test-support v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/exec-server/tests/support)
+   Compiling codex-utils-plugins v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/utils/plugins)
+   Compiling codex-rmcp-client v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/rmcp-client)
+   Compiling codex-plugin v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/plugin)
+   Compiling codex-arg0 v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/arg0)
+   Compiling codex-connectors v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/connectors)
+   Compiling codex-hooks v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/hooks)
+   Compiling codex-test-binary-support v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/test-binary-support)
+   Compiling codex-tools v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/tools)
+   Compiling codex-mcp v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/codex-mcp)
+   Compiling codex-analytics v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/analytics)
+   Compiling codex-thread-store v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/thread-store)
+   Compiling codex-extension-api v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/ext/extension-api)
+   Compiling codex-core-plugins v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/core-plugins)
+   Compiling codex-guardian-reviewer v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/ext/guardian-reviewer)
+   Compiling codex-skills-extension v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/ext/skills)
+   Compiling codex-core v0.170.0+local.14 (/home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/core)
+warning: method `deliver_mailbox_communication_to_current_turn` is never used
+   --> core/src/session/input_queue.rs:313:25
+    |
+158 | impl InputQueue {
+    | --------------- method in this implementation
+...
+313 |     pub(crate) async fn deliver_mailbox_communication_to_current_turn(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `codex-core` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 6m 46s
+────────────
+ Nextest run ID d66a87ba-d666-4ad3-8cb2-4312e06f5787 with nextest profile: local
+    Starting 6 tests across 26 binaries (975 tests skipped)
+  TRY 1 FAIL [   0.164s] (───) codex-linux-sandbox::all suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+  stdout ───
+
+    running 1 test
+    git version 2.53.0
+    Python 3.14.4
+    test suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata ... FAILED
+
+    failures:
+
+    failures:
+        suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.16s
+
+  stderr ───
+
+    thread 'suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata' (3027632) panicked at linux-sandbox/tests/suite/sandbox.rs:1183:6:
+    sandboxed command should execute: Sandbox(Denied { output: ExecToolCallOutput { exit_code: 1, stdout: StreamOutput { text: "", truncated_after_lines: None }, stderr: StreamOutput { text: "mkdir: Read-only file system\n", truncated_after_lines: None }, aggregated_output: StreamOutput { text: "mkdir: Read-only file system\n", truncated_after_lines: None }, duration: 84.930728ms, timed_out: false }, network_policy_decision: None })
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   0.266s] (───) codex-exec-server::exec_process shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.25s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnXSRkF", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnXSRkF", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnXSRkF", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+
+    thread 'shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox' (3027634) panicked at exec-server/tests/exec_process.rs:367:9:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+     (
+    >    "helper|profile|missing|missing|/scratch/agent/stable170/tmp/.tmpnXSRkF/runtime-bin:/scratch/agent/stable170/tmp/.tmpnXSRkF/profile-bin:/usr/bin:/bin|missing|missing",
+         "",
+    <    "/scratch/agent/stable170/tmp/.tmpnXSRkF/.bashrc: line 1: /scratch/agent/stable170/tmp/.tmpnXSRkF/captures: Read-only file system\n",
+         Some(
+    <        41,
+    >        0,
+         ),
+         true,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.187s] (1/6) codex-linux-sandbox::all suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+  stdout ───
+
+    running 1 test
+    git version 2.53.0
+    Python 3.14.4
+    test suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata ... FAILED
+
+    failures:
+
+    failures:
+        suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.18s
+
+  stderr ───
+
+    thread 'suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata' (3027940) panicked at linux-sandbox/tests/suite/sandbox.rs:1183:6:
+    sandboxed command should execute: Sandbox(Denied { output: ExecToolCallOutput { exit_code: 1, stdout: StreamOutput { text: "", truncated_after_lines: None }, stderr: StreamOutput { text: "mkdir: Read-only file system\n", truncated_after_lines: None }, aggregated_output: StreamOutput { text: "mkdir: Read-only file system\n", truncated_after_lines: None }, duration: 98.154787ms, timed_out: false }, network_policy_decision: None })
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.256s] (2/6) codex-exec-server::exec_process shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.24s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpTIZQDI", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpTIZQDI", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpTIZQDI", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+
+    thread 'shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox' (3028106) panicked at exec-server/tests/exec_process.rs:367:9:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+     (
+    >    "helper|profile|missing|missing|/scratch/agent/stable170/tmp/.tmpTIZQDI/runtime-bin:/scratch/agent/stable170/tmp/.tmpTIZQDI/profile-bin:/usr/bin:/bin|missing|missing",
+         "",
+    <    "/scratch/agent/stable170/tmp/.tmpTIZQDI/.bashrc: line 1: /scratch/agent/stable170/tmp/.tmpTIZQDI/captures: Read-only file system\n",
+         Some(
+    <        41,
+    >        0,
+         ),
+         true,
+     )
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   1.735s] (───) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 1.72s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL signal caller=3027693 pgid=3027890 signal=9
+    CAUSAL ps     PID    PPID    PGID     SID STAT COMMAND
+
+    CAUSAL signal result=0 error=Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+    CAUSAL snapshot protected=false availability=capture_pending attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=cache_hit attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmp9v2yQr", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+
+    thread 'shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery' (3027639) panicked at exec-server/tests/exec_process.rs:1123:5:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+    <xxxx
+    >xx
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   1.743s] (───) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 1.72s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL signal caller=3027727 pgid=3027888 signal=9
+    CAUSAL ps     PID    PPID    PGID     SID STAT COMMAND
+
+    CAUSAL signal result=0 error=Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+    CAUSAL snapshot protected=false availability=capture_pending attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=cache_hit attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpZ7Jlj3", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+
+    thread 'shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery' (3027647) panicked at exec-server/tests/exec_process.rs:1123:5:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+    <xxxx
+    >xx
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   1.672s] (3/6) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 1.66s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL signal caller=3028646 pgid=3028697 signal=9
+    CAUSAL ps     PID    PPID    PGID     SID STAT COMMAND
+
+    CAUSAL signal result=0 error=Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+    CAUSAL snapshot protected=false availability=capture_pending attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=cache_hit attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpr7tmLJ", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+
+    thread 'shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery' (3028623) panicked at exec-server/tests/exec_process.rs:1123:5:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+    <xxxx
+    >xx
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   1.681s] (4/6) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery
+  stdout ───
+
+    running 1 test
+    test shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 1.67s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL signal caller=3028629 pgid=3028695 signal=9
+    CAUSAL ps     PID    PPID    PGID     SID STAT COMMAND
+
+    CAUSAL signal result=0 error=Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+    CAUSAL snapshot protected=false availability=capture_pending attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=cache_hit attempt=2 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: None } }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: SlashTmp }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: Tmpdir }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".git") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".agents") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".codex") } }, access: Read, missing_path_behavior: Some(Skip) }, FileSystemSandboxEntry { path: Special { value: ProjectRoots { subpath: Some(".aws") } }, access: Read, missing_path_behavior: Some(Skip) }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpWCOEQX", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+
+    thread 'shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery' (3028619) panicked at exec-server/tests/exec_process.rs:1123:5:
+    assertion failed: `(left == right)`
+
+    Diff < left / right > :
+    <xxxx
+    >xx
+
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   4.302s] (5/6) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_retry_budget_exhausted
+        SLOW [> 30.000s] (───) codex-exec-server::exec_process shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+  TRY 1 FAIL [  45.318s] (───) codex-exec-server::exec_process shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+  stdout ───
+
+    running 1 test
+    test shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 45.30s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL signal caller=3027692 pgid=3027875 signal=9
+    CAUSAL ps     PID    PPID    PGID     SID STAT COMMAND
+
+    CAUSAL signal result=0 error=Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpnTAe85", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    Error: exec-server transport disconnected: failed to read websocket JSON-RPC message from exec-server websocket ws://127.0.0.1:34355: WebSocket protocol error: Connection reset without closing handshake; failed to resume exec-server session: recovery timed out after 45s
+
+  TRY 2 SLOW [> 30.000s] (───) codex-exec-server::exec_process shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+  TRY 2 FAIL [  45.287s] (6/6) codex-exec-server::exec_process shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+  stdout ───
+
+    running 1 test
+    test shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path ... FAILED
+
+    failures:
+
+    failures:
+        shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 45.27s
+
+  stderr ───
+    CAUSAL snapshot protected=false availability=capture_pending attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL signal caller=3038693 pgid=3038745 signal=9
+    CAUSAL ps     PID    PPID    PGID     SID STAT COMMAND
+
+    CAUSAL signal result=0 error=Os { code: 11, kind: WouldBlock, message: "Resource temporarily unavailable" }
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    CAUSAL snapshot protected=false availability=unavailable attempt=1 cwd=PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) sandbox=Some(FileSystemSandboxContext { permissions: Managed { file_system: Restricted { entries: [FileSystemSandboxEntry { path: Special { value: Root }, access: Read, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }) }, access: Write, missing_path_behavior: None }, FileSystemSandboxEntry { path: Path { path: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/dev/fd", query: None, fragment: None }) }, access: Deny, missing_path_behavior: None }], glob_scan_max_depth: None }, network: Restricted }, sandbox_override: NoOverride, cwd: PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None }), workspace_roots: [PathUri(Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/scratch/agent/stable170/tmp/.tmpYdWA2D", query: None, fragment: None })], user_home_dir: None, temporary_directories: None, windows_sandbox_selection: Disabled, windows_sandbox_proxy_settings_mode: None, use_legacy_landlock: false })
+    Error: exec-server transport disconnected: failed to read websocket JSON-RPC message from exec-server websocket ws://127.0.0.1:36735: WebSocket protocol error: Connection reset without closing handshake; failed to resume exec-server session: recovery timed out after 45s
+
+────────────
+     Summary [  90.639s] 6 tests run: 1 passed, 5 failed, 975 skipped
+  TRY 2 FAIL [   0.187s] (1/6) codex-linux-sandbox::all suite::sandbox::sandbox_keeps_parent_repo_discovery_while_blocking_child_metadata
+  TRY 2 FAIL [   0.256s] (2/6) codex-exec-server::exec_process shell_snapshot_v2_filters_profile_exports_and_stays_in_memory::remote_sandbox
+  TRY 2 FAIL [   1.672s] (3/6) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_pipe_recovery
+  TRY 2 FAIL [   1.681s] (4/6) codex-exec-server::exec_process shell_snapshot_v2_capture_failure_falls_back_and_retries::remote_tty_recovery
+  TRY 2 FAIL [  45.287s] (6/6) codex-exec-server::exec_process shell_snapshot::shell_snapshot_concurrent_replays_keep_independent_readers::blocked_descriptor_path
+error: test run failed
+error: recipe `test` failed on line 96 with exit code 100

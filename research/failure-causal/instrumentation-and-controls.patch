@@ -1,0 +1,155 @@
+diff --git a/codex-rs/app-server/src/command_exec.rs b/codex-rs/app-server/src/command_exec.rs
+index c71aff3ddf..3e85e560f3 100644
+--- a/codex-rs/app-server/src/command_exec.rs
++++ b/codex-rs/app-server/src/command_exec.rs
+@@ -517,6 +517,7 @@ async fn run_command(params: RunCommandParams) {
+                                 handle_process_resize(&session, size)
+                             }
+                             CommandControl::Terminate => {
++                                eprintln!("CAUSAL received Terminate");
+                                 session.request_terminate();
+                                 Ok(())
+                             }
+diff --git a/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs b/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs
+index 8fe51274df..04f8127fea 100644
+--- a/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs
++++ b/codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs
+@@ -69,6 +69,15 @@ pub(crate) enum BindingCatalogRevision {
+     Cached(u64),
+ }
+ 
++impl std::fmt::Debug for BindingCatalogRevision {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        match self {
++            Self::Ready(v) => write!(f, "Ready({:p}, {})", Arc::as_ptr(&v.catalog), v.revision),
++            Self::Cached(v) => write!(f, "Cached({v})"),
++        }
++    }
++}
++
+ enum PendingCallToolInfo {
+     BindingCatalog(usize),
+     Owned(PreparedToolInfo),
+diff --git a/codex-rs/codex-mcp/src/runtime.rs b/codex-rs/codex-mcp/src/runtime.rs
+index 451bfb5eae..7cb44224cb 100644
+--- a/codex-rs/codex-mcp/src/runtime.rs
++++ b/codex-rs/codex-mcp/src/runtime.rs
+@@ -582,6 +582,7 @@ impl McpRuntime {
+             .connections
+             .stable_catalog_revisions(required_servers, required_plugins)
+             .await;
++        eprintln!("CAUSAL binding revisions={stable_catalog_revisions:?}");
+         if let Some(catalog_revisions) = &stable_catalog_revisions {
+             let cached = current
+                 .cached_binding
+diff --git a/codex-rs/core/src/model_search.rs b/codex-rs/core/src/model_search.rs
+index 54aef70137..5f2c1b7b4c 100644
+--- a/codex-rs/core/src/model_search.rs
++++ b/codex-rs/core/src/model_search.rs
+@@ -381,6 +381,7 @@ pub(crate) async fn resolve(
+         .extension_data
+         .get::<CachedSearch>()
+         .filter(|cached| Arc::ptr_eq(&cached.base, base) && cached.request == request);
++    eprintln!("CAUSAL search base={:p} cached={:?}", Arc::as_ptr(base), turn.extension_data.get::<CachedSearch>().map(|old| (format!("{:p}", Arc::as_ptr(&old.base)), Arc::ptr_eq(&old.base, base), old.request == request, format!("old={:?} new={:?}", old.request, request))));
+     let fresh = cached.is_none();
+     let cached = match cached {
+         Some(cached) => cached,
+diff --git a/codex-rs/core/tests/suite/network_approval.rs b/codex-rs/core/tests/suite/network_approval.rs
+index fda399249a..c36a79b4b7 100644
+--- a/codex-rs/core/tests/suite/network_approval.rs
++++ b/codex-rs/core/tests/suite/network_approval.rs
+@@ -1504,6 +1504,12 @@ PY"#
+         }
+     })
+     .await
++    .inspect_err(|_| {
++        eprintln!("CAUSAL lock path {}", local_cwd.join("network-process-lock").display());
++        eprintln!("CAUSAL locks {}", fs::read_to_string("/proc/locks").unwrap_or_default());
++        let ps = std::process::Command::new("ps").args(["-eo", "pid,ppid,pgid,sid,stat,args"]).output().unwrap();
++        eprintln!("CAUSAL survivors {}", String::from_utf8_lossy(&ps.stdout));
++    })
+     .context("background process remained alive after network rejection")??;
+     assert!(test.codex.list_background_terminals().await.is_empty());
+ 
+diff --git a/codex-rs/exec-server/src/shell_snapshot.rs b/codex-rs/exec-server/src/shell_snapshot.rs
+index 55a831c7cb..98c7bd0691 100644
+--- a/codex-rs/exec-server/src/shell_snapshot.rs
++++ b/codex-rs/exec-server/src/shell_snapshot.rs
+@@ -196,6 +196,7 @@ impl ShellSnapshotCache {
+             Some(Err(_)) => "unavailable",
+             None => "capture_pending",
+         };
++        eprintln!("CAUSAL snapshot protected={protected} availability={availability} attempt={attempt} cwd={:?} sandbox={:?}", params.cwd, params.sandbox);
+         let capture = async {
+             let prewarmed = purpose == CapturePurpose::Prewarm;
+             let attempt = attempt.to_string();
+@@ -210,6 +211,7 @@ impl ShellSnapshotCache {
+                     snapshot.prewarmed = prewarmed;
+                     snapshot
+                 });
++            eprintln!("CAUSAL capture result={:?}", result.as_ref().map(|_| ()).map_err(|(why, err)| (why, err)));
+             telemetry.shell_snapshot_captured(
+                 started_at.elapsed(),
+                 result.as_ref().map(|_| ()).map_err(|(reason, _)| *reason),
+@@ -457,7 +459,7 @@ done
+         .env_remove(CODEX_TOOL_CALL_ID_ENV_VAR)
+         .stdin(Stdio::null())
+         .stdout(Stdio::piped())
+-        .stderr(Stdio::null());
++        .stderr(Stdio::inherit());
+     if let Some(arg0) = &prepared.arg0 {
+         command.arg0(arg0);
+     }
+diff --git a/codex-rs/exec-server/tests/exec_process.rs b/codex-rs/exec-server/tests/exec_process.rs
+index bfd8417e37..fd8baedd4b 100644
+--- a/codex-rs/exec-server/tests/exec_process.rs
++++ b/codex-rs/exec-server/tests/exec_process.rs
+@@ -1105,7 +1105,7 @@ async fn shell_snapshot_v2_capture_failure_falls_back_and_retries(
+ 
+     std::fs::write(
+         home.path().join(profile_name),
+-        "printf x >> \"$HOME/captures\"\nprofile_helper() { printf recovered; }\n",
++        "printf '%s:%s\\n' \"$$\" \"$BASH_EXECUTION_STRING\" >> \"$HOME/profile-events\"\n printf x >> \"$HOME/captures\"\nprofile_helper() { printf recovered; }\n",
+     )?;
+     let (expected_output, expected_captures) = if failures_before_repair == 3 {
+         ("original", "xxx")
+@@ -1120,6 +1120,7 @@ async fn shell_snapshot_v2_capture_failure_falls_back_and_retries(
+             (expected_output.to_string(), String::new(), Some(0), true)
+         );
+     }
++    eprintln!("CAUSAL profile events {}", std::fs::read_to_string(home.path().join("profile-events")).unwrap_or_default());
+     assert_eq!(
+         std::fs::read_to_string(home.path().join("captures"))?,
+         expected_captures
+diff --git a/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs b/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs
+index 7d022116b1..46b2a28ee1 100644
+--- a/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs
++++ b/codex-rs/exec-server/tests/exec_process/shell_snapshot.rs
+@@ -252,12 +252,12 @@ async fn shell_snapshot_concurrent_replays_keep_independent_readers(
+                 collect_process_output_from_events(started.process).await?;
+             assert!(
+                 output.ends_with(&format!("restored:input-{index}")),
+-                "{output:?}"
++                "stdout={output:?} stderr={errors:?} status={status:?} closed={closed}"
+             );
+             if shell == "zsh" {
+                 assert!(
+                     output.ends_with(&format!("one'two|restored:input-{index}")),
+-                    "{output:?}"
++                    "stdout={output:?} stderr={errors:?} status={status:?} closed={closed}"
+                 );
+             }
+             assert_eq!((errors, status, closed), (String::new(), Some(7), true));
+diff --git a/codex-rs/linux-sandbox/tests/suite/sandbox.rs b/codex-rs/linux-sandbox/tests/suite/sandbox.rs
+index e0167df88c..cf370002a7 100644
+--- a/codex-rs/linux-sandbox/tests/suite/sandbox.rs
++++ b/codex-rs/linux-sandbox/tests/suite/sandbox.rs
+@@ -1164,7 +1164,7 @@ fi
+ 
+     let cwd = AbsolutePathBuf::try_from(subdir.as_path()).expect("cwd should be absolute");
+     let permission_profile = PermissionProfile::workspace_write_with(
+-        std::slice::from_ref(&cwd),
++        &[cwd.clone(), AbsolutePathBuf::try_from(redirected_tmp.as_ref()).expect("sibling write root")],
+         NetworkSandboxPolicy::Enabled,
+         /*exclude_tmpdir_env_var*/ false,
+         /*exclude_slash_tmp*/ false,

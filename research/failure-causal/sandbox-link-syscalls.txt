@@ -1,0 +1,589 @@
+3253987 +++ exited with 0 +++
+3253989 +++ exited with 0 +++
+3253984 +++ exited with 0 +++
+3253983 +++ exited with 0 +++
+3253982 +++ exited with 0 +++
+3253981 +++ exited with 0 +++
+3253980 +++ exited with 0 +++
+3253979 +++ exited with 0 +++
+3254046 +++ exited with 0 +++
+3254045 +++ exited with 0 +++
+3254044 +++ exited with 0 +++
+3254043 +++ exited with 0 +++
+3254042 +++ exited with 0 +++
+3254041 +++ exited with 0 +++
+3254040 +++ exited with 0 +++
+3254039 +++ exited with 0 +++
+3254080 +++ exited with 0 +++
+3254081 +++ exited with 0 +++
+3254079 +++ exited with 0 +++
+3254026 +++ exited with 0 +++
+3254028 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3254026, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3254027 +++ exited with 0 +++
+3254028 +++ exited with 0 +++
+3254100 +++ exited with 0 +++
+3254099 +++ exited with 0 +++
+3254098 +++ exited with 0 +++
+3254097 +++ exited with 0 +++
+3254096 +++ exited with 0 +++
+3254095 +++ exited with 0 +++
+3254094 +++ exited with 0 +++
+3254093 +++ exited with 0 +++
+3254106 +++ exited with 0 +++
+3254085 +++ exited with 0 +++
+3254087 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3254085, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3254089 +++ exited with 0 +++
+3254087 +++ exited with 0 +++
+3254108 +++ exited with 0 +++
+3254109 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3254108, si_uid=1002, si_status=0, si_utime=61 /* 0.61 s */, si_stime=63 /* 0.63 s */} ---
+3254109 +++ exited with 0 +++
+3256436 --- SIGUSR1 {si_signo=SIGUSR1, si_code=SI_TKILL, si_pid=3255611, si_uid=1002} ---
+3256436 +++ exited with 0 +++
+3255611 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3255611, si_uid=1002, si_status=0, si_utime=76 /* 0.76 s */, si_stime=100 /* 1.00 s */} ---
+3256734 symlink("/scratch/agent/failure-investigation/target/debug/deps/accepted_websocket-7496977ce7479b1e", "/scratch/agent/stable170/tmp/codex-exec-server-testsxYh07g/tmp/arg0-linux/codex-arg08OR0rH/apply_patch") = 0
+3256734 symlink("/scratch/agent/failure-investigation/target/debug/deps/accepted_websocket-7496977ce7479b1e", "/scratch/agent/stable170/tmp/codex-exec-server-testsxYh07g/tmp/arg0-linux/codex-arg08OR0rH/applypatch") = 0
+3256734 symlink("/scratch/agent/failure-investigation/target/debug/deps/accepted_websocket-7496977ce7479b1e", "/scratch/agent/stable170/tmp/codex-exec-server-testsxYh07g/tmp/arg0-linux/codex-arg08OR0rH/codex-linux-sandbox") = 0
+3256733 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256733, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256736 symlink("/scratch/agent/failure-investigation/target/debug/deps/capabilities_v2-2139537efa9bd96a", "/scratch/agent/stable170/tmp/codex-exec-server-testsO3ogGH/tmp/arg0-linux/codex-arg0ITsdoG/apply_patch") = 0
+3256736 symlink("/scratch/agent/failure-investigation/target/debug/deps/capabilities_v2-2139537efa9bd96a", "/scratch/agent/stable170/tmp/codex-exec-server-testsO3ogGH/tmp/arg0-linux/codex-arg0ITsdoG/applypatch") = 0
+3256736 symlink("/scratch/agent/failure-investigation/target/debug/deps/capabilities_v2-2139537efa9bd96a", "/scratch/agent/stable170/tmp/codex-exec-server-testsO3ogGH/tmp/arg0-linux/codex-arg0ITsdoG/codex-linux-sandbox") = 0
+3256735 symlink("/scratch/agent/failure-investigation/target/debug/deps/accepted_websocket-7496977ce7479b1e", "/scratch/agent/stable170/tmp/codex-exec-server-testsZMMgog/tmp/arg0-linux/codex-arg0YDKSD9/apply_patch") = 0
+3256735 symlink("/scratch/agent/failure-investigation/target/debug/deps/accepted_websocket-7496977ce7479b1e", "/scratch/agent/stable170/tmp/codex-exec-server-testsZMMgog/tmp/arg0-linux/codex-arg0YDKSD9/applypatch") = 0
+3256735 symlink("/scratch/agent/failure-investigation/target/debug/deps/accepted_websocket-7496977ce7479b1e", "/scratch/agent/stable170/tmp/codex-exec-server-testsZMMgog/tmp/arg0-linux/codex-arg0YDKSD9/codex-linux-sandbox") = 0
+3256734 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256734, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256737 symlink("/scratch/agent/failure-investigation/target/debug/deps/capabilities_v2-2139537efa9bd96a", "/scratch/agent/stable170/tmp/codex-exec-server-testsBUXY9Z/tmp/arg0-linux/codex-arg0cXaA7x/apply_patch") = 0
+3256737 symlink("/scratch/agent/failure-investigation/target/debug/deps/capabilities_v2-2139537efa9bd96a", "/scratch/agent/stable170/tmp/codex-exec-server-testsBUXY9Z/tmp/arg0-linux/codex-arg0cXaA7x/applypatch") = 0
+3256737 symlink("/scratch/agent/failure-investigation/target/debug/deps/capabilities_v2-2139537efa9bd96a", "/scratch/agent/stable170/tmp/codex-exec-server-testsBUXY9Z/tmp/arg0-linux/codex-arg0cXaA7x/codex-linux-sandbox") = 0
+3256736 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256736, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256735 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256735, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256738 symlink("/scratch/agent/failure-investigation/target/debug/deps/capability_discovery-20dcf668bf8e7799", "/scratch/agent/stable170/tmp/codex-exec-server-testsDnRiTG/tmp/arg0-linux/codex-arg039pC7z/apply_patch") = 0
+3256738 symlink("/scratch/agent/failure-investigation/target/debug/deps/capability_discovery-20dcf668bf8e7799", "/scratch/agent/stable170/tmp/codex-exec-server-testsDnRiTG/tmp/arg0-linux/codex-arg039pC7z/applypatch") = 0
+3256738 symlink("/scratch/agent/failure-investigation/target/debug/deps/capability_discovery-20dcf668bf8e7799", "/scratch/agent/stable170/tmp/codex-exec-server-testsDnRiTG/tmp/arg0-linux/codex-arg039pC7z/codex-linux-sandbox") = 0
+3256737 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256737, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256739 symlink("/scratch/agent/failure-investigation/target/debug/deps/capability_discovery-20dcf668bf8e7799", "/scratch/agent/stable170/tmp/codex-exec-server-testsRV2EgE/tmp/arg0-linux/codex-arg0gXe8Z7/apply_patch") = 0
+3256739 symlink("/scratch/agent/failure-investigation/target/debug/deps/capability_discovery-20dcf668bf8e7799", "/scratch/agent/stable170/tmp/codex-exec-server-testsRV2EgE/tmp/arg0-linux/codex-arg0gXe8Z7/applypatch") = 0
+3256739 symlink("/scratch/agent/failure-investigation/target/debug/deps/capability_discovery-20dcf668bf8e7799", "/scratch/agent/stable170/tmp/codex-exec-server-testsRV2EgE/tmp/arg0-linux/codex-arg0gXe8Z7/codex-linux-sandbox") = 0
+3256738 +++ exited with 0 +++
+3256702 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256738, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256742 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256742, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256740 symlink("/scratch/agent/failure-investigation/target/debug/deps/chatgpt_cloudflare_affinity-792e6b02653de62c", "/scratch/agent/stable170/tmp/codex-exec-server-testse0wYie/tmp/arg0-linux/codex-arg0AkYAbY/apply_patch") = 0
+3256740 symlink("/scratch/agent/failure-investigation/target/debug/deps/chatgpt_cloudflare_affinity-792e6b02653de62c", "/scratch/agent/stable170/tmp/codex-exec-server-testse0wYie/tmp/arg0-linux/codex-arg0AkYAbY/applypatch") = 0
+3256740 symlink("/scratch/agent/failure-investigation/target/debug/deps/chatgpt_cloudflare_affinity-792e6b02653de62c", "/scratch/agent/stable170/tmp/codex-exec-server-testse0wYie/tmp/arg0-linux/codex-arg0AkYAbY/codex-linux-sandbox") = 0
+3256743 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256743, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256739 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256739, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256741 symlink("/scratch/agent/failure-investigation/target/debug/deps/chatgpt_cloudflare_affinity-792e6b02653de62c", "/scratch/agent/stable170/tmp/codex-exec-server-testsy7bDNc/tmp/arg0-linux/codex-arg0bIfe1s/apply_patch") = 0
+3256741 symlink("/scratch/agent/failure-investigation/target/debug/deps/chatgpt_cloudflare_affinity-792e6b02653de62c", "/scratch/agent/stable170/tmp/codex-exec-server-testsy7bDNc/tmp/arg0-linux/codex-arg0bIfe1s/applypatch") = 0
+3256741 symlink("/scratch/agent/failure-investigation/target/debug/deps/chatgpt_cloudflare_affinity-792e6b02653de62c", "/scratch/agent/stable170/tmp/codex-exec-server-testsy7bDNc/tmp/arg0-linux/codex-arg0bIfe1s/codex-linux-sandbox") = 0
+3256740 +++ exited with 0 +++
+3256704 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256740, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256741 +++ exited with 0 +++
+3256704 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256741, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256744 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment-b476d00c83ec24b5", "/scratch/agent/stable170/tmp/codex-exec-server-testsHdO5Dy/tmp/arg0-linux/codex-arg0mf42HC/apply_patch") = 0
+3256744 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment-b476d00c83ec24b5", "/scratch/agent/stable170/tmp/codex-exec-server-testsHdO5Dy/tmp/arg0-linux/codex-arg0mf42HC/applypatch") = 0
+3256744 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment-b476d00c83ec24b5", "/scratch/agent/stable170/tmp/codex-exec-server-testsHdO5Dy/tmp/arg0-linux/codex-arg0mf42HC/codex-linux-sandbox") = 0
+3256747 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment-b476d00c83ec24b5", "/scratch/agent/stable170/tmp/codex-exec-server-testsaxcNNI/tmp/arg0-linux/codex-arg0op3D77/apply_patch") = 0
+3256747 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment-b476d00c83ec24b5", "/scratch/agent/stable170/tmp/codex-exec-server-testsaxcNNI/tmp/arg0-linux/codex-arg0op3D77/applypatch") = 0
+3256747 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment-b476d00c83ec24b5", "/scratch/agent/stable170/tmp/codex-exec-server-testsaxcNNI/tmp/arg0-linux/codex-arg0op3D77/codex-linux-sandbox") = 0
+3256749 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment_config-a22e88a28090d0f6", "/scratch/agent/stable170/tmp/codex-exec-server-testskI2H6I/tmp/arg0-linux/codex-arg0op11gT/apply_patch") = 0
+3256749 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment_config-a22e88a28090d0f6", "/scratch/agent/stable170/tmp/codex-exec-server-testskI2H6I/tmp/arg0-linux/codex-arg0op11gT/applypatch") = 0
+3256749 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment_config-a22e88a28090d0f6", "/scratch/agent/stable170/tmp/codex-exec-server-testskI2H6I/tmp/arg0-linux/codex-arg0op11gT/codex-linux-sandbox") = 0
+3256744 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256744, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256747 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256747, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256732 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256732, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256750 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment_config-a22e88a28090d0f6", "/scratch/agent/stable170/tmp/codex-exec-server-testsBQnDoL/tmp/arg0-linux/codex-arg0xRJQvq/apply_patch") = 0
+3256750 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment_config-a22e88a28090d0f6", "/scratch/agent/stable170/tmp/codex-exec-server-testsBQnDoL/tmp/arg0-linux/codex-arg0xRJQvq/applypatch") = 0
+3256750 symlink("/scratch/agent/failure-investigation/target/debug/deps/environment_config-a22e88a28090d0f6", "/scratch/agent/stable170/tmp/codex-exec-server-testsBQnDoL/tmp/arg0-linux/codex-arg0xRJQvq/codex-linux-sandbox") = 0
+3256749 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256749, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256751 symlink("/scratch/agent/failure-investigation/target/debug/deps/exec_process-07610ec2ad5a3dec", "/scratch/agent/stable170/tmp/codex-exec-server-testskpBva3/tmp/arg0-linux/codex-arg0VRbJmP/apply_patch") = 0
+3256751 symlink("/scratch/agent/failure-investigation/target/debug/deps/exec_process-07610ec2ad5a3dec", "/scratch/agent/stable170/tmp/codex-exec-server-testskpBva3/tmp/arg0-linux/codex-arg0VRbJmP/applypatch") = 0
+3256751 symlink("/scratch/agent/failure-investigation/target/debug/deps/exec_process-07610ec2ad5a3dec", "/scratch/agent/stable170/tmp/codex-exec-server-testskpBva3/tmp/arg0-linux/codex-arg0VRbJmP/codex-linux-sandbox") = 0
+3256750 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256750, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256753 symlink("/scratch/agent/failure-investigation/target/debug/deps/exec_process-07610ec2ad5a3dec", "/scratch/agent/stable170/tmp/codex-exec-server-testspMT1Hx/tmp/arg0-linux/codex-arg079XCwH/apply_patch") = 0
+3256753 symlink("/scratch/agent/failure-investigation/target/debug/deps/exec_process-07610ec2ad5a3dec", "/scratch/agent/stable170/tmp/codex-exec-server-testspMT1Hx/tmp/arg0-linux/codex-arg079XCwH/applypatch") = 0
+3256753 symlink("/scratch/agent/failure-investigation/target/debug/deps/exec_process-07610ec2ad5a3dec", "/scratch/agent/stable170/tmp/codex-exec-server-testspMT1Hx/tmp/arg0-linux/codex-arg079XCwH/codex-linux-sandbox") = 0
+3256753 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256753, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256762 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256762, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256751 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256751, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256763 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256763, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256756 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_stream-605eedbdcc053e66", "/scratch/agent/stable170/tmp/codex-exec-server-testsTzVh4f/tmp/arg0-linux/codex-arg0DlojDf/apply_patch") = 0
+3256756 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_stream-605eedbdcc053e66", "/scratch/agent/stable170/tmp/codex-exec-server-testsTzVh4f/tmp/arg0-linux/codex-arg0DlojDf/applypatch") = 0
+3256756 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_stream-605eedbdcc053e66", "/scratch/agent/stable170/tmp/codex-exec-server-testsTzVh4f/tmp/arg0-linux/codex-arg0DlojDf/codex-linux-sandbox") = 0
+3256757 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_stream-605eedbdcc053e66", "/scratch/agent/stable170/tmp/codex-exec-server-tests4vyom6/tmp/arg0-linux/codex-arg0sohfbK/apply_patch") = 0
+3256757 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_stream-605eedbdcc053e66", "/scratch/agent/stable170/tmp/codex-exec-server-tests4vyom6/tmp/arg0-linux/codex-arg0sohfbK/applypatch") = 0
+3256757 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_stream-605eedbdcc053e66", "/scratch/agent/stable170/tmp/codex-exec-server-tests4vyom6/tmp/arg0-linux/codex-arg0sohfbK/codex-linux-sandbox") = 0
+3256759 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_system_unix-0c287ce440a33bad", "/scratch/agent/stable170/tmp/codex-exec-server-tests0DP06g/tmp/arg0-linux/codex-arg0nrlOCp/apply_patch") = 0
+3256759 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_system_unix-0c287ce440a33bad", "/scratch/agent/stable170/tmp/codex-exec-server-tests0DP06g/tmp/arg0-linux/codex-arg0nrlOCp/applypatch") = 0
+3256759 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_system_unix-0c287ce440a33bad", "/scratch/agent/stable170/tmp/codex-exec-server-tests0DP06g/tmp/arg0-linux/codex-arg0nrlOCp/codex-linux-sandbox") = 0
+3256756 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256756, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256757 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256757, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256761 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_system_unix-0c287ce440a33bad", "/scratch/agent/stable170/tmp/codex-exec-server-testsbU0jx6/tmp/arg0-linux/codex-arg0LvPEGJ/apply_patch") = 0
+3256761 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_system_unix-0c287ce440a33bad", "/scratch/agent/stable170/tmp/codex-exec-server-testsbU0jx6/tmp/arg0-linux/codex-arg0LvPEGJ/applypatch") = 0
+3256761 symlink("/scratch/agent/failure-investigation/target/debug/deps/file_system_unix-0c287ce440a33bad", "/scratch/agent/stable170/tmp/codex-exec-server-testsbU0jx6/tmp/arg0-linux/codex-arg0LvPEGJ/codex-linux-sandbox") = 0
+3256761 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256761, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256764 symlink("/scratch/agent/failure-investigation/target/debug/deps/forward-e2f630c36b2cdab3", "/scratch/agent/stable170/tmp/codex-exec-server-tests4GdM5V/tmp/arg0-linux/codex-arg0QNb5oE/apply_patch") = 0
+3256764 symlink("/scratch/agent/failure-investigation/target/debug/deps/forward-e2f630c36b2cdab3", "/scratch/agent/stable170/tmp/codex-exec-server-tests4GdM5V/tmp/arg0-linux/codex-arg0QNb5oE/applypatch") = 0
+3256770 +++ exited with 0 +++
+3256764 symlink("/scratch/agent/failure-investigation/target/debug/deps/forward-e2f630c36b2cdab3", "/scratch/agent/stable170/tmp/codex-exec-server-tests4GdM5V/tmp/arg0-linux/codex-arg0QNb5oE/codex-linux-sandbox" <unfinished ...>
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256770, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256764 <... symlink resumed>)          = 0
+3256772 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256772, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256766 symlink("/scratch/agent/failure-investigation/target/debug/deps/forward-e2f630c36b2cdab3", "/scratch/agent/stable170/tmp/codex-exec-server-testsgD5qd8/tmp/arg0-linux/codex-arg0kwBQXf/apply_patch") = 0
+3256766 symlink("/scratch/agent/failure-investigation/target/debug/deps/forward-e2f630c36b2cdab3", "/scratch/agent/stable170/tmp/codex-exec-server-testsgD5qd8/tmp/arg0-linux/codex-arg0kwBQXf/applypatch") = 0
+3256766 symlink("/scratch/agent/failure-investigation/target/debug/deps/forward-e2f630c36b2cdab3", "/scratch/agent/stable170/tmp/codex-exec-server-testsgD5qd8/tmp/arg0-linux/codex-arg0kwBQXf/codex-linux-sandbox") = 0
+3256759 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256759, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256764 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256764, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256767 symlink("/scratch/agent/failure-investigation/target/debug/deps/health-d17edf0d9f3f1fc8", "/scratch/agent/stable170/tmp/codex-exec-server-testsim5RJ7/tmp/arg0-linux/codex-arg0Lfnfg5/apply_patch") = 0
+3256767 symlink("/scratch/agent/failure-investigation/target/debug/deps/health-d17edf0d9f3f1fc8", "/scratch/agent/stable170/tmp/codex-exec-server-testsim5RJ7/tmp/arg0-linux/codex-arg0Lfnfg5/applypatch") = 0
+3256767 symlink("/scratch/agent/failure-investigation/target/debug/deps/health-d17edf0d9f3f1fc8", "/scratch/agent/stable170/tmp/codex-exec-server-testsim5RJ7/tmp/arg0-linux/codex-arg0Lfnfg5/codex-linux-sandbox") = 0
+3256768 symlink("/scratch/agent/failure-investigation/target/debug/deps/health-d17edf0d9f3f1fc8", "/scratch/agent/stable170/tmp/codex-exec-server-tests2AgUAI/tmp/arg0-linux/codex-arg0JLFfYI/apply_patch") = 0
+3256768 symlink("/scratch/agent/failure-investigation/target/debug/deps/health-d17edf0d9f3f1fc8", "/scratch/agent/stable170/tmp/codex-exec-server-tests2AgUAI/tmp/arg0-linux/codex-arg0JLFfYI/applypatch") = 0
+3256768 symlink("/scratch/agent/failure-investigation/target/debug/deps/health-d17edf0d9f3f1fc8", "/scratch/agent/stable170/tmp/codex-exec-server-tests2AgUAI/tmp/arg0-linux/codex-arg0JLFfYI/codex-linux-sandbox") = 0
+3256766 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256766, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256767 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256767, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3256768 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256768, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256773 symlink("/scratch/agent/failure-investigation/target/debug/deps/http_request-a4f64ef427a6949f", "/scratch/agent/stable170/tmp/codex-exec-server-testsq56fal/tmp/arg0-linux/codex-arg0YRNHmx/apply_patch") = 0
+3256773 symlink("/scratch/agent/failure-investigation/target/debug/deps/http_request-a4f64ef427a6949f", "/scratch/agent/stable170/tmp/codex-exec-server-testsq56fal/tmp/arg0-linux/codex-arg0YRNHmx/applypatch") = 0
+3256773 symlink("/scratch/agent/failure-investigation/target/debug/deps/http_request-a4f64ef427a6949f", "/scratch/agent/stable170/tmp/codex-exec-server-testsq56fal/tmp/arg0-linux/codex-arg0YRNHmx/codex-linux-sandbox") = 0
+3256792 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256792, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256775 symlink("/scratch/agent/failure-investigation/target/debug/deps/http_request-a4f64ef427a6949f", "/scratch/agent/stable170/tmp/codex-exec-server-testsTs0STd/tmp/arg0-linux/codex-arg03RB19b/apply_patch") = 0
+3256775 symlink("/scratch/agent/failure-investigation/target/debug/deps/http_request-a4f64ef427a6949f", "/scratch/agent/stable170/tmp/codex-exec-server-testsTs0STd/tmp/arg0-linux/codex-arg03RB19b/applypatch") = 0
+3256775 symlink("/scratch/agent/failure-investigation/target/debug/deps/http_request-a4f64ef427a6949f", "/scratch/agent/stable170/tmp/codex-exec-server-testsTs0STd/tmp/arg0-linux/codex-arg03RB19b/codex-linux-sandbox" <unfinished ...>
+3256777 +++ exited with 0 +++
+3256775 <... symlink resumed>)          = 0
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256777, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256793 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256793, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256787 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256787, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256773 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256773, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256775 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256775, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256788 symlink("/scratch/agent/failure-investigation/target/debug/deps/initialize-bdcc9c549fc6eff7", "/scratch/agent/stable170/tmp/codex-exec-server-testsjM7Ed1/tmp/arg0-linux/codex-arg060JBPX/apply_patch") = 0
+3256788 symlink("/scratch/agent/failure-investigation/target/debug/deps/initialize-bdcc9c549fc6eff7", "/scratch/agent/stable170/tmp/codex-exec-server-testsjM7Ed1/tmp/arg0-linux/codex-arg060JBPX/applypatch") = 0
+3256788 symlink("/scratch/agent/failure-investigation/target/debug/deps/initialize-bdcc9c549fc6eff7", "/scratch/agent/stable170/tmp/codex-exec-server-testsjM7Ed1/tmp/arg0-linux/codex-arg060JBPX/codex-linux-sandbox") = 0
+3256789 symlink("/scratch/agent/failure-investigation/target/debug/deps/initialize-bdcc9c549fc6eff7", "/scratch/agent/stable170/tmp/codex-exec-server-testsjxyRiv/tmp/arg0-linux/codex-arg0n00Y4S/apply_patch") = 0
+3256789 symlink("/scratch/agent/failure-investigation/target/debug/deps/initialize-bdcc9c549fc6eff7", "/scratch/agent/stable170/tmp/codex-exec-server-testsjxyRiv/tmp/arg0-linux/codex-arg0n00Y4S/applypatch") = 0
+3256789 symlink("/scratch/agent/failure-investigation/target/debug/deps/initialize-bdcc9c549fc6eff7", "/scratch/agent/stable170/tmp/codex-exec-server-testsjxyRiv/tmp/arg0-linux/codex-arg0n00Y4S/codex-linux-sandbox") = 0
+3256788 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256788, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256789 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256789, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256794 symlink("/scratch/agent/failure-investigation/target/debug/deps/process-fffd8d8f5483848f", "/scratch/agent/stable170/tmp/codex-exec-server-testsOHi5H1/tmp/arg0-linux/codex-arg0l6I1DD/apply_patch") = 0
+3256794 symlink("/scratch/agent/failure-investigation/target/debug/deps/process-fffd8d8f5483848f", "/scratch/agent/stable170/tmp/codex-exec-server-testsOHi5H1/tmp/arg0-linux/codex-arg0l6I1DD/applypatch") = 0
+3256794 symlink("/scratch/agent/failure-investigation/target/debug/deps/process-fffd8d8f5483848f", "/scratch/agent/stable170/tmp/codex-exec-server-testsOHi5H1/tmp/arg0-linux/codex-arg0l6I1DD/codex-linux-sandbox") = 0
+3256794 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256794, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3256795 symlink("/scratch/agent/failure-investigation/target/debug/deps/process-fffd8d8f5483848f", "/scratch/agent/stable170/tmp/codex-exec-server-testsYVWsry/tmp/arg0-linux/codex-arg03T1eMH/apply_patch") = 0
+3256795 symlink("/scratch/agent/failure-investigation/target/debug/deps/process-fffd8d8f5483848f", "/scratch/agent/stable170/tmp/codex-exec-server-testsYVWsry/tmp/arg0-linux/codex-arg03T1eMH/applypatch") = 0
+3256795 symlink("/scratch/agent/failure-investigation/target/debug/deps/process-fffd8d8f5483848f", "/scratch/agent/stable170/tmp/codex-exec-server-testsYVWsry/tmp/arg0-linux/codex-arg03T1eMH/codex-linux-sandbox") = 0
+3256796 symlink("/scratch/agent/failure-investigation/target/debug/deps/relay-bc5731d45c206ad9", "/scratch/agent/stable170/tmp/codex-exec-server-testsNmnlDo/tmp/arg0-linux/codex-arg03HFVJS/apply_patch") = 0
+3256796 symlink("/scratch/agent/failure-investigation/target/debug/deps/relay-bc5731d45c206ad9", "/scratch/agent/stable170/tmp/codex-exec-server-testsNmnlDo/tmp/arg0-linux/codex-arg03HFVJS/applypatch") = 0
+3256796 symlink("/scratch/agent/failure-investigation/target/debug/deps/relay-bc5731d45c206ad9", "/scratch/agent/stable170/tmp/codex-exec-server-testsNmnlDo/tmp/arg0-linux/codex-arg03HFVJS/codex-linux-sandbox") = 0
+3256798 symlink("/scratch/agent/failure-investigation/target/debug/deps/relay-bc5731d45c206ad9", "/scratch/agent/stable170/tmp/codex-exec-server-testsDLo9WE/tmp/arg0-linux/codex-arg0ZbQ39P/apply_patch") = 0
+3256798 symlink("/scratch/agent/failure-investigation/target/debug/deps/relay-bc5731d45c206ad9", "/scratch/agent/stable170/tmp/codex-exec-server-testsDLo9WE/tmp/arg0-linux/codex-arg0ZbQ39P/applypatch") = 0
+3256798 symlink("/scratch/agent/failure-investigation/target/debug/deps/relay-bc5731d45c206ad9", "/scratch/agent/stable170/tmp/codex-exec-server-testsDLo9WE/tmp/arg0-linux/codex-arg0ZbQ39P/codex-linux-sandbox" <unfinished ...>
+3256795 +++ exited with 0 +++
+3256798 <... symlink resumed>)          = 0
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256795, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256799 symlink("/scratch/agent/failure-investigation/target/debug/deps/selected_capability_roots-30091a417a515913", "/scratch/agent/stable170/tmp/codex-exec-server-testsTde7JR/tmp/arg0-linux/codex-arg09jiViE/apply_patch") = 0
+3256799 symlink("/scratch/agent/failure-investigation/target/debug/deps/selected_capability_roots-30091a417a515913", "/scratch/agent/stable170/tmp/codex-exec-server-testsTde7JR/tmp/arg0-linux/codex-arg09jiViE/applypatch") = 0
+3256799 symlink("/scratch/agent/failure-investigation/target/debug/deps/selected_capability_roots-30091a417a515913", "/scratch/agent/stable170/tmp/codex-exec-server-testsTde7JR/tmp/arg0-linux/codex-arg09jiViE/codex-linux-sandbox") = 0
+3256796 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256796, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256804 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256804, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256798 +++ exited with 0 +++
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256798, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256800 symlink("/scratch/agent/failure-investigation/target/debug/deps/selected_capability_roots-30091a417a515913", "/scratch/agent/stable170/tmp/codex-exec-server-testsiCbtGQ/tmp/arg0-linux/codex-arg0urGJDd/apply_patch") = 0
+3256800 symlink("/scratch/agent/failure-investigation/target/debug/deps/selected_capability_roots-30091a417a515913", "/scratch/agent/stable170/tmp/codex-exec-server-testsiCbtGQ/tmp/arg0-linux/codex-arg0urGJDd/applypatch") = 0
+3256800 symlink("/scratch/agent/failure-investigation/target/debug/deps/selected_capability_roots-30091a417a515913", "/scratch/agent/stable170/tmp/codex-exec-server-testsiCbtGQ/tmp/arg0-linux/codex-arg0urGJDd/codex-linux-sandbox" <unfinished ...>
+3256801 symlink("/scratch/agent/failure-investigation/target/debug/deps/websocket-9420fcbe48e6c72c", "/scratch/agent/stable170/tmp/codex-exec-server-tests8IKUao/tmp/arg0-linux/codex-arg08u3Qqj/apply_patch" <unfinished ...>
+3256800 <... symlink resumed>)          = 0
+3256801 <... symlink resumed>)          = 0
+3256801 symlink("/scratch/agent/failure-investigation/target/debug/deps/websocket-9420fcbe48e6c72c", "/scratch/agent/stable170/tmp/codex-exec-server-tests8IKUao/tmp/arg0-linux/codex-arg08u3Qqj/applypatch") = 0
+3256799 +++ exited with 0 +++
+3256801 symlink("/scratch/agent/failure-investigation/target/debug/deps/websocket-9420fcbe48e6c72c", "/scratch/agent/stable170/tmp/codex-exec-server-tests8IKUao/tmp/arg0-linux/codex-arg08u3Qqj/codex-linux-sandbox" <unfinished ...>
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256799, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256801 <... symlink resumed>)          = 0
+3256802 symlink("/scratch/agent/failure-investigation/target/debug/deps/websocket-9420fcbe48e6c72c", "/scratch/agent/stable170/tmp/codex-exec-server-testsRN451F/tmp/arg0-linux/codex-arg0ro40MD/apply_patch") = 0
+3256802 symlink("/scratch/agent/failure-investigation/target/debug/deps/websocket-9420fcbe48e6c72c", "/scratch/agent/stable170/tmp/codex-exec-server-testsRN451F/tmp/arg0-linux/codex-arg0ro40MD/applypatch") = 0
+3256802 symlink("/scratch/agent/failure-investigation/target/debug/deps/websocket-9420fcbe48e6c72c", "/scratch/agent/stable170/tmp/codex-exec-server-testsRN451F/tmp/arg0-linux/codex-arg0ro40MD/codex-linux-sandbox") = 0
+3256801 +++ exited with 0 +++
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256801, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256800 +++ exited with 0 +++
+3256806 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256800, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3253974 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256806, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256807 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256807, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256805 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256805, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256803 +++ exited with 0 +++
+3256802 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256803, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256705 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256802, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256808 +++ exited with 0 +++
+3256703 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256808, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256703 +++ exited with 0 +++
+3256731 +++ exited with 0 +++
+3256727 +++ exited with 0 +++
+3256726 +++ exited with 0 +++
+3256725 +++ exited with 0 +++
+3256720 +++ exited with 0 +++
+3256719 +++ exited with 0 +++
+3256717 +++ exited with 0 +++
+3256716 +++ exited with 0 +++
+3256715 +++ exited with 0 +++
+3256713 +++ exited with 0 +++
+3256708 +++ exited with 0 +++
+3256707 +++ exited with 0 +++
+3256706 +++ exited with 0 +++
+3256704 +++ exited with 0 +++
+3256724 +++ exited with 0 +++
+3256718 +++ exited with 0 +++
+3256712 +++ exited with 0 +++
+3256705 +++ exited with 0 +++
+3256702 +++ exited with 0 +++
+3256709 +++ exited with 0 +++
+3256729 +++ exited with 0 +++
+3256721 +++ exited with 0 +++
+3256714 +++ exited with 0 +++
+3256710 +++ exited with 0 +++
+3256728 +++ exited with 0 +++
+3256711 +++ exited with 0 +++
+3256723 +++ exited with 0 +++
+3256722 +++ exited with 0 +++
+3256730 +++ exited with 0 +++
+3256850 +++ exited with 0 +++
+3256848 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256850, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256852 symlink("/proc/self/fd/0", "/newroot/dev/stdin") = 0
+3256852 symlink("/proc/self/fd/1", "/newroot/dev/stdout") = 0
+3256852 symlink("/proc/self/fd/2", "/newroot/dev/stderr") = 0
+3256852 symlink("/proc/self/fd", "/newroot/dev/fd") = 0
+3256852 symlink("/proc/kcore", "/newroot/dev/core") = 0
+3256852 symlink("pts/ptmx", "/newroot/dev/ptmx") = 0
+3256852 +++ exited with 0 +++
+3256851 +++ exited with 0 +++
+3256848 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256851, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256855 symlink("/proc/self/fd/0", "/newroot/dev/stdin") = 0
+3256855 symlink("/proc/self/fd/1", "/newroot/dev/stdout") = 0
+3256855 symlink("/proc/self/fd/2", "/newroot/dev/stderr") = 0
+3256855 symlink("/proc/self/fd", "/newroot/dev/fd") = 0
+3256855 symlink("/proc/kcore", "/newroot/dev/core") = 0
+3256855 symlink("pts/ptmx", "/newroot/dev/ptmx") = 0
+3256858 +++ exited with 0 +++
+3256857 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256859 +++ exited with 0 +++
+3256857 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256862 +++ exited with 0 +++
+3256864 +++ exited with 0 +++
+3256857 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256866 +++ exited with 0 +++
+3256870 +++ exited with 0 +++
+3256867 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256867 +++ exited with 0 +++
+3256868 +++ exited with 0 +++
+3256865 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256865 +++ exited with 0 +++
+3256857 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256857 +++ exited with 0 +++
+3256855 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3256855 +++ exited with 0 +++
+3256854 +++ exited with 0 +++
+3256848 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256854, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256848 unlink("/scratch/agent/stable170/tmp/codex-bwrap-synthetic-mount-targets-1002/4d4ff5c87a99aa3d/3256848") = 0
+3256848 unlink("/scratch/agent/stable170/tmp/codex-bwrap-synthetic-mount-targets-1002/f644672c01afa874/3256848") = 0
+3256848 unlink("/scratch/agent/stable170/tmp/codex-bwrap-synthetic-mount-targets-1002/f2ae46dbdb33217a/3256848") = 0
+3256848 unlink("/scratch/agent/stable170/tmp/codex-bwrap-synthetic-mount-targets-1002/e0b1dfdbd0d39723/3256848") = 0
+3256848 +++ exited with 0 +++
+3256845 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256848, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256871 +++ exited with 0 +++
+3256845 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256871, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256872 +++ exited with 0 +++
+3256845 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256872, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256845 symlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp", "/scratch/agent/stable170/tmp/.tmpSyiSVx/tmp-alias") = 0
+3256873 rename("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config.lock", "/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config") = 0
+3256873 rename("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config.lock", "/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config") = 0
+3256873 rename("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config.lock", "/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config") = 0
+3256873 rename("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config.lock", "/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/config") = 0
+3256873 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/tNKgN6x") = 0
+3256873 symlink("testing", "/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/tNKgN6x") = 0
+3256873 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/tNKgN6x") = 0
+3256873 rename("/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/HEAD.lock", "/scratch/agent/stable170/tmp/.tmpSyiSVx/repo/.git/HEAD") = 0
+3256873 +++ exited with 0 +++
+3256845 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256873, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256878 +++ exited with 0 +++
+3256876 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256878, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256880 symlink("/proc/self/fd/0", "/newroot/dev/stdin") = 0
+3256880 symlink("/proc/self/fd/1", "/newroot/dev/stdout") = 0
+3256880 symlink("/proc/self/fd/2", "/newroot/dev/stderr") = 0
+3256880 symlink("/proc/self/fd", "/newroot/dev/fd") = 0
+3256880 symlink("/proc/kcore", "/newroot/dev/core") = 0
+3256880 symlink("pts/ptmx", "/newroot/dev/ptmx") = 0
+3256880 +++ exited with 0 +++
+3256879 +++ exited with 0 +++
+3256876 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256879, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256887 symlink("/proc/self/fd/0", "/newroot/dev/stdin") = 0
+3256887 symlink("/proc/self/fd/1", "/newroot/dev/stdout") = 0
+3256887 symlink("/proc/self/fd/2", "/newroot/dev/stderr") = 0
+3256887 symlink("/proc/self/fd", "/newroot/dev/fd") = 0
+3256887 symlink("/proc/kcore", "/newroot/dev/core") = 0
+3256887 symlink("pts/ptmx", "/newroot/dev/ptmx") = 0
+3256889 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256890 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256891 +++ exited with 0 +++
+3256892 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256897 +++ exited with 0 +++
+3256900 +++ exited with 0 +++
+3256898 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256898 +++ exited with 0 +++
+3256899 +++ exited with 0 +++
+3256896 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256896 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256901 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256902 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256903 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=14, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256911 +++ exited with 1 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=15, si_uid=1002, si_status=1, si_utime=0, si_stime=0} ---
+3256916 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256917 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=17, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256918 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=18, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256919 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=19, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256923 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=20, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256927 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=21, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256931 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=22, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256934 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=23, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256935 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=24, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256936 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=25, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256942 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=26, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256948 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=27, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256960 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=28, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256972 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=29, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256987 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=30, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3256997 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=31, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257005 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=32, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257012 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=33, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257020 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=34, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257026 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=35, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257033 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=36, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257040 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=37, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257047 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=38, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257053 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=39, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257061 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=40, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257068 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=41, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257078 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=42, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257091 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=43, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257107 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=44, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3257114 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=45, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257141 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=46, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257147 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=47, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257154 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=48, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257162 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=49, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257171 +++ exited with 0 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=50, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3257182 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/tmp-alias") = -1 EROFS (Read-only file system)
+3257182 symlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/redirected-tmp", "/scratch/agent/stable170/tmp/.tmpSyiSVx/tmp-alias") = -1 EEXIST (File exists)
+3257182 +++ exited with 1 +++
+3256888 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=51, si_uid=1002, si_status=1, si_utime=0, si_stime=0} ---
+3256888 +++ exited with 1 +++
+3256887 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=1, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3256887 +++ exited with 1 +++
+3256885 +++ exited with 1 +++
+3256876 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256885, si_uid=1002, si_status=1, si_utime=0, si_stime=0} ---
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/d5f9f588197870da/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/7580c4f9e965404d/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/3b9e7bbf4d3ec92d/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/6e7372bf69b708a4/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/887a56f7f7057a2c/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/d020a30804201482/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/677c1edce5631555/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/556f5ff7da5fab45/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/ee7cdbcc6e0b22a7/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/7fe00398fb278d61/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/d52ce442c12d8848/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/b885d2cc4ee96866/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/d40bdb1f454c404f/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/063cebc15e007869/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/e8fbc9723b2ea7d0/3256876") = 0
+3256876 unlink("/scratch/agent/stable170/tmp/.tmpSyiSVx/real-tmp/codex-bwrap-synthetic-mount-targets-1002/9dddf21f25fb79fe/3256876") = 0
+3256876 +++ exited with 1 +++
+3256845 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256876, si_uid=1002, si_status=1, si_utime=2 /* 0.02 s */, si_stime=2 /* 0.02 s */} ---
+3256845 unlinkat(11, "lock", 0)         = 0
+3256845 unlinkat(10, "codex-bwrap-synthetic-mount-targets-1002", AT_REMOVEDIR) = 0
+3256845 unlinkat(10, "writable-sibling", 0) = 0
+3256845 unlinkat(9, "real-tmp", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "063cebc15e007869", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "3b9e7bbf4d3ec92d", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "556f5ff7da5fab45", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "677c1edce5631555", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "6e7372bf69b708a4", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "7580c4f9e965404d", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "7fe00398fb278d61", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "887a56f7f7057a2c", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "9dddf21f25fb79fe", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "b885d2cc4ee96866", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "d020a30804201482", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "d40bdb1f454c404f", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "d52ce442c12d8848", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "d5f9f588197870da", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "e8fbc9723b2ea7d0", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "1", 0)            = 0
+3256845 unlinkat(11, "ee7cdbcc6e0b22a7", AT_REMOVEDIR) = 0
+3256845 unlinkat(10, "codex-bwrap-synthetic-mount-targets-1002", AT_REMOVEDIR) = 0
+3256845 unlinkat(9, "redirected-tmp", AT_REMOVEDIR) = 0
+3256845 unlinkat(9, "tmp-alias", 0)     = 0
+3256845 unlinkat(10, "sub", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "exclude", 0)      = 0
+3256845 unlinkat(11, "info", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "update.sample", 0) = 0
+3256845 unlinkat(12, "applypatch-msg.sample", 0) = 0
+3256845 unlinkat(12, "pre-commit.sample", 0) = 0
+3256845 unlinkat(12, "pre-rebase.sample", 0) = 0
+3256845 unlinkat(12, "commit-msg.sample", 0) = 0
+3256845 unlinkat(12, "pre-applypatch.sample", 0) = 0
+3256845 unlinkat(12, "pre-merge-commit.sample", 0) = 0
+3256845 unlinkat(12, "post-update.sample", 0) = 0
+3256845 unlinkat(12, "pre-push.sample", 0) = 0
+3256845 unlinkat(12, "prepare-commit-msg.sample", 0) = 0
+3256845 unlinkat(12, "pre-receive.sample", 0) = 0
+3256845 unlinkat(12, "push-to-checkout.sample", 0) = 0
+3256845 unlinkat(12, "fsmonitor-watchman.sample", 0) = 0
+3256845 unlinkat(12, "sendemail-validate.sample", 0) = 0
+3256845 unlinkat(11, "hooks", AT_REMOVEDIR) = 0
+3256845 unlinkat(11, "description", 0)  = 0
+3256845 unlinkat(11, "config", 0)       = 0
+3256845 unlinkat(12, "heads", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "tags", AT_REMOVEDIR) = 0
+3256845 unlinkat(11, "refs", AT_REMOVEDIR) = 0
+3256845 unlinkat(11, "HEAD", 0)         = 0
+3256845 unlinkat(12, "pack", AT_REMOVEDIR) = 0
+3256845 unlinkat(12, "info", AT_REMOVEDIR) = 0
+3256845 unlinkat(11, "objects", AT_REMOVEDIR) = 0
+3256845 unlinkat(10, ".git", AT_REMOVEDIR) = 0
+3256845 unlinkat(9, "repo", AT_REMOVEDIR) = 0
+3256845 unlinkat(AT_FDCWD, "/scratch/agent/stable170/tmp/.tmpSyiSVx", AT_REMOVEDIR) = 0
+3256846 +++ exited with 0 +++
+3256845 +++ exited with 0 +++
+3256842 +++ exited with 101 +++
+3256819 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3256842, si_uid=1002, si_status=101, si_utime=3 /* 0.03 s */, si_stime=2 /* 0.02 s */} ---
+3256840 +++ exited with 0 +++
+3256837 +++ exited with 0 +++
+3256830 +++ exited with 0 +++
+3256827 +++ exited with 0 +++
+3256823 +++ exited with 0 +++
+3256822 +++ exited with 0 +++
+3256820 +++ exited with 0 +++
+3256812 +++ exited with 0 +++
+3256841 +++ exited with 0 +++
+3256835 +++ exited with 0 +++
+3256834 +++ exited with 0 +++
+3256829 +++ exited with 0 +++
+3256826 +++ exited with 0 +++
+3256828 +++ exited with 0 +++
+3256824 +++ exited with 0 +++
+3256821 +++ exited with 0 +++
+3256825 +++ exited with 0 +++
+3256817 +++ exited with 0 +++
+3256816 +++ exited with 0 +++
+3256815 +++ exited with 0 +++
+3256813 +++ exited with 0 +++
+3256838 +++ exited with 0 +++
+3256833 +++ exited with 0 +++
+3256819 +++ exited with 0 +++
+3256814 +++ exited with 0 +++
+3256836 +++ exited with 0 +++
+3256832 +++ exited with 0 +++
+3256811 +++ exited with 0 +++
+3256831 +++ exited with 0 +++
+3256818 +++ exited with 0 +++
+3253974 +++ exited with 100 +++
+3253899 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3253974, si_uid=1002, si_status=100, si_utime=9 /* 0.09 s */, si_stime=13 /* 0.13 s */} ---
+3253899 +++ exited with 100 +++
+3253873 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3253899, si_uid=1002, si_status=100, si_utime=2 /* 0.02 s */, si_stime=1 /* 0.01 s */} ---
+3253887 +++ exited with 100 +++
+3253873 +++ exited with 100 +++

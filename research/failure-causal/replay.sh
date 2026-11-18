@@ -3,6 +3,8 @@
 set -uo pipefail
 cd codex-rs
 source ../research/stable-0.170.0-evidence/validation/env.sh
+export CARGO_HOME=/home/agent/.cargo RUSTUP_HOME=/home/agent/.rustup
+export PATH=/home/agent/.cargo/bin:$PATH
 export CARGO_TARGET_DIR=/scratch/agent/failure-investigation/target
 export CARGO_BUILD_BUILD_DIR="$CARGO_TARGET_DIR"
 just test -p codex-core -p codex-app-server -E 'test(network_rejection_preserves_execution_and_review_outcomes) | test(command_exec_process_ids_are_connection_scoped_and_disconnect_terminates_process) | test(model_lab_search_provider)'

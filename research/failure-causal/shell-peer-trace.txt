@@ -1,0 +1,623 @@
+3197221 +++ exited with 0 +++
+3197219 +++ exited with 0 +++
+3197218 +++ exited with 0 +++
+3197220 +++ exited with 0 +++
+3197217 +++ exited with 0 +++
+3197216 +++ exited with 0 +++
+3197215 +++ exited with 0 +++
+3197214 +++ exited with 0 +++
+3197236 +++ exited with 0 +++
+3197235 +++ exited with 0 +++
+3197234 +++ exited with 0 +++
+3197233 +++ exited with 0 +++
+3197232 +++ exited with 0 +++
+3197231 +++ exited with 0 +++
+3197230 +++ exited with 0 +++
+3197229 +++ exited with 0 +++
+3197238 +++ exited with 0 +++
+3197239 +++ exited with 0 +++
+3197237 +++ exited with 0 +++
+3197225 +++ exited with 0 +++
+3197226 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3197225, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3197227 +++ exited with 0 +++
+3197226 +++ exited with 0 +++
+3197248 +++ exited with 0 +++
+3197249 +++ exited with 0 +++
+3197247 +++ exited with 0 +++
+3197251 +++ exited with 0 +++
+3197250 +++ exited with 0 +++
+3197246 +++ exited with 0 +++
+3197245 +++ exited with 0 +++
+3197244 +++ exited with 0 +++
+3197253 +++ exited with 0 +++
+3197241 +++ exited with 0 +++
+3197243 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3197241, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3197243 +++ exited with 0 +++
+3197242 +++ exited with 0 +++
+3197254 +++ exited with 0 +++
+3197255 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3197254, si_uid=1002, si_status=0, si_utime=67 /* 0.67 s */, si_stime=57 /* 0.57 s */} ---
+3197255 +++ exited with 0 +++
+3197920 --- SIGUSR1 {si_signo=SIGUSR1, si_code=SI_TKILL, si_pid=3197416, si_uid=1002} ---
+3197920 +++ exited with 0 +++
+3197416 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3197416, si_uid=1002, si_status=0, si_utime=76 /* 0.76 s */, si_stime=95 /* 0.95 s */} ---
+3198195 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198195, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198197 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198197, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3198196 +++ exited with 0 +++
+3198157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198196, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198200 +++ exited with 0 +++
+3198157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198200, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198201 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198201, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3198206 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198206, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198202 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198202, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198207 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198207, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198203 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198203, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198204 +++ exited with 0 +++
+3198157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198204, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198205 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198205, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198194 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198194, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198208 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198208, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3198209 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198209, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198211 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198211, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198212 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198212, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198216 +++ exited with 0 +++
+3198157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198216, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198236 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198236, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198215 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198215, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198238 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198238, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198228 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198228, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198229 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198229, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198233 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198233, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198245 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198245, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198247 +++ exited with 0 +++
+3198157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198247, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198232 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198232, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198240 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198240, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198241 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198241, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198242 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198242, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198243 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198243, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198265 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198265, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198250 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198250, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198266 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198266, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198252 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198252, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198248 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198248, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198249 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198249, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198262 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198262, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198263 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198263, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198268 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198268, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198278 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198278, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198301 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198301, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198289 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198289, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198288 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198288, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198291 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198291, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198293 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198293, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198306 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198306, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198295 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198295, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198308 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198308, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198304 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198304, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198309 +++ exited with 0 +++
+3197213 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198309, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198299 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198299, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198297 +++ exited with 0 +++
+3198159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198297, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198189 +++ exited with 0 +++
+3198180 +++ exited with 0 +++
+3198179 +++ exited with 0 +++
+3198178 +++ exited with 0 +++
+3198170 +++ exited with 0 +++
+3198169 +++ exited with 0 +++
+3198168 +++ exited with 0 +++
+3198167 +++ exited with 0 +++
+3198163 +++ exited with 0 +++
+3198160 +++ exited with 0 +++
+3198158 +++ exited with 0 +++
+3198184 +++ exited with 0 +++
+3198186 +++ exited with 0 +++
+3198182 +++ exited with 0 +++
+3198173 +++ exited with 0 +++
+3198172 +++ exited with 0 +++
+3198171 +++ exited with 0 +++
+3198162 +++ exited with 0 +++
+3198183 +++ exited with 0 +++
+3198177 +++ exited with 0 +++
+3198165 +++ exited with 0 +++
+3198164 +++ exited with 0 +++
+3198159 +++ exited with 0 +++
+3198175 +++ exited with 0 +++
+3198166 +++ exited with 0 +++
+3198174 +++ exited with 0 +++
+3198161 +++ exited with 0 +++
+3198157 +++ exited with 0 +++
+3198176 +++ exited with 0 +++
+3198185 +++ exited with 0 +++
+3198397 +++ exited with 0 +++
+3198396 +++ exited with 0 +++
+3198390 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198396, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198488 +++ exited with 0 +++
+3198476 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198488, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198497 +++ exited with 0 +++
+3198495 +++ exited with 0 +++
+3198476 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198495, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198528 +++ exited with 0 +++
+3198526 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198530 +++ exited with 0 +++
+3198526 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198533 +++ exited with 0 +++
+3198534 +++ exited with 0 +++
+3198526 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198537 +++ exited with 0 +++
+3198542 +++ exited with 0 +++
+3198538 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198538 +++ exited with 0 +++
+3198539 +++ exited with 0 +++
+3198536 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198536 +++ exited with 0 +++
+3198526 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198544 +++ exited with 0 +++
+3198556 +++ exited with 0 +++
+3198545 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198545 +++ exited with 0 +++
+3198546 +++ exited with 0 +++
+3198543 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198543 +++ exited with 0 +++
+3198526 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198526 +++ exited with 7 +++
+3198513 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=7, si_utime=0, si_stime=0} ---
+3198513 +++ exited with 7 +++
+3198512 +++ exited with 7 +++
+3198476 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198512, si_uid=1002, si_status=7, si_utime=0, si_stime=0} ---
+3198476 +++ exited with 7 +++
+3198439 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198476, si_uid=1002, si_status=7, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3198580 +++ exited with 0 +++
+3198560 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198580, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198584 +++ exited with 0 +++
+3198582 +++ exited with 0 +++
+3198560 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198582, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198615 +++ exited with 0 +++
+3198609 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198620 +++ exited with 0 +++
+3198609 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198623 +++ exited with 0 +++
+3198624 +++ exited with 0 +++
+3198609 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198636 +++ exited with 0 +++
+3198645 +++ exited with 0 +++
+3198637 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198637 +++ exited with 0 +++
+3198638 +++ exited with 0 +++
+3198635 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198635 +++ exited with 0 +++
+3198609 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198649 +++ exited with 0 +++
+3198652 +++ exited with 0 +++
+3198650 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198650 +++ exited with 0 +++
+3198651 +++ exited with 0 +++
+3198648 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198648 +++ exited with 0 +++
+3198609 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198609 +++ exited with 0 +++
+3198601 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198601 +++ exited with 0 +++
+3198600 +++ exited with 0 +++
+3198560 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198600, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3198560 +++ exited with 0 +++
+3198442 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198560, si_uid=1002, si_status=0, si_utime=1 /* 0.01 s */, si_stime=2 /* 0.02 s */} ---
+3199048 +++ exited with 0 +++
+3199044 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199048, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199052 +++ exited with 0 +++
+3199050 +++ exited with 0 +++
+3199044 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199050, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199085 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199088 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199089 +++ exited with 0 +++
+3199090 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199104 +++ exited with 0 +++
+3199108 +++ exited with 0 +++
+3199105 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199105 +++ exited with 0 +++
+3199106 +++ exited with 0 +++
+3199103 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199103 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199112 +++ exited with 0 +++
+3199115 +++ exited with 0 +++
+3199113 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199113 +++ exited with 0 +++
+3199114 +++ exited with 0 +++
+3199111 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199111 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199120 +++ exited with 0 +++
+3199122 +++ exited with 0 +++
+3199121 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=20, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199121 +++ exited with 0 +++
+3199119 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=18, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199119 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=17, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199133 +++ exited with 0 +++
+3199139 +++ exited with 0 +++
+3199134 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=28, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199134 +++ exited with 0 +++
+3199138 +++ exited with 0 +++
+3199135 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=27, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199135 +++ exited with 0 +++
+3199137 +++ exited with 0 +++
+3199136 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=26, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199136 +++ exited with 0 +++
+3199132 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=22, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199132 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=21, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199143 +++ exited with 0 +++
+3199146 +++ exited with 0 +++
+3199144 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=33, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199144 +++ exited with 0 +++
+3199147 +++ exited with 0 +++
+3199145 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=34, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199145 +++ exited with 0 +++
+3199142 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=30, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199142 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=29, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199158 +++ exited with 0 +++
+3199084 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=35, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199084 +++ exited with 0 +++
+3199068 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3199068 +++ exited with 0 +++
+3199061 +++ exited with 0 +++
+3199044 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199061, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199044 +++ exited with 0 +++
+3198442 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199044, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3199175 +++ exited with 0 +++
+3199170 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199175, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199180 +++ exited with 0 +++
+3199177 +++ exited with 0 +++
+3199170 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199177, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199215 getpeername(0, 0x7ffcc6047a10, [16]) = -1 EPERM (Operation not permitted)
+3199215 +++ exited with 0 +++
+3199197 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199197 +++ exited with 0 +++
+3199195 +++ exited with 0 +++
+3199170 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199195, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199170 +++ exited with 0 +++
+3198441 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199170, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3199238 +++ exited with 0 +++
+3199233 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199238, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199249 +++ exited with 0 +++
+3199239 +++ exited with 0 +++
+3199233 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199239, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199278 getpeername(0, 0x7ffcce267950, [16]) = -1 EPERM (Operation not permitted)
+3199278 +++ exited with 0 +++
+3199262 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199262 +++ exited with 0 +++
+3199261 +++ exited with 0 +++
+3199233 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199261, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199233 +++ exited with 0 +++
+3198442 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199233, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3198453 +++ killed by SIGKILL +++
+3198452 +++ killed by SIGKILL +++
+3198443 +++ killed by SIGKILL +++
+3198442 +++ killed by SIGKILL +++
+3198441 +++ killed by SIGKILL +++
+3198440 +++ killed by SIGKILL +++
+3198439 +++ killed by SIGKILL +++
+3198436 +++ killed by SIGKILL +++
+3198435 +++ killed by SIGKILL +++
+3198434 +++ killed by SIGKILL +++
+3198433 +++ killed by SIGKILL +++
+3198432 +++ killed by SIGKILL +++
+3198431 +++ killed by SIGKILL +++
+3198430 +++ killed by SIGKILL +++
+3198429 +++ killed by SIGKILL +++
+3198428 +++ killed by SIGKILL +++
+3198426 +++ killed by SIGKILL +++
+3198425 +++ killed by SIGKILL +++
+3198424 +++ killed by SIGKILL +++
+3198423 +++ killed by SIGKILL +++
+3198422 +++ killed by SIGKILL +++
+3198421 +++ killed by SIGKILL +++
+3198420 +++ killed by SIGKILL +++
+3198419 +++ killed by SIGKILL +++
+3198418 +++ killed by SIGKILL +++
+3198417 +++ killed by SIGKILL +++
+3198416 +++ killed by SIGKILL +++
+3198415 +++ killed by SIGKILL +++
+3198413 +++ killed by SIGKILL +++
+3198559 +++ killed by SIGKILL +++
+3198437 +++ killed by SIGKILL +++
+3198427 +++ killed by SIGKILL +++
+3198391 +++ exited with 0 +++
+3198392 +++ exited with 0 +++
+3198390 +++ exited with 0 +++
+3198414 +++ killed by SIGKILL +++
+3198410 +++ killed by SIGKILL +++
+3198377 +++ exited with 101 +++
+3198371 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3198377, si_uid=1002, si_status=101, si_utime=1 /* 0.01 s */, si_stime=2 /* 0.02 s */} ---
+3199313 +++ exited with 0 +++
+3199310 +++ exited with 0 +++
+3199305 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199310, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199409 +++ exited with 0 +++
+3199398 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199409, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199413 +++ exited with 0 +++
+3199411 +++ exited with 0 +++
+3199398 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199411, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199435 +++ exited with 0 +++
+3199433 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199444 +++ exited with 0 +++
+3199433 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199445 +++ exited with 0 +++
+3199446 +++ exited with 0 +++
+3199433 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199460 +++ exited with 0 +++
+3199463 +++ exited with 0 +++
+3199461 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199461 +++ exited with 0 +++
+3199462 +++ exited with 0 +++
+3199459 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199459 +++ exited with 0 +++
+3199433 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199467 +++ exited with 0 +++
+3199471 +++ exited with 0 +++
+3199469 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199469 +++ exited with 0 +++
+3199470 +++ exited with 0 +++
+3199466 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199466 +++ exited with 0 +++
+3199433 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199433 +++ exited with 7 +++
+3199421 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=7, si_utime=0, si_stime=0} ---
+3199421 +++ exited with 7 +++
+3199418 +++ exited with 7 +++
+3199398 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199418, si_uid=1002, si_status=7, si_utime=0, si_stime=0} ---
+3199398 +++ exited with 7 +++
+3199329 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199398, si_uid=1002, si_status=7, si_utime=1 /* 0.01 s */, si_stime=1 /* 0.01 s */} ---
+3199481 +++ exited with 0 +++
+3199477 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199481, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199494 +++ exited with 0 +++
+3199492 +++ exited with 0 +++
+3199477 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199492, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199529 +++ exited with 0 +++
+3199519 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199530 +++ exited with 0 +++
+3199519 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199533 +++ exited with 0 +++
+3199534 +++ exited with 0 +++
+3199519 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199546 +++ exited with 0 +++
+3199556 +++ exited with 0 +++
+3199547 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199547 +++ exited with 0 +++
+3199549 +++ exited with 0 +++
+3199545 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199545 +++ exited with 0 +++
+3199519 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199564 +++ exited with 0 +++
+3199568 +++ exited with 0 +++
+3199565 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199565 +++ exited with 0 +++
+3199567 +++ exited with 0 +++
+3199562 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199562 +++ exited with 0 +++
+3199519 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199519 +++ exited with 0 +++
+3199514 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199514 +++ exited with 0 +++
+3199513 +++ exited with 0 +++
+3199477 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199513, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199477 +++ exited with 0 +++
+3199329 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199477, si_uid=1002, si_status=0, si_utime=0, si_stime=2 /* 0.02 s */} ---
+3199907 +++ exited with 0 +++
+3199905 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199907, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199960 +++ exited with 0 +++
+3199946 +++ exited with 0 +++
+3199905 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199946, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200050 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200056 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=4, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200066 +++ exited with 0 +++
+3200067 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=5, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200080 +++ exited with 0 +++
+3200086 +++ exited with 0 +++
+3200081 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=11, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200081 +++ exited with 0 +++
+3200082 +++ exited with 0 +++
+3200078 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=8, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200078 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=7, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200097 +++ exited with 0 +++
+3200104 +++ exited with 0 +++
+3200098 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200098 +++ exited with 0 +++
+3200099 +++ exited with 0 +++
+3200096 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200096 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200116 +++ exited with 0 +++
+3200120 +++ exited with 0 +++
+3200118 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=20, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200118 +++ exited with 0 +++
+3200112 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=18, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200112 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=17, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200133 +++ exited with 0 +++
+3200147 +++ exited with 0 +++
+3200134 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=26, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200134 +++ exited with 0 +++
+3200149 +++ exited with 0 +++
+3200135 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=27, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200135 +++ exited with 0 +++
+3200150 +++ exited with 0 +++
+3200136 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=28, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200136 +++ exited with 0 +++
+3200132 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=22, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200132 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=21, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200158 +++ exited with 0 +++
+3200169 +++ exited with 0 +++
+3200159 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=33, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200159 +++ exited with 0 +++
+3200170 +++ exited with 0 +++
+3200160 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=34, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200160 +++ exited with 0 +++
+3200157 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=30, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200157 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=29, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200175 +++ exited with 0 +++
+3200042 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=35, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200042 +++ exited with 0 +++
+3200017 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=1 /* 0.01 s */} ---
+3200017 +++ exited with 0 +++
+3200012 +++ exited with 0 +++
+3199905 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200012, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3199905 +++ exited with 0 +++
+3199358 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199905, si_uid=1002, si_status=0, si_utime=1 /* 0.01 s */, si_stime=1 /* 0.01 s */} ---
+3200203 +++ exited with 0 +++
+3200190 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200203, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200208 +++ exited with 0 +++
+3200206 +++ exited with 0 +++
+3200190 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200206, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200279 getpeername(0, 0x7ffd75438c30, [16]) = -1 EPERM (Operation not permitted)
+3200279 +++ exited with 0 +++
+3200261 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200261 +++ exited with 0 +++
+3200258 +++ exited with 0 +++
+3200190 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200258, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200190 +++ exited with 0 +++
+3199358 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200190, si_uid=1002, si_status=0, si_utime=1 /* 0.01 s */, si_stime=2 /* 0.02 s */} ---
+3200317 +++ exited with 0 +++
+3200306 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200317, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200339 +++ exited with 0 +++
+3200338 +++ exited with 0 +++
+3200306 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200338, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200373 getpeername(0, 0x7fffc08ae8b0, [16]) = -1 EPERM (Operation not permitted)
+3200373 +++ exited with 0 +++
+3200353 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=2, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200353 +++ exited with 0 +++
+3200352 +++ exited with 0 +++
+3200306 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200352, si_uid=1002, si_status=0, si_utime=0, si_stime=0} ---
+3200306 +++ exited with 0 +++
+3199358 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3200306, si_uid=1002, si_status=0, si_utime=1 /* 0.01 s */, si_stime=1 /* 0.01 s */} ---
+3200189 +++ killed by SIGKILL +++
+3199361 +++ killed by SIGKILL +++
+3199360 +++ killed by SIGKILL +++
+3199359 +++ killed by SIGKILL +++
+3199358 +++ killed by SIGKILL +++
+3199357 +++ killed by SIGKILL +++
+3199356 +++ killed by SIGKILL +++
+3199355 +++ killed by SIGKILL +++
+3199354 +++ killed by SIGKILL +++
+3199353 +++ killed by SIGKILL +++
+3199352 +++ killed by SIGKILL +++
+3199351 +++ killed by SIGKILL +++
+3199350 +++ killed by SIGKILL +++
+3199349 +++ killed by SIGKILL +++
+3199348 +++ killed by SIGKILL +++
+3199347 +++ killed by SIGKILL +++
+3199346 +++ killed by SIGKILL +++
+3199345 +++ killed by SIGKILL +++
+3199344 +++ killed by SIGKILL +++
+3199343 +++ killed by SIGKILL +++
+3199342 +++ killed by SIGKILL +++
+3199341 +++ killed by SIGKILL +++
+3199340 +++ killed by SIGKILL +++
+3199339 +++ killed by SIGKILL +++
+3199338 +++ killed by SIGKILL +++
+3199337 +++ killed by SIGKILL +++
+3199336 +++ killed by SIGKILL +++
+3199334 +++ killed by SIGKILL +++
+3199333 +++ killed by SIGKILL +++
+3199332 +++ killed by SIGKILL +++
+3199331 +++ killed by SIGKILL +++
+3199330 +++ killed by SIGKILL +++
+3199309 +++ exited with 0 +++
+3199308 +++ exited with 0 +++
+3199305 +++ exited with 0 +++
+3199288 +++ exited with 101 +++
+3198371 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3199288, si_uid=1002, si_status=101, si_utime=1 /* 0.01 s */, si_stime=3 /* 0.03 s */} ---
+3199329 +++ killed by SIGKILL +++
+3199317 +++ killed by SIGKILL +++
+3198373 +++ exited with 0 +++
+3198370 +++ exited with 0 +++
+3198368 +++ exited with 0 +++
+3198351 +++ exited with 0 +++
+3198348 +++ exited with 0 +++
+3198347 +++ exited with 0 +++
+3198374 +++ exited with 0 +++
+3198369 +++ exited with 0 +++
+3198365 +++ exited with 0 +++
+3198346 +++ exited with 0 +++
+3198364 +++ exited with 0 +++
+3198345 +++ exited with 0 +++
+3198361 +++ exited with 0 +++
+3198360 +++ exited with 0 +++
+3198366 +++ exited with 0 +++
+3198362 +++ exited with 0 +++
+3198372 +++ exited with 0 +++
+3198358 +++ exited with 0 +++
+3198371 +++ exited with 0 +++
+3198357 +++ exited with 0 +++
+3198356 +++ exited with 0 +++
+3198355 +++ exited with 0 +++
+3198367 +++ exited with 0 +++
+3198363 +++ exited with 0 +++
+3198352 +++ exited with 0 +++
+3198354 +++ exited with 0 +++
+3198353 +++ exited with 0 +++
+3198350 +++ exited with 0 +++
+3198349 +++ exited with 0 +++
+3198359 +++ exited with 0 +++
+3197213 +++ exited with 100 +++
+3197211 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3197213, si_uid=1002, si_status=100, si_utime=9 /* 0.09 s */, si_stime=17 /* 0.17 s */} ---
+3197211 +++ exited with 100 +++
+3197208 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3197211, si_uid=1002, si_status=100, si_utime=2 /* 0.02 s */, si_stime=1 /* 0.01 s */} ---
+3197210 +++ exited with 100 +++
+3197208 +++ exited with 100 +++
