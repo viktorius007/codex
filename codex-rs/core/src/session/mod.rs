@@ -2921,17 +2921,17 @@ impl Session {
                 .cloned(),
             status,
             error_info,
-                    async_result_origin: turn_context
-                        .extension_data
+            async_result_origin: turn_context
+                .extension_data
+                .get::<crate::agent::control::ParentAsyncResultOrigins>()
+                .and_then(|origins| origins.drain().pop())
+                .or_else(|| {
+                    self.services
+                        .thread_extension_data
                         .get::<crate::agent::control::ParentAsyncResultOrigins>()
                         .and_then(|origins| origins.drain().pop())
-                        .or_else(|| {
-                            self.services
-                                .thread_extension_data
-                                .get::<crate::agent::control::ParentAsyncResultOrigins>()
-                                .and_then(|origins| origins.drain().pop())
-                        })
-                        .unwrap_or_else(|| Arc::clone(&turn_context.extension_data)),
+                })
+                .unwrap_or_else(|| Arc::clone(&turn_context.extension_data)),
         };
         let host_outcome = if notify_native_parent {
             let host_outcome = reporter.is_some().then(|| outcome.clone());

@@ -705,17 +705,19 @@ async fn process_sse_with_treatment(
             Ok(None) => {}
             Err(error) => {
                 let error = error.into_api_error();
-                if is_failed || matches!(
-                    error,
-                    ApiError::FlexUnavailable
-                        | ApiError::ContextWindowExceeded
-                        | ApiError::InvalidRequest { .. }
-                        | ApiError::SessionBudgetExceeded
-                        | ApiError::InferenceHookDenied { .. }
-                        | ApiError::AccessProgramNotEnabled { .. }
-                        | ApiError::ContentPolicyViolation { .. }
-                        | ApiError::ResponseIncomplete(_)
-                ) {
+                if is_failed
+                    || matches!(
+                        error,
+                        ApiError::FlexUnavailable
+                            | ApiError::ContextWindowExceeded
+                            | ApiError::InvalidRequest { .. }
+                            | ApiError::SessionBudgetExceeded
+                            | ApiError::InferenceHookDenied { .. }
+                            | ApiError::AccessProgramNotEnabled { .. }
+                            | ApiError::ContentPolicyViolation { .. }
+                            | ApiError::ResponseIncomplete(_)
+                    )
+                {
                     let _ = tx_event.send(Err(error)).await;
                     return;
                 }

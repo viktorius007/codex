@@ -595,6 +595,9 @@ impl ContextManager {
                 .as_ref()
                 .is_none_or(|accepted| accepted.history_boundary <= self.items.len())
         );
+        self.last_server_reported_usage_item_count = accepted_usage
+            .as_ref()
+            .map_or(0, |usage| usage.history_boundary);
         self.token_info = info;
         self.accepted_token_usage = accepted_usage;
     }
@@ -663,6 +666,7 @@ impl ContextManager {
             total_tokens: context_window,
             ..TokenUsage::default()
         };
+        self.last_server_reported_usage_item_count = self.items.len();
         self.accepted_token_usage =
             Some(AcceptedTokenUsage::fully_accounted(usage, self.items.len()));
     }
@@ -1159,7 +1163,10 @@ impl ContextManager {
             "context history item counts"
         );
         self.set_token_info_with_boundary(Some(info), covered_item_count);
-        self.accepted_token_usage = Some(AcceptedTokenUsage::server_reported(usage.clone(), covered_item_count));
+        self.accepted_token_usage = Some(AcceptedTokenUsage::server_reported(
+            usage.clone(),
+            covered_item_count,
+        ));
     }
 
     /// Align the context count after history changes or buffered model output is committed.
@@ -1172,6 +1179,9 @@ impl ContextManager {
         self.last_server_reported_usage_item_count = self
             .last_model_output_item_count
             .unwrap_or(self.items.len());
+        if let Some(accepted) = &mut self.accepted_token_usage {
+            accepted.history_boundary = self.last_server_reported_usage_item_count;
+        }
     }
 
     fn get_non_last_reasoning_items_tokens(&self) -> i64 {
@@ -1233,7 +1243,7 @@ impl ContextManager {
             .map_or(0, |accepted| accepted.usage.total_tokens);
         let items_after_accepted_token_usage = self
             .items_after_accepted_token_usage()
-            .map(estimate_item_token_count)
+            .map(|item| estimate_item_token_count_with_audio(item, &self.file_audio_durations))
             .fold(0i64, i64::saturating_add);
         let requires_reasoning_compatibility_estimate =
             self.accepted_token_usage.as_ref().is_some_and(|accepted| {
@@ -1242,7 +1252,12 @@ impl ContextManager {
                     AcceptedUsageReasoningAccounting::RequiresCompatibilityEstimate
                 )
             });
-        if !self.token_info.as_ref().is_some_and(|info| info.last_usage_includes_reasoning == Some(true)) && requires_reasoning_compatibility_estimate {
+        if !self
+            .token_info
+            .as_ref()
+            .is_some_and(|info| info.last_usage_includes_reasoning == Some(true))
+            && requires_reasoning_compatibility_estimate
+        {
             last_tokens
                 .saturating_add(self.get_non_last_reasoning_items_tokens())
                 .saturating_add(items_after_accepted_token_usage)

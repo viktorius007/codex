@@ -249,7 +249,7 @@ impl McpHandler {
             .session
             .prepare_mcp_call(
                 &invocation.step_context.mcp,
-                &self.definition.tool_info.server_name,
+                self.definition.tool_info.server_key(),
                 self.definition.tool_info.tool.name.as_ref(),
             )
             .await;

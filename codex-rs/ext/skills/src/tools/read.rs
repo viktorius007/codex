@@ -163,9 +163,21 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                         Some((*entry, selected_source, Some(authority)))
                     })
                     .or_else(|| {
-                        if source.is_some() { return None; }
-                        let entry = self.context.step_state.host_catalog.as_ref()?.entries.iter()
-                            .find(|entry| entry.enabled && entry.is_plugin_package() && entry.id.0 == args.package.as_str())?;
+                        if source.is_some() {
+                            return None;
+                        }
+                        let entry = self
+                            .context
+                            .step_state
+                            .host_catalog
+                            .as_ref()?
+                            .entries
+                            .iter()
+                            .find(|entry| {
+                                entry.enabled
+                                    && entry.is_plugin_package()
+                                    && entry.id.0 == args.package.as_str()
+                            })?;
                         Some((entry, entry.primary_source(), None))
                     })
                     .ok_or_else(|| {
@@ -228,7 +240,12 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                     "Selected skill read source"
                 );
                 let (context, access_key) = match output_authority {
-                    None => (SkillReadContext::Host { host_snapshot: self.context.step_state.host_snapshot.clone() }, None),
+                    None => (
+                        SkillReadContext::Host {
+                            host_snapshot: self.context.step_state.host_snapshot.clone(),
+                        },
+                        None,
+                    ),
                     Some(SkillToolAuthoritySelector::Cloud) => (
                         SkillReadContext::Cloud {
                             mcp_resources: self.context.mcp_resources.clone(),
@@ -375,14 +392,15 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
                         installations_truncated,
                     })
                 } else {
-                    let skill_root = if output_authority == Some(SkillToolAuthoritySelector::Executor) {
-                        main_prompt
-                            .environment_path()
-                            .and_then(|(_, path)| path.parent())
-                            .map(|path| path.inferred_native_path_string())
-                    } else {
-                        None
-                    };
+                    let skill_root =
+                        if output_authority == Some(SkillToolAuthoritySelector::Executor) {
+                            main_prompt
+                                .environment_path()
+                                .and_then(|(_, path)| path.parent())
+                                .map(|path| path.inferred_native_path_string())
+                        } else {
+                            None
+                        };
                     ReadMetadata::Legacy(LegacyReadMetadata { skill_root })
                 };
                 let response = page_response(

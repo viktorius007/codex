@@ -389,7 +389,11 @@ pub(crate) struct McpConnectionSet {
 }
 
 impl McpConnectionSet {
-    pub(crate) fn has_same_server_connection_identity(&self, current: &Self, server: &str) -> bool {
+    pub(crate) fn has_same_server_connection_identity(
+        &self,
+        current: &Self,
+        server: &McpServerKey,
+    ) -> bool {
         let Some(sampled) = self.servers.get(server) else {
             return false;
         };

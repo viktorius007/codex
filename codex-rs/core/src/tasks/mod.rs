@@ -698,13 +698,13 @@ impl Session {
             |item| matches!(item, TurnInput::InterAgentCommunication(mail) if mail.trigger_turn),
         );
             if !triggered {
-            // Queue-only mail wakes durable sleep without selecting a new task's settings.
-            start_options = previous_options;
-            start_options.cyber_access_program = self
-                .reference_context_item()
-                .await
-                .and_then(|context| context.cyber_access_program);
-        }
+                // Queue-only mail wakes durable sleep without selecting a new task's settings.
+                start_options = previous_options;
+                start_options.cyber_access_program = self
+                    .reference_context_item()
+                    .await
+                    .and_then(|context| context.cyber_access_program);
+            }
             let rollback_start_options = start_options.clone();
             let options = NewTurnContextOptions {
                 direct_only_tool_namespaces: start_options.direct_only_tool_namespaces,
@@ -931,7 +931,13 @@ impl Session {
             regular_output.is_some() && turn_context.terminal_error.lock().await.is_none();
         let finishing = CancellationToken::new();
         let finish_recording = finishing.clone().drop_guard();
-        let (turn_state, unadmitted_task, mut pending_input, outcome_handoff, _parent_result_residency_guard) = {
+        let (
+            turn_state,
+            unadmitted_task,
+            mut pending_input,
+            outcome_handoff,
+            _parent_result_residency_guard,
+        ) = {
             let mut active = self.active_turn.lock().await;
             let active_turn = active.as_mut()?;
             if !Arc::ptr_eq(&active_turn.task.as_ref()?.turn_context, &turn_context) {

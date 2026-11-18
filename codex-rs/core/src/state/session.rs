@@ -16,8 +16,8 @@ use super::auto_compact_window::AutoCompactWindowIds;
 use super::auto_compact_window::AutoCompactWindowSnapshot;
 use super::auto_compact_window::ContextWindowIdGenerator;
 use crate::TurnStartOptions;
-use crate::context_manager::AcceptedTokenUsage;
 use crate::agent::host::ServiceTierAcceptance;
+use crate::context_manager::AcceptedTokenUsage;
 use crate::context_manager::ContextManager;
 use crate::context_manager::HistoryReplacement;
 use crate::session::PreviousTurnSettings;
@@ -346,6 +346,7 @@ impl SessionState {
     ) {
         let mut info = self.token_info().unwrap_or(TokenUsageInfo {
             total_token_usage: TokenUsage::default(),
+            last_usage_includes_reasoning: None,
             last_token_usage: TokenUsage::default(),
             model_context_window: None,
         });
@@ -357,6 +358,7 @@ impl SessionState {
             info.model_context_window = Some(model_context_window);
         }
 
+        info.last_usage_includes_reasoning = Some(true);
         let accepted_history_items = self.history.annotated_items().len();
         let accepted_usage = info.last_token_usage.clone();
         self.history.set_token_info_and_accepted_usage(

@@ -84,16 +84,6 @@ impl SkillPromptKind {
         }
     }
 
-    pub(crate) fn usage_instructions(self) -> &'static str {
-        match self {
-            Self::Unaliased | Self::ResourceAliases | Self::ResourceAliasesV2 => {
-                SKILLS_HOW_TO_USE_WITH_SOURCE_LOCATORS
-            }
-            Self::HostAliases => SKILLS_HOW_TO_USE_WITH_HOST_ALIASES,
-            Self::HostPluginPackages => SKILLS_HOW_TO_USE_WITH_PLUGIN_PACKAGES,
-        }
-    }
-
     pub(crate) fn alias_instructions(self) -> Option<&'static str> {
         match self {
             Self::ResourceAliases | Self::ResourceAliasesV2 => Some(RESOURCE_ALIAS_INSTRUCTIONS),
@@ -116,6 +106,7 @@ impl SkillPrompt {
             | SkillPromptKind::ResourceAliases
             | SkillPromptKind::ResourceAliasesV2 => SKILLS_HOW_TO_USE_WITH_SOURCE_LOCATORS,
             SkillPromptKind::HostAliases => SKILLS_HOW_TO_USE_WITH_HOST_ALIASES,
+            SkillPromptKind::HostPluginPackages => SKILLS_HOW_TO_USE_WITH_PLUGIN_PACKAGES,
         };
         if self.omit_descriptions {
             instructions

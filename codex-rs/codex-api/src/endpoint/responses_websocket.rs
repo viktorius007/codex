@@ -441,7 +441,7 @@ impl ResponsesWebsocketConnection {
                     let response = run_websocket_response_stream(
                         &mut ws_stream,
                         tx_event.clone(),
-                        request_text,
+                        prepared_request,
                         idle_timeout,
                         telemetry,
                         turn_state.as_deref(),
@@ -1174,7 +1174,7 @@ async fn send_websocket_request(
 ) -> Result<(), ApiError> {
     if ws_stream
         .max_message_bytes
-        .is_some_and(|limit| request_text.len() > limit)
+        .is_some_and(|limit| request.text.len() > limit)
     {
         return Err(ApiError::WebsocketMessageTooLarge);
     }

@@ -259,6 +259,7 @@ pub(crate) async fn run_turn(
         prewarmed_client_session.unwrap_or_else(|| sess.services.model_client.new_session());
     // Pre-turn compaction projects incoming turn input without recording it, so a compact request
     // still contains only the stored history it will replace.
+    let pending_compaction_input = input.clone();
     if auto_compaction_enabled
         && let Err(err) = preserve_initial_input_during(
             &sess,
@@ -267,6 +268,7 @@ pub(crate) async fn run_turn(
             run_pre_sampling_compact(
                 &sess,
                 &turn_context,
+                &pending_compaction_input,
                 &mut client_session,
                 &cancellation_token,
             ),

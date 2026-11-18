@@ -2721,8 +2721,8 @@ impl ModelClientSession {
                 inference_trace_attempt,
                 &self.client.state,
                 interceptors,
-                cache_diagnostic_attempt,
                 Some(last_response_tx),
+                cache_diagnostic_attempt,
             );
             self.websocket_session.last_response_rx = Some(last_response_rx);
             return Ok(WebsocketStreamOutcome::Stream(stream));

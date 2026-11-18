@@ -817,7 +817,11 @@ impl Session {
     ) -> Option<(Arc<tokio::sync::Mutex<TurnState>>, TurnStartOptions)> {
         let mut active_turn = self.active_turn.lock().await;
         // Async results bypass the submission loop, so shutdown must also stop their wakes.
-        if self.outcome_handoffs_closed() || active_turn.is_some() || self.is_interrupted() || self.state.lock().await.shutting_down {
+        if self.outcome_handoffs_closed()
+            || active_turn.is_some()
+            || self.is_interrupted()
+            || self.state.lock().await.shutting_down
+        {
             return None;
         }
         let has_trigger_turn = self.input_queue.has_trigger_turn_mailbox_items().await;

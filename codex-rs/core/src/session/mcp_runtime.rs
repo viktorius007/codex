@@ -59,17 +59,23 @@ impl Session {
     pub(crate) async fn prepare_mcp_call(
         self: &Arc<Self>,
         binding: &McpBinding,
-        server: &str,
+        server: &McpServerKey,
         tool: &str,
-    ) -> Option<PreparedMcpCall> {
+    ) -> anyhow::Result<PreparedMcpCall> {
         self.refresh_mcp_if_dirty().await;
+        if server.name() == CODEX_APPS_MCP_SERVER_NAME {
+            self.wait_for_apps_tool_refresh().await;
+        }
         let current = self
             .services
             .mcp_runtime
             .current_binding_for_call(server)
-            .await?
-            .prepare_call(server, tool)?;
-        binding.prepare_call_if_current(current)
+            .await
+            .and_then(|current| current.prepare_call(server, tool))
+            .ok_or_else(|| anyhow::anyhow!("MCP tool is no longer available"))?;
+        binding
+            .prepare_call_if_current(current)
+            .ok_or_else(|| anyhow::anyhow!("MCP tool authority changed after sampling"))
     }
 
     pub(super) async fn latest_mcp_desired_state(

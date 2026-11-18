@@ -11,8 +11,8 @@ use codex_history::InitialHistory;
 use codex_history::ResponseItemEnvelope;
 use codex_history::ResumedHistory;
 use codex_protocol::AgentPath;
-use codex_protocol::SessionId;
 use codex_protocol::ContextWindowId;
+use codex_protocol::SessionId;
 use codex_protocol::ThreadId;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
@@ -461,6 +461,7 @@ async fn resumed_history_restores_last_accepted_token_usage_boundary() {
         RolloutItem::EventMsg(EventMsg::TokenCount(TokenCountEvent {
             info: Some(TokenUsageInfo {
                 total_token_usage: accepted_usage.clone(),
+                last_usage_includes_reasoning: Some(true),
                 last_token_usage: accepted_usage,
                 model_context_window: Some(128_000),
             }),

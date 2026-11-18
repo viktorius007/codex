@@ -109,7 +109,7 @@ impl McpBinding {
 
     /// Prepares an advertised call only while its captured execution authority remains current.
     pub fn prepare_call_if_current(&self, current: PreparedMcpCall) -> Option<PreparedMcpCall> {
-        let server = current.server_name.as_str();
+        let server = current.server_key();
         let tool = current.tool_info().tool.name.as_ref();
         if let Some(sampled) = self.prepare_call(server, tool) {
             return sampled
@@ -119,7 +119,7 @@ impl McpBinding {
         let frozen = self
             .tools
             .iter()
-            .find(|info| info.server_name == server && info.tool.name.as_ref() == tool)?;
+            .find(|info| info.server_key() == server && info.tool.name.as_ref() == tool)?;
         if self.config.as_ref() != current.config.as_ref()
             || !self
                 .connections
@@ -138,7 +138,7 @@ impl McpBinding {
         } else if let Some(annotations) = live.tool.annotations.as_mut() {
             annotations.read_only_hint = None;
         }
-        if server == crate::CODEX_APPS_MCP_SERVER_NAME {
+        if server.name() == crate::CODEX_APPS_MCP_SERVER_NAME {
             // Apps account selectors are live execution metadata: the call resolves and validates
             // the selected link from the live tool, and approvals are scoped to that link.
             if without_account_selector(frozen.clone()) != without_account_selector(live) {
@@ -320,7 +320,7 @@ impl PreparedMcpCall {
     /// Checks whether a refreshed call retains the sampled client, catalog, and permissions.
     /// Equivalent configuration publications are allowed; replacement clients are not.
     fn has_same_execution_authority(&self, current: &Self) -> bool {
-        self.server_name == current.server_name
+        self.server_key() == current.server_key()
             && self.tool_info().tool.name == current.tool_info().tool.name
             && Arc::ptr_eq(&self.client.client, &current.client.client)
             && Arc::ptr_eq(&self.client.tool_catalog, &current.client.tool_catalog)

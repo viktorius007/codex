@@ -1422,6 +1422,8 @@ fn usage_less_response_does_not_move_last_accepted_token_usage_boundary() {
             ..Default::default()
         },
         /*model_context_window*/ None,
+        /*includes_reasoning*/ false,
+        /*input_item_count*/ 0,
     );
     let pending_tool_output =
         custom_tool_call_output("accepted-call", "output after accepted usage");
@@ -1441,7 +1443,7 @@ fn usage_less_response_does_not_move_last_accepted_token_usage_boundary() {
         .map(estimate_item_token_count)
         .fold(100i64, i64::saturating_add);
     assert_eq!(
-        history.get_total_token_usage(/*server_reasoning_included*/ true),
+        history.get_total_token_usage(),
         expected_total,
         "items after the accepted usage boundary must remain estimated when a later response has no usage"
     );
@@ -1456,13 +1458,15 @@ fn replacing_history_invalidates_accepted_token_usage() {
             ..Default::default()
         },
         /*model_context_window*/ None,
+        /*includes_reasoning*/ false,
+        /*input_item_count*/ 0,
     );
     let replacement = user_msg("replacement history");
 
     history.replace(vec![replacement.clone()]);
 
     assert_eq!(
-        history.get_total_token_usage(/*server_reasoning_included*/ true),
+        history.get_total_token_usage(),
         estimate_item_token_count(&replacement),
         "replacing history must discard usage accepted for the previous history"
     );
@@ -1481,12 +1485,14 @@ fn removing_oldest_item_invalidates_accepted_token_usage() {
             ..Default::default()
         },
         /*model_context_window*/ None,
+        /*includes_reasoning*/ false,
+        /*input_item_count*/ 0,
     );
 
     history.remove_first_item();
 
     assert_eq!(
-        history.get_total_token_usage(/*server_reasoning_included*/ true),
+        history.get_total_token_usage(),
         estimate_item_token_count(&surviving_item),
         "removing accepted history must discard its stale usage total"
     );
@@ -1515,6 +1521,8 @@ fn encrypted_reasoning_is_counted_once_across_the_accepted_boundary(
                 ..Default::default()
             },
             /*model_context_window*/ None,
+            /*includes_reasoning*/ false,
+            /*input_item_count*/ 0,
         ),
         AcceptedReasoningUsage::FullyAccounted => history.set_token_usage_full(100),
     }
@@ -1534,7 +1542,7 @@ fn encrypted_reasoning_is_counted_once_across_the_accepted_boundary(
         + estimate_item_token_count(&tail_reasoning)
         + estimate_item_token_count(&tail_user);
     assert_eq!(
-        history.get_total_token_usage(/*server_reasoning_included*/ false),
+        history.get_total_token_usage(),
         expected_total,
         "encrypted reasoning in the estimated tail must not be counted again as accepted reasoning"
     );
@@ -1542,7 +1550,7 @@ fn encrypted_reasoning_is_counted_once_across_the_accepted_boundary(
 
 #[test_case(true; "server includes reasoning")]
 #[test_case(false; "server omits reasoning")]
-fn forced_full_usage_uses_the_context_window_as_the_active_total(server_reasoning_included: bool) {
+fn forced_full_usage_uses_the_context_window_as_the_active_total(_server_reasoning_included: bool) {
     let mut history = ContextManager::new();
     history.update_token_info(
         &TokenUsage {
@@ -1550,12 +1558,14 @@ fn forced_full_usage_uses_the_context_window_as_the_active_total(server_reasonin
             ..Default::default()
         },
         /*model_context_window*/ None,
+        /*includes_reasoning*/ false,
+        /*input_item_count*/ 0,
     );
 
     history.set_token_usage_full(/*context_window*/ 128);
 
     assert_eq!(
-        history.get_total_token_usage(server_reasoning_included),
+        history.get_total_token_usage(),
         128,
         "forced-full accounting must preserve the context-exceeded compaction signal"
     );
