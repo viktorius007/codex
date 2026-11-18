@@ -818,3 +818,31 @@ Codex supports running connected app-server and exec-server on different operati
 
 - [Failure causal replay commands](research/failure-causal/replay.sh) — Reproduces the selected lifecycle, search, shell and sandbox failure investigations using an isolated scratch target.
 - [Failure causal search replay](research/failure-causal/search.log) — Records executed search failures and exact binding identity, catalog revision and metadata comparisons.
+
+- [Causal evidence lifecycle-trace.txt](research/failure-causal/lifecycle-trace.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence survivors.json](research/failure-causal/survivors.json) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence survivor-cleanup.txt](research/failure-causal/survivor-cleanup.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-probe.py](research/failure-causal/bwrap-probe.py) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-rearm-probe.py](research/failure-causal/bwrap-rearm-probe.py) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-probe.txt](research/failure-causal/bwrap-probe.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-probe-2.txt](research/failure-causal/bwrap-probe-2.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-signals.txt](research/failure-causal/bwrap-signals.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-signals-2.txt](research/failure-causal/bwrap-signals-2.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-credentials.txt](research/failure-causal/bwrap-credentials.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-credentials-probe.txt](research/failure-causal/bwrap-credentials-probe.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-rearm-probe.txt](research/failure-causal/bwrap-rearm-probe.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence bwrap-copy-probe.txt](research/failure-causal/bwrap-copy-probe.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.
+
+- [Causal evidence host-bwrap-profile.txt](research/failure-causal/host-bwrap-profile.txt) — Preserves focused lifecycle process, signal, policy or controlled-probe evidence.

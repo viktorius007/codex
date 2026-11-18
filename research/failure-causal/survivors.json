@@ -1,0 +1,324 @@
+[
+  {
+    "pid": 2986745,
+    "ppid": "3080",
+    "pgid": "2986745",
+    "sid": "2986745",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/codex-app-server",
+    "nspid": [
+      "NSpid:\t2986745\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/app-server --command-cwd /home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/app-server --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"}]},\"network\":\"restricted\"} --apply-seccomp-then-exec -- python3 -c import time; print('ready', flush=True); time.sleep(30) codex-command-exec-marker-1795041856771123359 "
+  },
+  {
+    "pid": 2986752,
+    "ppid": "2986745",
+    "pgid": "2986745",
+    "sid": "2986745",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2986752\t2"
+    ],
+    "fds": [],
+    "cmd": "python3 -c import time; print('ready', flush=True); time.sleep(30) codex-command-exec-marker-1795041856771123359 "
+  },
+  {
+    "pid": 2986832,
+    "ppid": "3080",
+    "pgid": "2986832",
+    "sid": "2986832",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/deps/all-ec4b617a09cc4538",
+    "nspid": [
+      "NSpid:\t2986832\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /scratch/agent/stable170/tmp/.tmpk1J3Ts --command-cwd /scratch/agent/stable170/tmp/.tmpk1J3Ts --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpk1J3Ts\"},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"slash_tmp\"}},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"tmpdir\"}},\"access\":\"write\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpk1J3Ts/.git\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpk1J3Ts/.agents\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpk1J3Ts/.codex\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpk1J3Ts/.aws\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"}]},\"network\":\"enabled\"} --apply-seccomp-then-exec --managed-network {\"loopbackPorts\":[34441,35849],\"allowLocalBinding\":true,\"allowUnixSockets\":[],\"dangerouslyAllowAllUnixSockets\":false} --proxy-route-spec {\"routes\":[{\"env_key\":\"ALL_PROXY\",\"control_fd\":4},{\"env_key\":\"BUNDLE_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"BUNDLE_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"FTP_PROXY\",\"control_fd\":4},{\"env_key\":\"HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_PROXY\",\"control_fd\":5},{\"env_key\":\"PIP_PROXY\",\"control_fd\":5},{\"env_key\":\"WSS_PROXY\",\"control_fd\":5},{\"env_key\":\"WS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"all_proxy\",\"control_fd\":4},{\"env_key\":\"ftp_proxy\",\"control_fd\":4},{\"env_key\":\"http_proxy\",\"control_fd\":5},{\"env_key\":\"https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_http_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_proxy\",\"control_fd\":5},{\"env_key\":\"ws_proxy\",\"control_fd\":5},{\"env_key\":\"wss_proxy\",\"control_fd\":5}]} -- /usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2986834,
+    "ppid": "2986832",
+    "pgid": "2986832",
+    "sid": "2986832",
+    "state": "S",
+    "exe": "/usr/bin/dash",
+    "nspid": [
+      "NSpid:\t2986834\t2"
+    ],
+    "fds": [],
+    "cmd": "/usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2986842,
+    "ppid": "3080",
+    "pgid": "2986842",
+    "sid": "2986842",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/deps/all-ec4b617a09cc4538",
+    "nspid": [
+      "NSpid:\t2986842\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /scratch/agent/stable170/tmp/.tmp3yZCv9 --command-cwd /scratch/agent/stable170/tmp/.tmp3yZCv9 --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmp3yZCv9\"},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"slash_tmp\"}},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"tmpdir\"}},\"access\":\"write\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmp3yZCv9/.git\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmp3yZCv9/.agents\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmp3yZCv9/.codex\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmp3yZCv9/.aws\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"}]},\"network\":\"enabled\"} --apply-seccomp-then-exec --managed-network {\"loopbackPorts\":[44267,45991],\"allowLocalBinding\":true,\"allowUnixSockets\":[],\"dangerouslyAllowAllUnixSockets\":false} --proxy-route-spec {\"routes\":[{\"env_key\":\"ALL_PROXY\",\"control_fd\":4},{\"env_key\":\"BUNDLE_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"BUNDLE_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"FTP_PROXY\",\"control_fd\":4},{\"env_key\":\"HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_PROXY\",\"control_fd\":5},{\"env_key\":\"PIP_PROXY\",\"control_fd\":5},{\"env_key\":\"WSS_PROXY\",\"control_fd\":5},{\"env_key\":\"WS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"all_proxy\",\"control_fd\":4},{\"env_key\":\"ftp_proxy\",\"control_fd\":4},{\"env_key\":\"http_proxy\",\"control_fd\":5},{\"env_key\":\"https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_http_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_proxy\",\"control_fd\":5},{\"env_key\":\"ws_proxy\",\"control_fd\":5},{\"env_key\":\"wss_proxy\",\"control_fd\":5}]} -- /usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2986848,
+    "ppid": "2986842",
+    "pgid": "2986842",
+    "sid": "2986842",
+    "state": "S",
+    "exe": "/usr/bin/dash",
+    "nspid": [
+      "NSpid:\t2986848\t2"
+    ],
+    "fds": [],
+    "cmd": "/usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2986852,
+    "ppid": "3080",
+    "pgid": "2986852",
+    "sid": "2986852",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/deps/all-ec4b617a09cc4538",
+    "nspid": [
+      "NSpid:\t2986852\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /scratch/agent/stable170/tmp/.tmpRtBb1Y --command-cwd /scratch/agent/stable170/tmp/.tmpRtBb1Y --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRtBb1Y\"},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"slash_tmp\"}},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"tmpdir\"}},\"access\":\"write\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRtBb1Y/.git\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRtBb1Y/.agents\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRtBb1Y/.codex\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRtBb1Y/.aws\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"}]},\"network\":\"enabled\"} --apply-seccomp-then-exec --managed-network {\"loopbackPorts\":[33151,34353],\"allowLocalBinding\":true,\"allowUnixSockets\":[],\"dangerouslyAllowAllUnixSockets\":false} --proxy-route-spec {\"routes\":[{\"env_key\":\"ALL_PROXY\",\"control_fd\":4},{\"env_key\":\"BUNDLE_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"BUNDLE_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"FTP_PROXY\",\"control_fd\":4},{\"env_key\":\"HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_PROXY\",\"control_fd\":5},{\"env_key\":\"PIP_PROXY\",\"control_fd\":5},{\"env_key\":\"WSS_PROXY\",\"control_fd\":5},{\"env_key\":\"WS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"all_proxy\",\"control_fd\":4},{\"env_key\":\"ftp_proxy\",\"control_fd\":4},{\"env_key\":\"http_proxy\",\"control_fd\":5},{\"env_key\":\"https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_http_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_proxy\",\"control_fd\":5},{\"env_key\":\"ws_proxy\",\"control_fd\":5},{\"env_key\":\"wss_proxy\",\"control_fd\":5}]} -- /usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2986855,
+    "ppid": "2986852",
+    "pgid": "2986852",
+    "sid": "2986852",
+    "state": "S",
+    "exe": "/usr/bin/dash",
+    "nspid": [
+      "NSpid:\t2986855\t2"
+    ],
+    "fds": [],
+    "cmd": "/usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2986928,
+    "ppid": "2986834",
+    "pgid": "2986832",
+    "sid": "2986832",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2986928\t3"
+    ],
+    "fds": [
+      {
+        "fd": "3",
+        "path": "/network-process-lock (deleted)",
+        "info": "pos:\t0\nflags:\t02100001\nmnt_id:\t2077\nino:\t1562117\nlock:\t1: FLOCK  ADVISORY  WRITE 2986928 09:7e:1562117 0 EOF\n"
+      }
+    ],
+    "cmd": "python3 - "
+  },
+  {
+    "pid": 2986949,
+    "ppid": "2986848",
+    "pgid": "2986842",
+    "sid": "2986842",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2986949\t3"
+    ],
+    "fds": [
+      {
+        "fd": "3",
+        "path": "/network-process-lock (deleted)",
+        "info": "pos:\t0\nflags:\t02100001\nmnt_id:\t2425\nino:\t135942311\nlock:\t1: FLOCK  ADVISORY  WRITE 2986949 09:7e:135942311 0 EOF\n"
+      }
+    ],
+    "cmd": "python3 - "
+  },
+  {
+    "pid": 2986950,
+    "ppid": "2986855",
+    "pgid": "2986852",
+    "sid": "2986852",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2986950\t3"
+    ],
+    "fds": [
+      {
+        "fd": "3",
+        "path": "/network-process-lock (deleted)",
+        "info": "pos:\t0\nflags:\t02100001\nmnt_id:\t2559\nino:\t168907416\nlock:\t1: FLOCK  ADVISORY  WRITE 2986950 09:7e:168907416 0 EOF\n"
+      }
+    ],
+    "cmd": "python3 - "
+  },
+  {
+    "pid": 2988095,
+    "ppid": "3080",
+    "pgid": "2988095",
+    "sid": "2988095",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/codex-app-server",
+    "nspid": [
+      "NSpid:\t2988095\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/app-server --command-cwd /home/agent/.t3/worktrees/codex/t3-e937eb59-7877d11eabf74250/codex-rs/app-server --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"}]},\"network\":\"restricted\"} --apply-seccomp-then-exec -- python3 -c import time; print('ready', flush=True); time.sleep(30) codex-command-exec-marker-1795041862698421224 "
+  },
+  {
+    "pid": 2988096,
+    "ppid": "2988095",
+    "pgid": "2988095",
+    "sid": "2988095",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2988096\t2"
+    ],
+    "fds": [],
+    "cmd": "python3 -c import time; print('ready', flush=True); time.sleep(30) codex-command-exec-marker-1795041862698421224 "
+  },
+  {
+    "pid": 2988263,
+    "ppid": "3080",
+    "pgid": "2988263",
+    "sid": "2988263",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/deps/all-ec4b617a09cc4538",
+    "nspid": [
+      "NSpid:\t2988263\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /scratch/agent/stable170/tmp/.tmpuqGqoY --command-cwd /scratch/agent/stable170/tmp/.tmpuqGqoY --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpuqGqoY\"},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"slash_tmp\"}},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"tmpdir\"}},\"access\":\"write\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpuqGqoY/.git\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpuqGqoY/.agents\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpuqGqoY/.codex\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpuqGqoY/.aws\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"}]},\"network\":\"enabled\"} --apply-seccomp-then-exec --managed-network {\"loopbackPorts\":[38713,43387],\"allowLocalBinding\":true,\"allowUnixSockets\":[],\"dangerouslyAllowAllUnixSockets\":false} --proxy-route-spec {\"routes\":[{\"env_key\":\"ALL_PROXY\",\"control_fd\":4},{\"env_key\":\"BUNDLE_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"BUNDLE_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"FTP_PROXY\",\"control_fd\":4},{\"env_key\":\"HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_PROXY\",\"control_fd\":5},{\"env_key\":\"PIP_PROXY\",\"control_fd\":5},{\"env_key\":\"WSS_PROXY\",\"control_fd\":5},{\"env_key\":\"WS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"all_proxy\",\"control_fd\":4},{\"env_key\":\"ftp_proxy\",\"control_fd\":4},{\"env_key\":\"http_proxy\",\"control_fd\":5},{\"env_key\":\"https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_http_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_proxy\",\"control_fd\":5},{\"env_key\":\"ws_proxy\",\"control_fd\":5},{\"env_key\":\"wss_proxy\",\"control_fd\":5}]} -- /usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2988264,
+    "ppid": "3080",
+    "pgid": "2988264",
+    "sid": "2988264",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/deps/all-ec4b617a09cc4538",
+    "nspid": [
+      "NSpid:\t2988264\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /scratch/agent/stable170/tmp/.tmpWZM3bB --command-cwd /scratch/agent/stable170/tmp/.tmpWZM3bB --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpWZM3bB\"},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"slash_tmp\"}},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"tmpdir\"}},\"access\":\"write\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpWZM3bB/.git\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpWZM3bB/.agents\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpWZM3bB/.codex\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpWZM3bB/.aws\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"}]},\"network\":\"enabled\"} --apply-seccomp-then-exec --managed-network {\"loopbackPorts\":[35841,45809],\"allowLocalBinding\":true,\"allowUnixSockets\":[],\"dangerouslyAllowAllUnixSockets\":false} --proxy-route-spec {\"routes\":[{\"env_key\":\"ALL_PROXY\",\"control_fd\":4},{\"env_key\":\"BUNDLE_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"BUNDLE_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"FTP_PROXY\",\"control_fd\":4},{\"env_key\":\"HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_PROXY\",\"control_fd\":5},{\"env_key\":\"PIP_PROXY\",\"control_fd\":5},{\"env_key\":\"WSS_PROXY\",\"control_fd\":5},{\"env_key\":\"WS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"all_proxy\",\"control_fd\":4},{\"env_key\":\"ftp_proxy\",\"control_fd\":4},{\"env_key\":\"http_proxy\",\"control_fd\":5},{\"env_key\":\"https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_http_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_proxy\",\"control_fd\":5},{\"env_key\":\"ws_proxy\",\"control_fd\":5},{\"env_key\":\"wss_proxy\",\"control_fd\":5}]} -- /usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2988267,
+    "ppid": "2988263",
+    "pgid": "2988263",
+    "sid": "2988263",
+    "state": "S",
+    "exe": "/usr/bin/dash",
+    "nspid": [
+      "NSpid:\t2988267\t2"
+    ],
+    "fds": [],
+    "cmd": "/usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2988268,
+    "ppid": "2988264",
+    "pgid": "2988264",
+    "sid": "2988264",
+    "state": "S",
+    "exe": "/usr/bin/dash",
+    "nspid": [
+      "NSpid:\t2988268\t2"
+    ],
+    "fds": [],
+    "cmd": "/usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2988294,
+    "ppid": "3080",
+    "pgid": "2988294",
+    "sid": "2988294",
+    "state": "S",
+    "exe": "/scratch/agent/failure-investigation/target/debug/deps/all-ec4b617a09cc4538",
+    "nspid": [
+      "NSpid:\t2988294\t1"
+    ],
+    "fds": [],
+    "cmd": "codex-linux-sandbox --sandbox-policy-cwd /scratch/agent/stable170/tmp/.tmpRzXa9O --command-cwd /scratch/agent/stable170/tmp/.tmpRzXa9O --permission-profile {\"type\":\"managed\",\"file_system\":{\"type\":\"restricted\",\"entries\":[{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"root\"}},\"access\":\"read\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRzXa9O\"},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"slash_tmp\"}},\"access\":\"write\"},{\"path\":{\"type\":\"special\",\"value\":{\"kind\":\"tmpdir\"}},\"access\":\"write\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRzXa9O/.git\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRzXa9O/.agents\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRzXa9O/.codex\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"},{\"path\":{\"type\":\"path\",\"path\":\"/scratch/agent/stable170/tmp/.tmpRzXa9O/.aws\"},\"access\":\"read\",\"missing_path_behavior\":\"skip\"}]},\"network\":\"enabled\"} --apply-seccomp-then-exec --managed-network {\"loopbackPorts\":[35755,41967],\"allowLocalBinding\":true,\"allowUnixSockets\":[],\"dangerouslyAllowAllUnixSockets\":false} --proxy-route-spec {\"routes\":[{\"env_key\":\"ALL_PROXY\",\"control_fd\":4},{\"env_key\":\"BUNDLE_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"BUNDLE_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"DOCKER_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"FTP_PROXY\",\"control_fd\":4},{\"env_key\":\"HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"NPM_CONFIG_PROXY\",\"control_fd\":5},{\"env_key\":\"PIP_PROXY\",\"control_fd\":5},{\"env_key\":\"WSS_PROXY\",\"control_fd\":5},{\"env_key\":\"WS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTPS_PROXY\",\"control_fd\":5},{\"env_key\":\"YARN_HTTP_PROXY\",\"control_fd\":5},{\"env_key\":\"all_proxy\",\"control_fd\":4},{\"env_key\":\"ftp_proxy\",\"control_fd\":4},{\"env_key\":\"http_proxy\",\"control_fd\":5},{\"env_key\":\"https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_http_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_https_proxy\",\"control_fd\":5},{\"env_key\":\"npm_config_proxy\",\"control_fd\":5},{\"env_key\":\"ws_proxy\",\"control_fd\":5},{\"env_key\":\"wss_proxy\",\"control_fd\":5}]} -- /usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2988321,
+    "ppid": "2988294",
+    "pgid": "2988294",
+    "sid": "2988294",
+    "state": "S",
+    "exe": "/usr/bin/dash",
+    "nspid": [
+      "NSpid:\t2988321\t2"
+    ],
+    "fds": [],
+    "cmd": "/usr/bin/sh -c read _; python3 - <<'PY'\nimport fcntl, os, pathlib, socket, threading, urllib.parse\nprocess_lock = open('network-process-lock', 'w')\nfcntl.flock(process_lock, fcntl.LOCK_EX)\nproxy = urllib.parse.urlparse(os.environ['HTTP_PROXY'])\ndef fetch(port):\n    with socket.create_connection((proxy.hostname, proxy.port), timeout=30) as sock:\n        sock.sendall(f'GET http://codex-network-test.invalid:{port}/ HTTP/1.1\\r\\nHost: codex-network-test.invalid:{port}\\r\\nConnection: close\\r\\n\\r\\n'.encode())\n        status = sock.makefile('rb').readline().decode().strip()\n        result = pathlib.Path(f'network-result-{port}')\n        result.with_suffix('.tmp').write_text(status)\n        result.with_suffix('.tmp').replace(result)\nthreads = [threading.Thread(target=fetch, args=(port,)) for port in (80, 81)]\nfor thread in threads:\n    thread.start()\nfor thread in threads:\n    thread.join()\nthreading.Event().wait()\nPY "
+  },
+  {
+    "pid": 2988385,
+    "ppid": "2988267",
+    "pgid": "2988263",
+    "sid": "2988263",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2988385\t3"
+    ],
+    "fds": [
+      {
+        "fd": "3",
+        "path": "/network-process-lock (deleted)",
+        "info": "pos:\t0\nflags:\t02100001\nmnt_id:\t2903\nino:\t357805843\nlock:\t1: FLOCK  ADVISORY  WRITE 2988385 09:7e:357805843 0 EOF\n"
+      }
+    ],
+    "cmd": "python3 - "
+  },
+  {
+    "pid": 2988386,
+    "ppid": "2988268",
+    "pgid": "2988264",
+    "sid": "2988264",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2988386\t3"
+    ],
+    "fds": [
+      {
+        "fd": "3",
+        "path": "/network-process-lock (deleted)",
+        "info": "pos:\t0\nflags:\t02100001\nmnt_id:\t2914\nino:\t672911441\nlock:\t1: FLOCK  ADVISORY  WRITE 2988386 09:7e:672911441 0 EOF\n"
+      }
+    ],
+    "cmd": "python3 - "
+  },
+  {
+    "pid": 2988410,
+    "ppid": "2988321",
+    "pgid": "2988294",
+    "sid": "2988294",
+    "state": "S",
+    "exe": "/usr/bin/python3.14",
+    "nspid": [
+      "NSpid:\t2988410\t3"
+    ],
+    "fds": [
+      {
+        "fd": "3",
+        "path": "/network-process-lock (deleted)",
+        "info": "pos:\t0\nflags:\t02100001\nmnt_id:\t2985\nino:\t908367157\nlock:\t1: FLOCK  ADVISORY  WRITE 2988410 09:7e:908367157 0 EOF\n"
+      }
+    ],
+    "cmd": "python3 - "
+  }
+]

@@ -1,0 +1,5 @@
+bwrap: setting up uid map: Permission denied
+ready b'' outer 3008197
+children []
+outer exit 1
+stdout EOF ready True

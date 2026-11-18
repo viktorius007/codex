@@ -1,0 +1,7 @@
+ready b'label bwrap//&unpriv_bwrap (enforce) before 0\n' outer 3008710
+b'armed\n'
+children ['3008711']
+outer exit -9
+stdout EOF ready True
+survivor 3008711 3008711 (python3) Z 3080 3008711 3008711 0 -1 4228364 1149 0 0 0 0 0 0 0 20 0 1 0 996868 0 0 18446744073709551615 0 0 0 0 0 0 0 16846848 2 1 0 0 17 20 0 0 0 0 0 0 0 0 0 0 0 0 9
+
