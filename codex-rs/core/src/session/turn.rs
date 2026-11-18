@@ -3061,7 +3061,7 @@ async fn try_run_sampling_request(
                 step_context.settings.service_tier.clone(),
                 responses_metadata,
                 &inference_trace,
-                diagnostic_attempts.clone(),
+                diagnostic_attempts,
             )
             .instrument(trace_span!("stream_request"))
             .await

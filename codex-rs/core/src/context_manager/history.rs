@@ -1252,10 +1252,10 @@ impl ContextManager {
                     AcceptedUsageReasoningAccounting::RequiresCompatibilityEstimate
                 )
             });
-        if !self
+        if self
             .token_info
             .as_ref()
-            .is_some_and(|info| info.last_usage_includes_reasoning == Some(true))
+            .is_none_or(|info| info.last_usage_includes_reasoning != Some(true))
             && requires_reasoning_compatibility_estimate
         {
             last_tokens

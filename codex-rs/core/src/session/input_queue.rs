@@ -333,7 +333,7 @@ impl InputQueue {
         turn_state
             .pending_input
             .items
-            .push(TurnInput::InterAgentCommunication(communication.into()));
+            .push(TurnInput::InterAgentCommunication(communication));
         self.activity_tx.send_replace(InputQueueActivity::Mailbox);
         true
     }

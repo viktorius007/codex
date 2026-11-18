@@ -56,13 +56,6 @@ use serde_json::Value;
 use serde_json::json;
 use test_case::test_case;
 use tokio::sync::oneshot;
-use tracing::Subscriber;
-use tracing::span::Attributes;
-use tracing::span::Id;
-use tracing_subscriber::Layer;
-use tracing_subscriber::layer::Context as LayerContext;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
 use wiremock::MockServer;
 
 use super::rmcp_client::remote_aware_environment_id;
