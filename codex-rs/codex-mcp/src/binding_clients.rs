@@ -58,6 +58,17 @@ impl McpBindingClients {
         self.clients.get(server).cloned()
     }
 
+    pub(crate) fn has_same_clients(&self, other: &Self) -> bool {
+        self.deferred_servers == other.deferred_servers
+            && self.clients.len() == other.clients.len()
+            && self.clients.iter().all(|(server, previous)| {
+                other.clients.get(server).is_some_and(|current| {
+                    Arc::ptr_eq(&previous.client, &current.client)
+                        && Arc::ptr_eq(&previous.tool_catalog, &current.tool_catalog)
+                })
+            })
+    }
+
     pub(crate) async fn list_resources(
         &self,
         server: &McpServerKey,

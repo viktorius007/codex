@@ -377,10 +377,9 @@ pub(crate) async fn resolve(
     request.insert("openai/search_context".into(), json!(&context));
     turn_meta["mcp_request_meta"] = json!(&request);
     // Only discovery is stable within the turn. A yielded search can finish on a later step.
-    let cached = turn
-        .extension_data
-        .get::<CachedSearch>()
-        .filter(|cached| Arc::ptr_eq(&cached.base, base) && cached.request == request);
+    let cached = turn.extension_data.get::<CachedSearch>().filter(|cached| {
+        cached.base.has_same_search_discovery_inputs(base) && cached.request == request
+    });
     let fresh = cached.is_none();
     let cached = match cached {
         Some(cached) => cached,

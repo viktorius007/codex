@@ -387,6 +387,9 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
+- [Search repair lane report](/home/agent/fix170-run/search/report.md) — Records the search discovery cache repair, causal regression, scoped validation and cleanup.
+- [Search repair lane validation](/home/agent/fix170-run/search/validation.tar.gz) — Preserves formatter, lint, build, red-control and final search test evidence.
+
 - [harness-audit/mcp-review.md](research/harness-audit/mcp-review.md) — Records the idle MCP cancellation audit; later fixture correction and delivery results are tracked in the run ledger.
 - [harness-audit/mcp-findings.json](research/harness-audit/mcp-findings.json) — Preserves the initial structured MCP recovery finding and test evidence.
 - [harness-audit/mcp-red.txt](research/harness-audit/mcp-red.txt) — Preserves the initial coordinator MCP failure replay before the documented presentation-fixture correction.

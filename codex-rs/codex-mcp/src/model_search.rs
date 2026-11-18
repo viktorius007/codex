@@ -26,6 +26,22 @@ pub enum SearchDiscovery {
 }
 
 impl McpBinding {
+    /// Whether discovery can reuse the complete projected binding and its authority.
+    /// Startup may capture a new binding without changing any of these inputs.
+    pub fn has_same_search_discovery_inputs(&self, other: &Self) -> bool {
+        self.config.as_ref() == other.config.as_ref()
+            && self.plugins_available == other.plugins_available
+            && self.tools == other.tools
+            && self.clients.has_same_clients(&other.clients)
+            && self.calls.len() == other.calls.len()
+            && self.calls.iter().all(|(key, previous)| {
+                other.calls.get(key).is_some_and(|current| {
+                    previous.has_same_execution_authority(current)
+                        && previous.tool_info() == current.tool_info()
+                })
+            })
+    }
+
     /// Preserve the discovery pin while letting normal dispatch recheck current tool visibility,
     /// account selection and approval policy. Never transfer the pin to a different transport.
     pub fn search_invocation_context(&self, live: &crate::PreparedMcpCall) -> Option<&JsonValue> {

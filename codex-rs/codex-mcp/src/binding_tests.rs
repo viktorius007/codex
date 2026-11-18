@@ -195,6 +195,107 @@ async fn test_step(
 }
 
 #[tokio::test]
+async fn search_discovery_reuse_tracks_inputs_instead_of_binding_allocation() {
+    let original = test_step(
+        "old",
+        AppToolApproval::Prompt,
+        /*supports_sandbox_state_meta*/ true,
+    )
+    .await;
+    let replacement = test_step(
+        "old",
+        AppToolApproval::Prompt,
+        /*supports_sandbox_state_meta*/ true,
+    )
+    .await;
+    let search_binding = |step: &McpBinding| {
+        let mut tool = step.tools[0].clone();
+        tool.server_key = McpServerKey::unscoped(crate::CODEX_APPS_MCP_SERVER_NAME);
+        tool.connector_id = Some(super::SEARCH_CONNECTOR.to_string());
+        tool.tool.name = "search_service.web_run".into();
+        let mut call = step.calls.values().next().unwrap().clone();
+        call.tool_info = tool.clone().into();
+        McpBinding::new(
+            Arc::clone(&step.connections),
+            Arc::clone(&step.clients),
+            Arc::clone(&step.config),
+            step.plugins_available,
+            vec![tool.clone(), step.tools[0].clone()],
+            HashMap::from([
+                ((tool.server_key, tool.tool.name.to_string()), call),
+                (
+                    (McpServerKey::unscoped(SERVER_NAME), TOOL_NAME.to_string()),
+                    step.calls.values().next().unwrap().clone(),
+                ),
+            ]),
+        )
+    };
+    let previous = search_binding(&original.step);
+    let same = search_binding(&original.step);
+    let different_client = search_binding(&replacement.step);
+    let mut different_catalog = search_binding(&original.step);
+    let search_key = (
+        McpServerKey::unscoped(crate::CODEX_APPS_MCP_SERVER_NAME),
+        "search_service.web_run".to_string(),
+    );
+    let call = different_catalog.calls.get_mut(&search_key).unwrap();
+    Arc::make_mut(&mut call.catalog_snapshot).revision += 1;
+    let mut different_authority = search_binding(&original.step);
+    let call = different_authority.calls.get_mut(&search_key).unwrap();
+    Arc::make_mut(&mut call.config).permission_profile = PermissionProfile::read_only();
+    let mut different_contract = search_binding(&original.step);
+    let call = different_contract.calls.get_mut(&search_key).unwrap();
+    let mut tool = call.tool_info().clone();
+    tool.tool.description = Some("changed search contract".into());
+    call.tool_info = tool.clone().into();
+    Arc::make_mut(&mut different_contract.tools)[0] = tool;
+    let mut different_server = search_binding(&original.step);
+    let mut call = different_server.calls.remove(&search_key).unwrap();
+    let mut tool = call.tool_info().clone();
+    tool.server_key =
+        McpServerKey::in_environment("other-environment", crate::CODEX_APPS_MCP_SERVER_NAME);
+    call.tool_info = tool.clone().into();
+    Arc::make_mut(&mut different_server.tools)[0] = tool.clone();
+    different_server
+        .calls
+        .insert((tool.server_key, tool.tool.name.to_string()), call);
+    let mut different_other_catalog = search_binding(&original.step);
+    let other_key = (McpServerKey::unscoped(SERVER_NAME), TOOL_NAME.to_string());
+    let call = different_other_catalog.calls.get_mut(&other_key).unwrap();
+    Arc::make_mut(&mut call.catalog_snapshot).revision += 1;
+    let mut different_resource_client = search_binding(&original.step);
+    different_resource_client.clients = Arc::clone(&replacement.step.clients);
+    let mut different_deferred_servers = search_binding(&original.step);
+    different_deferred_servers.clients = Arc::new(McpBindingClients::new(
+        HashMap::from([(
+            McpServerKey::unscoped(SERVER_NAME),
+            original
+                .step
+                .clients
+                .client(&McpServerKey::unscoped(SERVER_NAME))
+                .unwrap(),
+        )]),
+        vec![McpServerKey::unscoped("deferred")],
+    ));
+
+    assert_eq!(
+        [
+            &same,
+            &different_client,
+            &different_catalog,
+            &different_authority,
+            &different_contract,
+            &different_server,
+            &different_other_catalog,
+            &different_resource_client,
+            &different_deferred_servers,
+        ]
+        .map(|binding| previous.has_same_search_discovery_inputs(binding)),
+        [true, false, false, false, false, false, false, false, false],
+    );
+}
+
+#[tokio::test]
 async fn prepared_call_keeps_captured_connection_and_authority_after_refresh() -> anyhow::Result<()>
 {
     let old = test_step(
