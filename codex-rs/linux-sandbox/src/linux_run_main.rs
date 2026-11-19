@@ -120,6 +120,10 @@ pub struct LinuxSandboxCommand {
     #[arg(long = "inherit-pid-namespace", hide = true)]
     pub inherit_pid_namespace: bool,
 
+    /// Internal: observe the outer launcher's lifetime across bubblewrap exec.
+    #[arg(long = "launcher-lifetime-fd", hide = true)]
+    pub launcher_lifetime_fd: Option<libc::c_int>,
+
     /// Full command args to run under the Linux sandbox helper.
     #[arg(trailing_var_arg = true)]
     pub command: Vec<String>,
@@ -144,6 +148,7 @@ pub fn run_main() -> ! {
         verify_fd_mounts,
         no_proc,
         inherit_pid_namespace,
+        launcher_lifetime_fd,
         command,
     } = LinuxSandboxCommand::parse();
     let allow_network_for_proxy = managed_network.is_some();
@@ -153,6 +158,9 @@ pub fn run_main() -> ! {
     }
     if !apply_seccomp_then_exec && !verify_fd_mounts.is_empty() {
         panic!("--verify-fd-mount is only supported in the inner sandbox stage");
+    }
+    if !apply_seccomp_then_exec && launcher_lifetime_fd.is_some() {
+        panic!("--launcher-lifetime-fd is only supported in the inner sandbox stage");
     }
     ensure_inner_stage_mode_is_valid(apply_seccomp_then_exec, use_legacy_landlock);
     let EffectivePermissions {
@@ -165,6 +173,7 @@ pub fn run_main() -> ! {
     // Inner stage: apply seccomp/no_new_privs after bubblewrap has already
     // established the filesystem view.
     if apply_seccomp_then_exec {
+        let launcher_lifetime = launcher_lifetime_fd.map(crate::lifetime::take_launcher_lifetime);
         if let Err(err) = crate::fd_mount::verify_fd_mounts(&verify_fd_mounts) {
             panic!("failed to verify descriptor-backed bubblewrap mount: {err}");
         }
@@ -228,24 +237,11 @@ pub fn run_main() -> ! {
 
         let signal_forwarders = install_bwrap_signal_forwarders(command_pid);
         signal_mask.restore();
-        loop {
-            let mut status = 0;
-            let reaped_pid = unsafe { libc::waitpid(-1, &mut status, 0) };
-            if reaped_pid == command_pid {
-                let exit_signal_mask = ForwardedSignalMask::block();
-                signal_forwarders.restore();
-                exit_signal_mask.restore();
-                exit_with_wait_status(status);
-            }
-            if reaped_pid >= 0 {
-                continue;
-            }
-
-            let err = std::io::Error::last_os_error();
-            if err.raw_os_error() != Some(libc::EINTR) {
-                panic!("failed to reap sandboxed child: {err}");
-            }
-        }
+        let status = crate::lifetime::wait_for_command(command_pid, launcher_lifetime);
+        let exit_signal_mask = ForwardedSignalMask::block();
+        signal_forwarders.restore();
+        exit_signal_mask.restore();
+        exit_with_wait_status(status);
     }
 
     if file_system_sandbox_policy.has_full_disk_write_access() && !allow_network_for_proxy {
@@ -397,7 +393,7 @@ fn run_bwrap_with_proc_fallback(
     command_cwd: Option<&Path>,
     file_system_sandbox_policy: &FileSystemSandboxPolicy,
     mut options: BwrapOptions,
-    inner: Vec<String>,
+    mut inner: Vec<String>,
     proxy_controls: Vec<File>,
 ) -> ! {
     let command_cwd = command_cwd.unwrap_or(sandbox_policy_cwd);
@@ -414,6 +410,16 @@ fn run_bwrap_with_proc_fallback(
         options.mount_proc = false;
     }
 
+    // Capture this process before either execing bubblewrap or entering the
+    // synthetic-mount wrapper. Its pidfd remains valid across both launch chains.
+    let launcher_lifetime = crate::lifetime::open_launcher_lifetime();
+    inner.splice(
+        1..1,
+        [
+            "--launcher-lifetime-fd".to_string(),
+            launcher_lifetime.as_raw_fd().to_string(),
+        ],
+    );
     let mut bwrap_args = build_bwrap_argv(
         inner,
         file_system_sandbox_policy,
@@ -423,6 +429,7 @@ fn run_bwrap_with_proc_fallback(
     )
     .unwrap_or_else(|err| exit_with_bwrap_build_error(err));
     bwrap_args.preserved_files.extend(proxy_controls);
+    bwrap_args.preserved_files.push(launcher_lifetime);
     apply_inner_command_argv0(&mut bwrap_args.args);
     run_or_exec_bwrap(bwrap_args);
 }
