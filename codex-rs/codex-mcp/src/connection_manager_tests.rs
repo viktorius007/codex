@@ -103,6 +103,9 @@ use tokio::io::DuplexStream;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
+#[path = "connection_manager/search_discovery_tests.rs"]
+mod search_discovery_tests;
+
 impl McpConnectionSet {
     fn new_uninitialized(
         approval_policy: &Constrained<AskForApproval>,

@@ -389,6 +389,15 @@ pub(crate) struct McpConnectionSet {
 }
 
 impl McpConnectionSet {
+    /// Includes pending servers used by named resource requests before catalog capture.
+    pub(crate) fn has_same_connections(&self, other: &Self) -> bool {
+        self.servers.len() == other.servers.len()
+            && self
+                .servers
+                .keys()
+                .all(|server| self.shares_server_connection(other, server))
+    }
+
     pub(crate) fn has_same_server_connection_identity(
         &self,
         current: &Self,
