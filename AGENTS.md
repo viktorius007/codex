@@ -387,12 +387,6 @@ Codex supports running connected app-server and exec-server on different operati
 
 ## Generated document index
 
-- [Fixture repair report](/home/agent/fix170-run/fixture/report.md) — Records the TMPDIR-independent sandbox fixture repair, validation, and cleanup.
-- [Fixture formatter log](/home/agent/fix170-run/fixture/fmt.log) — Records required repository formatting for the fixture repair.
-- [Fixture lint log](/home/agent/fix170-run/fixture/fix.log) — Records scoped automatic lint checks for the Linux sandbox crate.
-- [Fixture crate test log](/home/agent/fix170-run/fixture/test.log) — Records the complete Linux sandbox crate test run under private scratch TMPDIR.
-- [Fixture alternate TMPDIR log](/home/agent/fix170-run/fixture/tmpdir-test.log) — Records the repaired repository-discovery test under a second temporary-directory root.
-
 - [harness-audit/mcp-review.md](research/harness-audit/mcp-review.md) — Records the idle MCP cancellation audit; later fixture correction and delivery results are tracked in the run ledger.
 - [harness-audit/mcp-findings.json](research/harness-audit/mcp-findings.json) — Preserves the initial structured MCP recovery finding and test evidence.
 - [harness-audit/mcp-red.txt](research/harness-audit/mcp-red.txt) — Preserves the initial coordinator MCP failure replay before the documented presentation-fixture correction.
