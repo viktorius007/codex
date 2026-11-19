@@ -206,7 +206,9 @@ fn install_network_seccomp_filter_on_current_thread(
             deny_syscall(&mut rules, libc::SYS_accept4);
             deny_syscall(&mut rules, libc::SYS_bind);
             deny_syscall(&mut rules, libc::SYS_listen);
-            deny_syscall(&mut rules, libc::SYS_getpeername);
+            // getpeername only inspects an existing socket; it cannot send or
+            // receive data. Let non-sockets return ENOTSOCK, since Bash treats
+            // EPERM here as remote stdin and unexpectedly reads startup files.
             deny_syscall(&mut rules, libc::SYS_getsockname);
             deny_syscall(&mut rules, libc::SYS_shutdown);
             deny_syscall(&mut rules, libc::SYS_sendto);
