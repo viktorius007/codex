@@ -30,6 +30,7 @@ impl McpBinding {
     /// Startup may capture a new binding without changing any of these inputs.
     pub fn has_same_search_discovery_inputs(&self, other: &Self) -> bool {
         self.config.as_ref() == other.config.as_ref()
+            && self.connections.has_same_connections(&other.connections)
             && self.plugins_available == other.plugins_available
             && self.tools == other.tools
             && self.clients.has_same_clients(&other.clients)
