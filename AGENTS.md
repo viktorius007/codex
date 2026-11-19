@@ -892,3 +892,5 @@ Codex supports running connected app-server and exec-server on different operati
 - [Failure causal shell-syscall-trace.txt](research/failure-causal/shell-syscall-trace.txt) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
 
 - [Failure causal shell-tmp.log](research/failure-causal/shell-tmp.log) — Preserves focused replay commands, observations, diagnostic controls or verification evidence.
+
+- [Stable 0.170.0 repairs](research/stable-0.170.0-repairs.md) — Records the four local.15 repairs, the remaining /dev/fd limit, full-suite results and installation.
