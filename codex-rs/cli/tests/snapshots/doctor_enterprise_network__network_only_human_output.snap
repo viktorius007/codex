@@ -3,7 +3,7 @@ source: cli/tests/doctor_enterprise_network.rs
 assertion_line: 223
 expression: stdout
 ---
-Codex Doctor v0.170.0+local.14
+Codex Doctor v0.170.0+local.15
 
 Configuration
   [ok] config       loaded
