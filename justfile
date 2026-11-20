@@ -43,11 +43,12 @@ code-mode-host *args:
 assemble-codex-package *args:
     {{ python }} {{ justfile_directory() }}/scripts/build_codex_package.py {args}
 
-# Build the local CLI package and install it as the active local release.
+# Build the local CLI package; installing it machine-wide needs sudo and is printed as the next step.
 [no-cd]
 install-local-package:
     RUSTY_V8_ARCHIVE={{ rusty_v8_cache }}/librusty_v8_ptrcomp_sandbox_release_{{ rusty_v8_target }}.a.gz RUSTY_V8_SRC_BINDING_PATH={{ env_var_or_default("RUSTY_V8_SRC_BINDING_PATH", rusty_v8_cache / ("src_binding_ptrcomp_sandbox_release_" + rusty_v8_target + ".rs")) }} {{ python }} {{ justfile_directory() }}/scripts/build_codex_package.py --package-dir {{ justfile_directory() }}/codex-rs/target/local-package --target {{ rusty_v8_target }} --cargo-profile dev-small --force
-    sh {{ justfile_directory() }}/scripts/install/install_local_package.sh {{ justfile_directory() }}/codex-rs/target/local-package
+    @echo 'Install machine-wide with: sudo -H sh {{ justfile_directory() }}/scripts/install/install_local_package.sh {{ justfile_directory() }}/codex-rs/target/local-package /usr/local/lib/codex-local /usr/local/bin'
+    @echo 'Then, in each macOS account: codex app-server daemon update --from-cli --yes'
 
 # Build the CLI and run the app-server test client
 app-server-test-client *args:
